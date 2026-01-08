@@ -8,21 +8,23 @@ import { AuthProvider } from '@/lib/auth/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Co Housing Ventures - Affordable Co-Ownership Real Estate in India',
+  title: 'H Co Housy Ventures - Affordable Co-Ownership Real Estate in India',
   description: 'Unlock your dream home through co-housing. Join forces with verified co-buyers to own premium properties at a fraction of the cost. Explore opportunities now.',
-  keywords: ['co-housing', 'real estate', 'shared ownership', 'affordable housing', 'property investment', 'India'],
-  authors: [{ name: 'Co Housing Ventures' }],
+  keywords: ['co-housing', 'real estate', 'shared ownership', 'affordable housing', 'property investment', 'India', 'housy ventures'],
+  authors: [{ name: 'H Co Housy Ventures' }],
   openGraph: {
-    title: 'Co Housing Ventures - Affordable Co-Ownership Real Estate',
+    title: 'H Co Housy Ventures - Affordable Co-Ownership Real Estate',
     description: 'Unlock your dream home through co-housing. Join forces to own premium properties at a fraction of the cost.',
     type: 'website',
     locale: 'en_IN',
-    siteName: 'Co Housing Ventures',
+    siteName: 'H Co Housy Ventures',
+    images: ['/logo.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Co Housing Ventures',
+    title: 'H Co Housy Ventures',
     description: 'Unlock your dream home through co-housing.',
+    images: ['/logo.png'],
   },
   viewport: {
     width: 'device-width',
@@ -52,7 +54,9 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-        <link rel="icon" href="/logo.svg" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={inter.className}>
         <AuthProvider>

@@ -42,15 +42,11 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 z-10">
-            <div className="w-10 h-10 bg-coral rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-xl">CH</span>
-            </div>
-            <span className={cn(
-              "font-bold text-xl hidden sm:block transition-colors",
-              isScrolled ? "text-charcoal" : "text-white drop-shadow-lg"
-            )}>
-              Co Housing Ventures
-            </span>
+            <img 
+              src="/logo.png" 
+              alt="H Co Housy Ventures" 
+              className="h-12 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}

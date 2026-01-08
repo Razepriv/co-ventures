@@ -61,13 +61,12 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           {/* Brand Column */}
           <div>
-            <Link href="/" className="flex items-center space-x-2 mb-4">
-              <div className="w-9 h-9 bg-coral rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">CH</span>
-              </div>
-              <span className="font-bold text-lg text-white">
-                Co Housing Ventures
-              </span>
+            <Link href="/" className="flex items-center mb-6">
+              <img 
+                src="/logo.png" 
+                alt="H Co Housy Ventures" 
+                className="h-10 w-auto"
+              />
             </Link>
             
             <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-[280px]">
