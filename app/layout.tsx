@@ -8,21 +8,21 @@ import { AuthProvider } from '@/lib/auth/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'H Co Housy Ventures - Affordable Co-Ownership Real Estate in India',
+  title: 'Co Housy Ventures - Affordable Co-Ownership Real Estate in India',
   description: 'Unlock your dream home through co-housing. Join forces with verified co-buyers to own premium properties at a fraction of the cost. Explore opportunities now.',
   keywords: ['co-housing', 'real estate', 'shared ownership', 'affordable housing', 'property investment', 'India', 'housy ventures'],
-  authors: [{ name: 'H Co Housy Ventures' }],
+  authors: [{ name: 'Co Housy Ventures' }],
   openGraph: {
-    title: 'H Co Housy Ventures - Affordable Co-Ownership Real Estate',
+    title: 'Co Housy Ventures - Affordable Co-Ownership Real Estate',
     description: 'Unlock your dream home through co-housing. Join forces to own premium properties at a fraction of the cost.',
     type: 'website',
     locale: 'en_IN',
-    siteName: 'H Co Housy Ventures',
+    siteName: 'Co Housy Ventures',
     images: ['/logo.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'H Co Housy Ventures',
+    title: 'Co Housy Ventures',
     description: 'Unlock your dream home through co-housing.',
     images: ['/logo.png'],
   },

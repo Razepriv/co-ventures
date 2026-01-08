@@ -64,7 +64,7 @@ export const Footer: React.FC = () => {
             <Link href="/" className="flex items-center mb-6">
               <img 
                 src="/logo.png" 
-                alt="H Co Housy Ventures" 
+                alt="Co Housy Ventures" 
                 className="h-10 w-auto"
               />
             </Link>

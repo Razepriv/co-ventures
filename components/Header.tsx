@@ -44,7 +44,7 @@ export const Header: React.FC = () => {
           <Link href="/" className="flex items-center space-x-2 z-10">
             <img 
               src="/logo.png" 
-              alt="H Co Housy Ventures" 
+              alt="Co Housy Ventures" 
               className="h-12 w-auto"
             />
           </Link>

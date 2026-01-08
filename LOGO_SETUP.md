@@ -14,7 +14,7 @@ You need to manually add the following image files to the `public` folder:
 
 ### 1. Main Logo
 **File:** `public/logo.png`
-- **Source:** The "h co housy ventures" logo image you provided
+- **Source:** The "co housy ventures" logo image you provided
 - **Recommended size:** 512x512px (transparent background)
 - **Format:** PNG with alpha channel
 
@@ -105,7 +105,7 @@ After adding the images:
 4. **Commit changes:**
    ```bash
    git add .
-   git commit -m "Add H Co Housy Ventures logo and favicons"
+   git commit -m "Add Co Housy Ventures logo and favicons"
    git push
    ```
 
