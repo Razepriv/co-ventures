@@ -64,7 +64,7 @@ export const Footer: React.FC = () => {
             <Link href="/" className="flex items-center mb-6">
               <img 
                 src="/logo.svg" 
-                alt="Co Housy Ventures" 
+                alt="Co-ventures" 
                 className="h-10 w-auto"
               />
             </Link>
@@ -186,7 +186,7 @@ export const Footer: React.FC = () => {
         <div className="pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500">
-              © 2026 Co Housing Ventures. All rights reserved.
+              © 2026 Co-ventures. All rights reserved.
             </p>
             <div className="flex gap-6">
               <Link href="/privacy" className="text-sm text-gray-500 hover:text-coral transition-colors">

@@ -30,7 +30,7 @@ export const FeaturedPropertiesSection: React.FC = () => {
     <Section className="py-24 lg:py-32">
       <div className="flex justify-between items-center mb-12">
         <h2 className="text-3xl md:text-4xl font-bold text-charcoal">
-          Featured Properties
+          Featured Opportunities
         </h2>
         <Link
           href="/properties"
@@ -139,7 +139,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggle
           {/* Bottom Row */}
           <div className="flex items-center justify-between">
             {property.coHousingAvailable && (
-              <Badge variant="peach">Co-housing opportunity</Badge>
+              <Badge variant="peach">Curated investment opportunity</Badge>
             )}
             <span className="text-coral text-sm font-medium inline-flex items-center gap-1 ml-auto group-hover:gap-2 transition-all">
               View Details

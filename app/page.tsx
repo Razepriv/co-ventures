@@ -4,6 +4,7 @@ import { HeroSection } from '@/components/home/HeroSection';
 import { SearchBarSection } from '@/components/home/SearchBarSection';
 import { WhyCoHousingSection } from '@/components/home/WhyCoHousingSection';
 import { FeaturedPropertiesSection } from '@/components/home/FeaturedPropertiesSection';
+import { AICommitteeSection } from '@/components/home/AICommitteeSection';
 import { HowItWorksSection } from '@/components/home/HowItWorksSection';
 import { ServicesSection } from '@/components/home/ServicesSection';
 import { SuccessStoriesSection } from '@/components/home/SuccessStoriesSection';
@@ -21,6 +22,7 @@ export default function HomePage() {
         <SearchBarSection />
         <WhyCoHousingSection />
         <FeaturedPropertiesSection />
+        <AICommitteeSection />
         <HowItWorksSection />
         <ServicesSection />
         <SuccessStoriesSection />

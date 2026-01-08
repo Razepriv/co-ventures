@@ -21,10 +21,10 @@ export const HeroSection: React.FC = () => {
       {/* Full-Width Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80"
-          alt="Luxury modern home with pool"
+          src="/hero-image.jpeg"
+          alt="Invest in India's Growth Corridors"
           fill
-          className="object-cover"
+          className="object-cover object-[center_25%]"
           priority
           quality={90}
         />
@@ -44,7 +44,7 @@ export const HeroSection: React.FC = () => {
             className="text-left"
           >
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-2xl">
-              Unlock Your Dream Home Through Co-Housing
+              Invest in India&apos;s Growth Corridors with Confidence
             </h1>
             
             <motion.div
@@ -58,7 +58,7 @@ export const HeroSection: React.FC = () => {
                 onClick={handleExploreProperties}
                 className="text-lg px-8 py-6 shadow-2xl hover:shadow-coral/50"
               >
-                Explore Properties
+                Explore Opportunities
               </Button>
               <Button 
                 size="lg" 
@@ -66,7 +66,7 @@ export const HeroSection: React.FC = () => {
                 onClick={handleHowItWorks}
                 className="text-lg px-8 py-6 bg-white/10 backdrop-blur-md border-2 border-white text-white hover:bg-white hover:text-coral shadow-2xl"
               >
-                How It Works
+                Our Strategy
               </Button>
             </motion.div>
           </motion.div>
@@ -80,8 +80,7 @@ export const HeroSection: React.FC = () => {
           >
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 max-w-md shadow-2xl">
               <p className="text-xl text-white leading-relaxed">
-                Join forces, share costs, and own premium properties that were once out of reach. 
-                Your future home awaits.
+                Co-ventures gives you access to curated real estate opportunities across India&apos;s fastest-growing micro-markets - backed by disciplined underwriting and a capital-first mindset.
               </p>
             </div>
           </motion.div>
@@ -102,8 +101,7 @@ export const HeroSection: React.FC = () => {
                 <Home className="w-6 h-6 text-coral" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-coral">500+</p>
-                <p className="text-sm text-gray-600">Happy Families</p>
+                <p className="text-sm font-semibold text-gray-600">Curated Deal Pipeline</p>
               </div>
             </div>
 
@@ -112,8 +110,7 @@ export const HeroSection: React.FC = () => {
                 <IndianRupee className="w-6 h-6 text-coral" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-coral">₹100Cr+</p>
-                <p className="text-sm text-gray-600">Properties</p>
+                <p className="text-sm font-semibold text-gray-600">Multi-City Coverage</p>
               </div>
             </div>
 
@@ -122,8 +119,7 @@ export const HeroSection: React.FC = () => {
                 <Shield className="w-6 h-6 text-coral" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-coral">RERA</p>
-                <p className="text-sm text-gray-600">Certified</p>
+                <p className="text-sm font-semibold text-gray-600">Diligence-First Process</p>
               </div>
             </div>
           </div>

@@ -17,10 +17,10 @@ export const SuccessStoriesSection: React.FC = () => {
     <Section className="py-24 lg:py-32">
       <div className="text-center mb-16">
         <p className="text-coral text-xs font-semibold tracking-widest uppercase mb-4">
-          CUSTOMER SUCCESS STORIES
+          INVESTOR STORIES
         </p>
         <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-charcoal">
-          Real Stories, Real Transformations
+          Decisions Backed by Process
         </h2>
       </div>
 

@@ -9,28 +9,28 @@ import { Button } from '../ui/Button';
 const services = [
   {
     icon: Search,
-    title: 'Property Search & Matching',
-    description: 'Access exclusive properties and get matched with ideal co-housing opportunities',
+    title: 'Opportunity Sourcing & Screening',
+    description: 'Curated pipeline built around demand signals, micro-market strength, and clear value levers.',
   },
   {
     icon: FileCheck,
-    title: 'Legal Documentation & RERA Compliance',
-    description: 'Complete legal support ensuring RERA compliance and secure ownership transfer',
+    title: 'Underwriting & Scenario Modeling',
+    description: 'Base case + downside case analysis with measurable drivers and conservative assumptions.',
   },
   {
     icon: Calculator,
-    title: 'Financial Planning & Loan Assistance',
-    description: 'Expert guidance on financing options, loan applications, and investment planning',
+    title: 'Legal & Documentation Support',
+    description: 'Clean documentation standards, compliance checks, and structured closing workflows.',
   },
   {
     icon: UserCheck,
-    title: 'Co-Buyer Verification & Matching',
-    description: 'Thorough background verification and strategic matching with compatible co-buyers',
+    title: 'On-Ground Due Diligence',
+    description: 'Location verification, builder checks, project readiness, and practical risk assessment.',
   },
   {
     icon: Building,
-    title: 'Property Management Services',
-    description: 'Ongoing support for property maintenance and management after purchase',
+    title: 'Portfolio Support & Reporting',
+    description: 'Clear updates, milestone tracking, and decision points communicated in plain English.',
   },
 ];
 
@@ -54,10 +54,10 @@ export const ServicesSection: React.FC = () => {
         {/* Right Content - 60% */}
         <div className="lg:col-span-3 order-1 lg:order-2">
           <p className="text-coral text-xs font-semibold tracking-widest uppercase mb-4">
-            COMPREHENSIVE SOLUTIONS
+            END-TO-END EXECUTION
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-charcoal mb-8">
-            Everything You Need Under One Roof
+            Everything Needed to Invest with Clarity
           </h2>
 
           <div className="space-y-6 mb-10">
@@ -82,7 +82,7 @@ export const ServicesSection: React.FC = () => {
           </div>
 
           <Button size="lg" onClick={() => window.location.href = '/services'}>
-            Explore All Services →
+            Explore Our Services →
           </Button>
         </div>
       </div>

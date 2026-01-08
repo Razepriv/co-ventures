@@ -2,8 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Home, IndianRupee, Building, Star } from 'lucide-react';
-import { Section } from '../ui/Section';
-import { mockStats } from '@/lib/mockData';
 
 interface StatProps {
   icon: React.ElementType;
@@ -16,8 +14,16 @@ const StatCounter: React.FC<StatProps> = ({ icon: Icon, value, label, suffix = '
   const [count, setCount] = useState(0);
   const [hasAnimated, setHasAnimated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  
+  // Check if value is a range (contains -) or needs special handling
+  const isRange = typeof value === 'string' && value.includes('-');
 
   useEffect(() => {
+    // Skip animation for range values
+    if (isRange) {
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
@@ -49,10 +55,12 @@ const StatCounter: React.FC<StatProps> = ({ icon: Icon, value, label, suffix = '
     }
 
     return () => observer.disconnect();
-  }, [value, hasAnimated]);
+  }, [value, hasAnimated, isRange]);
 
   const displayValue = typeof value === 'string' && value.includes('Cr') 
     ? `₹${count}Cr${suffix}` 
+    : isRange
+    ? `${value}${suffix}`
     : `${count}${suffix}`;
 
   return (
@@ -77,29 +85,32 @@ export const ByTheNumbersSection: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
           <StatCounter
             icon={Home}
-            value={mockStats.happyFamilies}
-            label="Happy Families"
+            value="250"
+            label="Opportunities Evaluated"
             suffix="+"
           />
           <StatCounter
             icon={IndianRupee}
-            value="100"
-            label="Property Value"
-            suffix="Cr+"
+            value="10"
+            label="Cities Tracked"
+            suffix="+"
           />
           <StatCounter
             icon={Building}
-            value={mockStats.completedProjects}
-            label="Completed Projects"
+            value="40"
+            label="Active Markets Screened"
             suffix="+"
           />
           <StatCounter
             icon={Star}
-            value={mockStats.satisfactionRate}
-            label="Satisfaction Rate"
-            suffix="%"
+            value="48-72"
+            label="Decision Turnaround"
+            suffix=" hrs"
           />
         </div>
+        <p className="text-center text-white/80 text-sm mt-8 max-w-2xl mx-auto">
+          Figures shown are internal pipeline metrics, not investor returns.
+        </p>
       </div>
     </section>
   );

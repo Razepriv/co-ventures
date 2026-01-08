@@ -9,26 +9,26 @@ const steps = [
   {
     number: '01',
     icon: Search,
-    title: 'Browse & Select',
-    description: 'Explore our curated properties and find your perfect match',
+    title: 'Discover',
+    description: 'Browse curated opportunities across growth micro-markets and filter by thesis and risk profile.',
   },
   {
     number: '02',
     icon: Users,
-    title: 'Connect with Co-Buyers',
-    description: 'We match you with verified co-buyers sharing similar goals',
+    title: 'Evaluate',
+    description: 'Review our diligence highlights - market signals, comps, underwriting assumptions, and key risk flags.',
   },
   {
     number: '03',
     icon: FileCheck,
-    title: 'Legal & Financial Setup',
-    description: 'Our experts handle all documentation and financing arrangements',
+    title: 'Confirm',
+    description: 'We guide you through the paperwork, timelines, and next steps so execution stays clean and predictable.',
   },
   {
     number: '04',
     icon: Home,
-    title: 'Move Into Your Home',
-    description: 'Complete ownership transfer and start your new chapter',
+    title: 'Track & Review',
+    description: 'Stay updated with a structured cadence and clear milestones - so you always know the status.',
   },
 ];
 
@@ -42,7 +42,7 @@ export const HowItWorksSection: React.FC = () => {
           How it works
         </h2>
         <p className="text-lg text-[#6B7280] leading-relaxed">
-          Your journey to co-ownership made simple. Follow these easy steps to find your perfect property and connect with like-minded co-buyers.
+          A clear, investor-friendly process - built to evaluate opportunities, manage risk, and make decisions with discipline.
         </p>
       </div>
 

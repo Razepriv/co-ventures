@@ -33,7 +33,7 @@ export const SearchBarSection: React.FC = () => {
               <div className="flex items-start gap-3 p-5 hover:bg-gray-50 transition-colors cursor-pointer border-b lg:border-b-0 lg:border-r border-gray-100">
                 <MapPin className="w-5 h-5 text-coral mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Location</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">City / Micro-market</label>
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
@@ -57,7 +57,7 @@ export const SearchBarSection: React.FC = () => {
               <div className="flex items-start gap-3 p-5 hover:bg-gray-50 transition-colors cursor-pointer border-b lg:border-b-0 lg:border-r border-gray-100">
                 <Building2 className="w-5 h-5 text-coral mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Property Type</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Asset Type</label>
                   <select
                     className="w-full text-sm font-semibold text-charcoal bg-transparent focus:outline-none cursor-pointer appearance-none pr-6"
                     style={{ backgroundImage: "url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2212%22%20height%3D%227%22%20viewBox%3D%220%200%2012%207%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M1%201L6%206L11%201%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')", backgroundRepeat: 'no-repeat', backgroundPosition: 'right center', backgroundSize: '12px' }}
@@ -80,9 +80,9 @@ export const SearchBarSection: React.FC = () => {
               <div className="flex items-start gap-3 p-5 hover:bg-gray-50 transition-colors cursor-pointer border-b lg:border-b-0 lg:border-r border-gray-100">
                 <IndianRupee className="w-5 h-5 text-coral mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Price Range</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Ticket Size</label>
                   <div className="text-sm font-semibold text-charcoal truncate">
-                    ₹50L - ₹2Cr
+                    ₹25L - ₹5Cr
                   </div>
                 </div>
               </div>
@@ -93,7 +93,7 @@ export const SearchBarSection: React.FC = () => {
               <div className="flex items-start gap-3 p-5 hover:bg-gray-50 transition-colors cursor-pointer border-b lg:border-b-0 lg:border-r border-gray-100">
                 <Bed className="w-5 h-5 text-coral mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Bedrooms</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Investment Horizon</label>
                   <select
                     className="w-full text-sm font-semibold text-charcoal bg-transparent focus:outline-none cursor-pointer appearance-none pr-6"
                     style={{ backgroundImage: "url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2212%22%20height%3D%227%22%20viewBox%3D%220%200%2012%207%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M1%201L6%206L11%201%22%20stroke%3D%22%23666%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')", backgroundRepeat: 'no-repeat', backgroundPosition: 'right center', backgroundSize: '12px' }}
@@ -118,7 +118,7 @@ export const SearchBarSection: React.FC = () => {
                 size="lg"
               >
                 <Search className="w-5 h-5 mr-2" />
-                Search
+                Find Opportunities
               </Button>
             </div>
           </div>
@@ -127,7 +127,7 @@ export const SearchBarSection: React.FC = () => {
           <div className="px-5 py-4 border-t border-gray-100">
             <button className="text-sm text-coral hover:text-coral-dark font-semibold inline-flex items-center gap-2 transition-colors">
               <SlidersHorizontal className="w-4 h-4" />
-              More Filters
+              Refine Filters
             </button>
           </div>
         </div>

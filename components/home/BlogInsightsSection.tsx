@@ -18,7 +18,7 @@ export const BlogInsightsSection: React.FC = () => {
     <Section background="peach" className="py-24 lg:py-32">
       <div className="flex justify-between items-center mb-12">
         <h2 className="text-3xl md:text-4xl font-bold text-charcoal">
-          Latest Insights
+          Insights & Research
         </h2>
         <Link
           href="/blog"

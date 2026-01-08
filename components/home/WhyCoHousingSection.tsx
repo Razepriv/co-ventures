@@ -9,23 +9,23 @@ import { motion } from 'framer-motion';
 const benefits = [
   {
     icon: Home,
-    title: 'Affordable Premium Living',
-    description: 'Access luxury properties at a fraction of the cost through shared ownership model',
+    title: 'Capital-First Selection',
+    description: 'We prioritize downside protection through conservative assumptions and risk screening before we talk upside.',
   },
   {
     icon: Users2,
-    title: 'Shared Investment, Shared Returns',
-    description: 'Lower financial risk with collective ownership while enjoying proportional returns',
+    title: 'Disciplined Underwriting',
+    description: 'Every opportunity is assessed with structured comps, absorption reality checks, and scenario modeling - not hype.',
   },
   {
     icon: Users,
-    title: 'Community Living',
-    description: 'Build lasting relationships with like-minded families in thoughtfully designed spaces',
+    title: 'Growth-Corridor Focus',
+    description: 'We track infrastructure, jobs, migration, and affordability bands to stay aligned with real demand.',
   },
   {
     icon: ShieldCheck,
-    title: 'Expert Guidance',
-    description: 'End-to-end support from our real estate specialists through every step of your journey',
+    title: 'Transparent Process',
+    description: 'Clear evaluation, clean documentation standards, and straightforward communication - so you invest with clarity.',
   },
 ];
 
@@ -39,7 +39,7 @@ export const WhyCoHousingSection: React.FC = () => {
           viewport={{ once: true }}
           className="text-coral text-xs font-semibold tracking-widest uppercase mb-4"
         >
-          THE FUTURE OF HOME OWNERSHIP
+          THE CO-VENTURES APPROACH
         </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: -20 }}
@@ -48,7 +48,7 @@ export const WhyCoHousingSection: React.FC = () => {
           transition={{ delay: 0.1 }}
           className="text-3xl md:text-4xl lg:text-5xl font-bold text-charcoal"
         >
-          Why Choose Co-Housing?
+          Why Investors Choose Co-ventures
         </motion.h2>
       </div>
 

@@ -16,7 +16,7 @@ export const TestimonialsSection: React.FC = () => {
     <Section className="py-24 lg:py-32">
       <div className="text-center mb-16">
         <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-charcoal">
-          What Our Customers Say
+          What Partners Say
         </h2>
       </div>
 

@@ -21,6 +21,13 @@ const config: Config = {
         peach: {
           light: '#FFF5F2',
         },
+        border: 'hsl(220 13% 91%)',
+        background: 'hsl(0 0% 100%)',
+        foreground: 'hsl(224 71% 4%)',
+        muted: {
+          DEFAULT: 'hsl(220 14% 96%)',
+          foreground: 'hsl(220 9% 46%)',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -33,6 +40,20 @@ const config: Config = {
       },
       transitionDuration: {
         '400': '400ms',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
       },
     },
   },
