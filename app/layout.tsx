@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { organizationSchema, websiteSchema } from '@/lib/seo';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/lib/auth/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -52,7 +54,12 @@ export default function RootLayout({
         />
         <link rel="icon" href="/logo.svg" />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
+      </body>
     </html>
   );
 }
