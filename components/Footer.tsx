@@ -63,7 +63,7 @@ export const Footer: React.FC = () => {
           <div>
             <Link href="/" className="flex items-center mb-6">
               <img 
-                src="/logo.png" 
+                src="/logo.svg" 
                 alt="Co Housy Ventures" 
                 className="h-10 w-auto"
               />
