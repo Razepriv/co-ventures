@@ -22,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useSubscription } from '@/lib/hooks/useSubscription'
 import { SubscriptionPlansModal } from '@/components/subscription/SubscriptionPlansModal'
+import { InvestNowModal } from '@/components/property/InvestNowModal'
+import { LiveTourModal } from '@/components/property/LiveTourModal'
 import { toast } from 'sonner'
 
 interface Property {
@@ -91,6 +93,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
   const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [showInvestModal, setShowInvestModal] = useState(false)
   const [showAIAssistant, setShowAIAssistant] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -673,7 +676,11 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     </div>
 
                     <div className="space-y-3">
-                      <Button className="w-full" size="lg">
+                      <Button 
+                        className="w-full" 
+                        size="lg"
+                        onClick={() => setShowInvestModal(true)}
+                      >
                         <DollarSign className="w-5 h-5 mr-2" />
                         Invest Now
                       </Button>
@@ -690,6 +697,18 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                         variant="outline"
                         className="w-full"
                         size="lg"
+                        onClick={() => {
+                          if (!user) {
+                            toast.error('Please log in to download the brochure')
+                            return
+                          }
+                          if (property?.brochure_url) {
+                            window.open(property.brochure_url, '_blank')
+                            toast.success('Opening brochure...')
+                          } else {
+                            toast.info('Brochure not available for this property')
+                          }
+                        }}
                       >
                         <Download className="w-5 h-5 mr-2" />
                         Download Brochure
@@ -871,6 +890,22 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
           </motion.div>
         </div>
       )}
+
+      {/* Invest Now Modal */}
+      <InvestNowModal
+        isOpen={showInvestModal}
+        onClose={() => setShowInvestModal(false)}
+        propertyId={property?.id || ''}
+        propertyTitle={property?.title || ''}
+        minInvestment={property?.minimum_investment}
+      />
+
+      {/* Live Tour Modal */}
+      <LiveTourModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        propertyTitle={property?.title || ''}
+      />
 
       {/* Subscription Modal */}
       {showSubscriptionModal && (

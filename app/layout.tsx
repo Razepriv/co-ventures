@@ -8,7 +8,7 @@ import { AuthProvider } from '@/lib/auth/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Co Housy Ventures - Affordable Co-Ownership Real Estate in India',
+  title: 'Co Housy Ventures - Co-Ownership Real Estate in India',
   description: 'Unlock your dream home through co-housing. Join forces with verified co-buyers to own premium properties at a fraction of the cost. Explore opportunities now.',
   keywords: ['co-housing', 'real estate', 'shared ownership', 'affordable housing', 'property investment', 'India', 'housy ventures'],
   authors: [{ name: 'Co Housy Ventures' }],
