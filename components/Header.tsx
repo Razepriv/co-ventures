@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { cn } from '@/lib/utils';
@@ -13,121 +14,219 @@ const navItems = [
   { label: 'About', href: '/about' },
   { label: 'Blog', href: '/blog' },
   { label: 'Contact', href: '/contact' },
-];
+] as const;
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('INR');
+  const pathname = usePathname();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+  // Memoized scroll handler with throttle
+  const handleScroll = useCallback(() => {
+    setIsScrolled(window.scrollY > 50);
   }, []);
 
+  useEffect(() => {
+    // Throttle scroll events for better performance
+    let ticking = false;
+    const throttledScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledScroll, { passive: true });
+    return () => window.removeEventListener('scroll', throttledScroll);
+  }, [handleScroll]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Close mobile menu on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
+  const handleLoginClick = useCallback(() => {
+    window.location.href = '/auth/login';
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(prev => !prev);
+  }, []);
+
+  // Memoize active link check
+  const isActiveLink = useCallback((href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname.startsWith(href);
+  }, [pathname]);
+
   return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-        isScrolled
-          ? 'bg-white shadow-md'
-          : 'bg-transparent backdrop-blur-sm'
-      )}
-    >
-      <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 z-10">
-            <img 
-              src="/logo.svg" 
-              alt="Co-ventures" 
-              className="h-12 w-auto"
-            />
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative hover:text-coral transition-colors font-medium group",
-                  isScrolled ? "text-charcoal" : "text-white drop-shadow-md"
-                )}
-              >
-                {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-coral transition-all duration-300 group-hover:w-full" />
-              </Link>
-            ))}
-          </nav>
-
-          {/* Right Section */}
-          <div className="flex items-center space-x-4">
-            {/* Currency Selector */}
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className={cn(
-                "hidden md:block px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-sm transition-all",
-                isScrolled 
-                  ? "border border-gray-300 bg-white text-charcoal" 
-                  : "border border-white/30 bg-white/10 backdrop-blur-md text-white"
-              )}
-              aria-label="Select currency"
+    <>
+      <header
+        className={cn(
+          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+          isScrolled
+            ? 'bg-white shadow-md'
+            : 'bg-transparent backdrop-blur-sm'
+        )}
+      >
+        <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo */}
+            <Link 
+              href="/" 
+              className="flex items-center space-x-2 z-10 flex-shrink-0"
+              aria-label="Co Housing Ventures Home"
             >
-              <option value="INR" className="text-charcoal">₹ INR</option>
-              <option value="USD" className="text-charcoal">$ USD</option>
-              <option value="EUR" className="text-charcoal">€ EUR</option>
-            </select>
+              <img 
+                src="/logo.svg" 
+                alt="Co Housing Ventures" 
+                className="h-10 md:h-12 w-auto"
+                width={120}
+                height={48}
+              />
+            </Link>
 
-            {/* Login Button */}
-            <Button
-              size="sm"
-              className="hidden md:inline-flex shadow-lg"
-              onClick={() => console.log('Login clicked')}
-            >
-              Log In
-            </Button>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2" role="navigation">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm xl:text-base group",
+                    isActiveLink(item.href)
+                      ? "text-coral"
+                      : isScrolled 
+                        ? "text-charcoal hover:text-coral hover:bg-coral/5" 
+                        : "text-white drop-shadow-md hover:text-coral hover:bg-white/10"
+                  )}
+                  aria-current={isActiveLink(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                  {isActiveLink(item.href) && (
+                    <span className="absolute bottom-1 left-3 right-3 h-0.5 bg-coral" />
+                  )}
+                </Link>
+              ))}
+            </nav>
 
-            {/* Mobile Menu Button */}
-            <button
-              className={cn(
-                "lg:hidden p-2 hover:text-coral transition-colors",
-                isScrolled ? "text-charcoal" : "text-white"
-              )}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-200">
-          <nav className="container mx-auto px-6 py-4 flex flex-col space-y-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-charcoal hover:text-coral transition-colors font-medium py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <div className="pt-4 border-t border-gray-200">
+            {/* Right Section */}
+            <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
+              {/* Currency Selector */}
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral mb-4"
+                className={cn(
+                  "hidden sm:block px-2 md:px-3 py-1.5 md:py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-xs md:text-sm transition-all cursor-pointer",
+                  isScrolled 
+                    ? "border border-gray-300 bg-white text-charcoal hover:border-coral" 
+                    : "border border-white/30 bg-white/10 backdrop-blur-md text-white hover:bg-white/20"
+                )}
+                aria-label="Select currency"
+              >
+                <option value="INR" className="text-charcoal">₹ INR</option>
+                <option value="USD" className="text-charcoal">$ USD</option>
+                <option value="EUR" className="text-charcoal">€ EUR</option>
+              </select>
+
+              {/* Login Button */}
+              <Button
+                size="sm"
+                className="hidden md:inline-flex shadow-lg hover:shadow-xl transition-shadow"
+                onClick={handleLoginClick}
+              >
+                Log In
+              </Button>
+
+              {/* Mobile Menu Button */}
+              <button
+                className={cn(
+                  "lg:hidden p-2 rounded-lg hover:bg-coral/10 transition-all",
+                  isScrolled ? "text-charcoal" : "text-white"
+                )}
+                onClick={toggleMobileMenu}
+                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={isMobileMenuOpen}
+              >
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 lg:hidden transition-opacity duration-300",
+          isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+      >
+        {/* Backdrop */}
+        <div 
+          className={cn(
+            "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+            isMobileMenuOpen ? "opacity-100" : "opacity-0"
+          )}
+          onClick={toggleMobileMenu}
+          aria-hidden="true"
+        />
+
+        {/* Menu Panel */}
+        <div
+          className={cn(
+            "absolute right-0 top-16 md:top-20 bottom-0 w-full sm:w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto",
+            isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          <nav className="px-4 sm:px-6 py-6 flex flex-col" role="navigation">
+            <div className="space-y-1 mb-6">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "block px-4 py-3 rounded-lg transition-all font-medium",
+                    isActiveLink(item.href)
+                      ? "bg-coral text-white"
+                      : "text-charcoal hover:bg-coral/5 hover:text-coral"
+                  )}
+                  onClick={toggleMobileMenu}
+                  aria-current={isActiveLink(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="pt-6 border-t border-gray-200 space-y-4">
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-sm cursor-pointer hover:border-coral transition-colors"
                 aria-label="Select currency"
               >
                 <option value="INR">₹ INR</option>
@@ -136,10 +235,10 @@ export const Header: React.FC = () => {
               </select>
               <Button
                 size="md"
-                className="w-full"
+                className="w-full shadow-lg hover:shadow-xl transition-shadow"
                 onClick={() => {
-                  console.log('Login clicked');
-                  setIsMobileMenuOpen(false);
+                  handleLoginClick();
+                  toggleMobileMenu();
                 }}
               >
                 Log In
@@ -147,7 +246,10 @@ export const Header: React.FC = () => {
             </div>
           </nav>
         </div>
-      )}
+      </div>
+    </>
+  );
+};
     </header>
   );
 };
