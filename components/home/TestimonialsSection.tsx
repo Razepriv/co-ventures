@@ -88,7 +88,7 @@ export const TestimonialsSection: React.FC = () => {
               <Quote className="w-12 h-12 text-coral/20 mb-6" />
               
               <p className="text-gray-600 italic leading-relaxed mb-6 line-clamp-6">
-                "{testimonial.testimonial_text}"
+                &quot;{testimonial.testimonial_text}&quot;
               </p>
 
               <div className="flex gap-1 mb-6">

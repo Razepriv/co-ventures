@@ -75,7 +75,7 @@ export default function HowItWorksPage() {
                 A simple process that stays disciplined
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
-                Real estate decisions get messy when assumptions aren't written down and timelines aren't clear. Co-ventures follows a structured workflow: screen → validate → underwrite → document → communicate—so every step stays predictable.
+                Real estate decisions get messy when assumptions aren&apos;t written down and timelines aren&apos;t clear. Co-ventures follows a structured workflow: screen → validate → underwrite → document → communicate—so every step stays predictable.
               </p>
             </motion.div>
           </div>
@@ -412,7 +412,7 @@ export default function HowItWorksPage() {
                 Want to walk through your goals together?
               </h2>
               <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                Schedule a short call. We'll align on your horizon, preferred markets, and what a disciplined evaluation looks like for you.
+                Schedule a short call. We&apos;ll align on your horizon, preferred markets, and what a disciplined evaluation looks like for you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link href="/contact">

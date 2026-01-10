@@ -148,7 +148,7 @@ export default function ContactPage() {
                 Get in Touch
               </h1>
               <p className="text-xl text-white/90 leading-relaxed">
-                We're here to help you find your dream home through co-housing. Let's start a conversation.
+                We&apos;re here to help you find your dream home through co-housing. Let&apos;s start a conversation.
               </p>
             </motion.div>
           </div>

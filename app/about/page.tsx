@@ -160,7 +160,7 @@ export default function AboutPage() {
                   <h2 className="text-3xl font-bold text-charcoal">Our Vision</h2>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-lg">
-                  To be India's most trusted co-housing platform, revolutionizing real estate by building 
+                  To be India&apos;s most trusted co-housing platform, revolutionizing real estate by building 
                   thriving communities and making homeownership a reality for millions. We envision a future 
                   where quality housing is accessible to all through collaborative ownership.
                 </p>
@@ -227,7 +227,7 @@ export default function AboutPage() {
                     premium properties, making them accessible to everyone?
                   </p>
                   <p>
-                    Starting with just 5 properties and 20 families, we've grown into India's leading co-housing 
+                    Starting with just 5 properties and 20 families, we&apos;ve grown into India&apos;s leading co-housing 
                     platform, helping over 1,200 families achieve their homeownership dreams. Our success lies in 
                     our commitment to transparency, legal security, and building genuine communities.
                   </p>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -24,16 +24,13 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DATA
-// ─────────────────────────────────────────────────────────────────────────────
-
 const services = [
   {
     icon: Search,
     title: 'Opportunity Sourcing & Screening',
     description:
-      'We curate opportunities aligned with real demand—growth corridors, micro-market strength, and execution readiness—so you start with higher-quality options.',
+      'We curate opportunities aligned with real demand - growth corridors, micro-market strength, and execution readiness - so you start with higher-quality options.',
     bullets: [
       'Thesis-led screening based on demand fundamentals',
       'Micro-market filters: jobs, infra, affordability, absorption',
@@ -47,21 +44,21 @@ const services = [
     icon: BarChart3,
     title: 'Market Research & Micro-Market Analysis',
     description:
-      'We validate the narrative with reality: comps, absorption, affordability bands, and demand drivers—so decisions are grounded on the ground truth.',
+      'We validate the narrative with reality: comps, absorption, affordability bands, and demand drivers - so decisions are grounded on the ground truth.',
     bullets: [
-      'Comparable sales and pricing band assessment',
-      'Rental demand and rent-band evaluation (where relevant)',
-      'Absorption and inventory reality checks',
-      'Infrastructure catalysts and timing notes',
-      'Micro-location pros/cons and positioning summary',
-      'Key assumptions documented in plain English',
+      'Comparable pricing and positioning benchmarks',
+      'Absorption rates and time-to-exit indicators',
+      'Affordability analysis and pricing elasticity',
+      'Demand drivers: jobs, migration, infra, credit access',
+      'Micro-market scorecard and context mapping',
+      'Risk flags and supply-demand mismatches',
     ],
   },
   {
     icon: Calculator,
     title: 'Underwriting & Scenario Modeling',
     description:
-      'We build conservative base and downside scenarios, highlight return drivers, and stress-test risks—so tradeoffs are visible before you commit.',
+      'We build conservative base and downside scenarios, highlight return drivers, and stress-test risks - so tradeoffs are visible before you commit.',
     bullets: [
       'Base case and downside case assumptions',
       'Sensitivity checks on price, timing, and costs',
@@ -75,7 +72,7 @@ const services = [
     icon: FileText,
     title: 'Legal & Documentation Support',
     description:
-      'We help you navigate documentation, readiness checks, and closing workflows with clarity—so execution stays clean and predictable.',
+      'We help you navigate documentation, readiness checks, and closing workflows with clarity - so execution stays clean and predictable.',
     bullets: [
       'Documentation checklist and timeline',
       'Readiness checks and compliance flags (as applicable)',
@@ -89,7 +86,7 @@ const services = [
     icon: MapPin,
     title: 'On-Ground Due Diligence Coordination',
     description:
-      'We coordinate practical verification—site reality, project readiness, and delivery risk—using structured checklists and clear reporting.',
+      'We coordinate practical verification - site reality, project readiness, and delivery risk - using structured checklists and clear reporting.',
     bullets: [
       'Site and location verification (as applicable)',
       'Builder/project track-record checks (where available)',
@@ -103,14 +100,14 @@ const services = [
     icon: MessageSquare,
     title: 'Reporting & Investor Communication',
     description:
-      'A consistent update cadence and milestone clarity—so you always know what changed, why it matters, and what happens next.',
+      'A consistent update cadence and milestone clarity - so you always know what changed, why it matters, and what happens next.',
     bullets: [
       'Milestone updates: what happened / what changed / impact',
       'Decision-point alerts when action is required',
       'Issue tracking and resolution notes',
       'Documentation status visibility',
       'Portfolio-level summaries (if applicable)',
-      'Plain-English communication—no jargon, no fluff',
+      'Plain-English communication - no jargon, no fluff',
     ],
   },
 ]
@@ -118,7 +115,7 @@ const services = [
 const deliverables = [
   {
     title: 'Deal Snapshot (1-page)',
-    description: 'Thesis, location context, demand drivers, and key risks—at a glance.',
+    description: 'Thesis, location context, demand drivers, and key risks - at a glance.',
   },
   {
     title: 'Diligence Highlights',
@@ -218,18 +215,13 @@ const faqs = [
   },
 ]
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PAGE
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function ServicesPage() {
   return (
     <>
       <Header />
       <main className="pt-20">
-        {/* ───────────────────────────────────────────────────────────────────
-            HERO
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* HERO */}
         <section className="py-16 md:py-20 bg-white">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
             <motion.div
@@ -243,293 +235,116 @@ export default function ServicesPage() {
               </h1>
               <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
                 From screening and underwriting to documentation support and investor
-                updates—Co-ventures helps you make decisions with clarity and control.
+                updates - Co-ventures helps you make decisions with clarity and control.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Link href="/contact">
                   <Button size="lg" className="shadow-lg hover:shadow-xl">
-                    Schedule a Call
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    Start a Conversation
                   </Button>
                 </Link>
                 <Link href="/properties">
-                      <main className="pt-20">
-                        {/* Banner */}
-                        <section className="relative h-[50vh] min-h-[320px] flex items-center overflow-hidden">
-                          <div className="absolute inset-0 z-0">
-                            <Image
-                              src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&q=80"
-                              alt="Our Services"
-                              fill
-                              className="object-cover"
-                              priority
-                            />
-                            <div className="absolute inset-0 bg-black/55" />
-                          </div>
-
-                          <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
-                            <motion.div
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.6 }}
-                              className="max-w-3xl"
-                            >
-                              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 drop-shadow-2xl">
-                                Services built for disciplined real estate investing
-                              </h1>
-                              <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8 max-w-2xl">
-                                From screening and underwriting to documentation support and investor
-                                updates—Co-ventures helps you make decisions with clarity and control.
-                              </p>
-                              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                                <Link href="/contact">
-                                  <Button size="lg" className="shadow-lg hover:shadow-xl">
-                                    Schedule a Call
-                                    <ArrowRight className="ml-2 w-5 h-5" />
-                                  </Button>
-                                </Link>
-                                <Link href="/properties">
-                                  <Button size="lg" variant="secondary" className="bg-white/10 border-2 border-white text-white hover:bg-white hover:text-coral">
-                                    Explore Opportunities
-                                  </Button>
-                                </Link>
-                              </div>
-                              <p className="text-sm text-white/80 tracking-wide">
+                  <Button variant="outline" size="lg">
+                    Explore Opportunities
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-sm text-gray-500">
+                For informational purposes only. Not an offer or solicitation.
+              </p>
             </motion.div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((service, index) => (
-                <motion.div
-                  key={service.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card className="bg-white border-0 rounded-xl p-0 shadow-soft hover:shadow-medium hover:-translate-y-1 transition-all duration-300 h-full">
-                    <CardHeader className="pb-2">
-                      <div className="w-12 h-12 rounded-full bg-coral flex items-center justify-center mb-3">
-                        <service.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <CardTitle className="text-lg font-semibold tracking-tight text-charcoal">
-                        {service.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                        {service.description}
-                      </p>
-                      <ul className="space-y-2">
-                        {service.bullets.map((bullet, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                            <CheckCircle2 className="w-4 h-4 text-coral flex-shrink-0 mt-0.5" />
-                            <span>{bullet}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
           </div>
         </section>
 
-        {/* ───────────────────────────────────────────────────────────────────
-            DELIVERABLES
-        ─────────────────────────────────────────────────────────────────── */}
-        <section className="py-16 md:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="mb-12"
-            >
-              <p className="text-coral text-xs font-semibold tracking-widest uppercase mb-4">
-                DELIVERABLES
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-charcoal mb-4">
-                What you receive
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl">
-                Clear, concise outputs designed to make decisions easier—without drowning you in
-                documents.
-              </p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {deliverables.map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex gap-4 p-6 rounded-xl bg-white border border-gray-200 hover:border-coral-light hover:shadow-soft transition-all duration-300"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-coral flex items-center justify-center text-sm font-bold text-white">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-charcoal mb-1">{item.title}</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ───────────────────────────────────────────────────────────────────
-            HOW IT WORKS
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* CORE SERVICES */}
         <section className="py-16 md:py-20 bg-peach-light">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mb-12 text-center"
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
             >
-              <div className="w-12 h-1 bg-coral mx-auto mb-6"></div>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-charcoal mb-4">
-                How it works
+              <h2 className="text-3xl md:text-4xl font-bold text-charcoal mb-4">
+                Core Services
               </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                A simple process that stays disciplined—screen, validate, underwrite, document, and
-                communicate.
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                A structured approach to sourcing, evaluating, and executing real estate
+                opportunities with discipline and clarity.
               </p>
             </motion.div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {steps.map((step, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="relative"
-                >
-                  <div className="bg-white rounded-2xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 h-full">
-                    {/* Illustration box */}
-                    <div className="relative mb-6 h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center">
-                      {/* Step number badge */}
-                      <div className="absolute -top-3 -right-3 w-10 h-10 bg-coral rounded-full flex items-center justify-center shadow-lg">
-                        <span className="text-white font-bold text-base">{idx + 1}</span>
-                      </div>
-                      
-                      {/* Simple illustration patterns */}
-                      {idx === 0 && (
-                        <div className="space-y-2">
-                          <div className="w-24 h-2 bg-coral/30 rounded"></div>
-                          <div className="w-16 h-2 bg-peach rounded"></div>
-                          <div className="w-20 h-2 bg-coral/30 rounded"></div>
+              {services.map((service, index) => {
+                const IconComponent = service.icon
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                  >
+                    <Card className="h-full hover:shadow-lg transition-shadow duration-300">
+                      <CardHeader>
+                        <div className="w-12 h-12 bg-coral/10 rounded-lg flex items-center justify-center mb-4">
+                          <IconComponent className="w-6 h-6 text-coral" />
                         </div>
-                      )}
-                      {idx === 1 && (
-                        <div className="flex gap-2">
-                          <div className="w-8 h-12 bg-coral rounded"></div>
-                          <div className="w-8 h-16 bg-peach rounded"></div>
-                          <div className="w-8 h-10 bg-coral-light rounded"></div>
-                        </div>
-                      )}
-                      {idx === 2 && (
-                        <div className="space-y-2">
-                          <div className="w-20 h-14 bg-white rounded-lg border-2 border-gray-200 p-2">
-                            <div className="w-full h-1.5 bg-gray-300 rounded mb-1"></div>
-                            <div className="w-3/4 h-1.5 bg-coral/40 rounded mb-1"></div>
-                            <div className="w-full h-1.5 bg-gray-300 rounded"></div>
-                          </div>
-                        </div>
-                      )}
-                      {idx === 3 && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="w-10 h-10 bg-green-400 rounded-lg"></div>
-                          <div className="w-10 h-10 bg-peach rounded-lg"></div>
-                          <div className="w-10 h-10 bg-coral rounded-lg"></div>
-                          <div className="w-10 h-10 bg-blue-400 rounded-lg"></div>
-                        </div>
-                      )}
-                      {idx === 4 && (
-                        <div className="space-y-1">
-                          <div className="flex gap-1">
-                            <div className="w-3 h-3 bg-coral rounded-full"></div>
-                            <div className="w-3 h-3 bg-peach rounded-full"></div>
-                            <div className="w-3 h-3 bg-coral-light rounded-full"></div>
-                          </div>
-                          <div className="w-24 h-8 bg-white rounded border-2 border-coral/30"></div>
-                        </div>
-                      )}
-                      {idx === 5 && (
-                        <div className="flex items-end gap-1.5">
-                          <div className="w-4 h-8 bg-peach rounded-t"></div>
-                          <div className="w-4 h-12 bg-coral rounded-t"></div>
-                          <div className="w-4 h-14 bg-blue-400 rounded-t"></div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <h3 className="font-bold text-charcoal mb-2 text-lg">{step.title}</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      {step.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+                        <CardTitle className="text-xl mb-2">{service.title}</CardTitle>
+                        <p className="text-gray-600 text-sm">{service.description}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {service.bullets.map((bullet, bulletIndex) => (
+                            <li key={bulletIndex} className="flex items-start gap-2 text-sm">
+                              <CheckCircle2 className="w-4 h-4 text-coral mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">{bullet}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
             </div>
           </div>
         </section>
 
-        {/* ───────────────────────────────────────────────────────────────────
-            ENGAGEMENT MODELS
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* DELIVERABLES */}
         <section className="py-16 md:py-20 bg-white">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mb-12"
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
             >
-              <p className="text-coral text-xs font-semibold tracking-widest uppercase mb-4">
-                ENGAGEMENT OPTIONS
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-charcoal mb-4">
-                Ways to engage
+              <h2 className="text-3xl md:text-4xl font-bold text-charcoal mb-4">
+                What You Get
               </h2>
-              <p className="text-lg text-gray-600 max-w-3xl">
-                Choose the level of support you need—without forcing a one-size-fits-all package.
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Clear, actionable outputs at every stage so you can make decisions with
+                confidence.
               </p>
             </motion.div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {engagementModels.map((model, idx) => (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {deliverables.map((deliverable, index) => (
                 <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 30 }}
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
                 >
-                  <Card className="bg-white border border-gray-200 rounded-2xl shadow-soft hover:shadow-medium hover:border-coral-light transition-all duration-300 h-full">
+                  <Card className="h-full hover:shadow-lg transition-shadow duration-300">
                     <CardHeader>
-                      <div className="w-12 h-12 rounded-full bg-coral/10 flex items-center justify-center mb-3">
-                        <div className="w-6 h-6 bg-coral rounded-full"></div>
-                      </div>
-                      <CardTitle className="text-lg font-semibold tracking-tight text-charcoal">
-                        {model.title}
-                      </CardTitle>
+                      <CardTitle className="text-lg mb-2">{deliverable.title}</CardTitle>
+                      <p className="text-gray-600 text-sm">{deliverable.description}</p>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {model.description}
-                      </p>
-                    </CardContent>
                   </Card>
                 </motion.div>
               ))}
@@ -537,96 +352,153 @@ export default function ServicesPage() {
           </div>
         </section>
 
-        {/* ───────────────────────────────────────────────────────────────────
-            FAQ
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* HOW IT WORKS */}
         <section className="py-16 md:py-20 bg-peach-light">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mb-12"
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
             >
-              <p className="text-coral text-xs font-semibold tracking-widest uppercase mb-4">
-                FREQUENTLY ASKED QUESTIONS
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-charcoal mb-4">
-                Questions we hear often
+              <h2 className="text-3xl md:text-4xl font-bold text-charcoal mb-4">
+                How It Works
               </h2>
-              <p className="text-lg text-gray-600">Short answers in plain English.</p>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                A disciplined, step-by-step process from discovery to decision.
+              </p>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="max-w-3xl bg-white rounded-2xl shadow-soft p-6 md:p-8"
-            >
-              <Accordion type="single" collapsible className="w-full">
-                {faqs.map((faq, idx) => (
-                  <AccordionItem key={idx} value={`faq-${idx}`}>
-                    <AccordionTrigger className="text-left text-charcoal font-semibold hover:text-coral">
-                      {faq.q}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-gray-600 leading-relaxed">
-                      {faq.a}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="mt-10 text-center"
-            >
-              <p className="text-gray-600 mb-4">Still have questions?</p>
-              <Link href="/contact">
-                <Button variant="outline" className="border-2 border-coral text-coral hover:bg-coral hover:text-white">
-                  Contact Our Team
-                  <MessageSquare className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </motion.div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="relative"
+                >
+                  <div className="bg-white rounded-lg p-6 h-full shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <div className="w-10 h-10 bg-coral text-white rounded-full flex items-center justify-center font-bold mb-4">
+                      {index + 1}
+                    </div>
+                    <h3 className="text-xl font-semibold text-charcoal mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-gray-600">{step.description}</p>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2">
+                      <ArrowRight className="w-6 h-6 text-coral" />
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* ───────────────────────────────────────────────────────────────────
-            FINAL CTA + DISCLAIMER
-        ─────────────────────────────────────────────────────────────────── */}
+        {/* ENGAGEMENT MODELS */}
+        <section className="py-16 md:py-20 bg-white">
+          <div className="max-w-6xl mx-auto px-4 md:px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-charcoal mb-4">
+                Engagement Models
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Flexible support that adapts to where you are in your investment journey.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {engagementModels.map((model, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                >
+                  <Card className="h-full hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader>
+                      <CardTitle className="text-xl mb-2">{model.title}</CardTitle>
+                      <p className="text-gray-600">{model.description}</p>
+                    </CardHeader>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-16 md:py-20 bg-peach-light">
+          <div className="max-w-4xl mx-auto px-4 md:px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-charcoal mb-4">
+                Frequently Asked Questions
+              </h2>
+            </motion.div>
+
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left text-charcoal font-medium">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
+        {/* FINAL CTA + DISCLAIMER */}
         <section className="py-20 md:py-24 bg-gradient-to-r from-coral to-coral-light">
           <div className="max-w-6xl mx-auto px-4 md:px-6 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
             >
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-6">
-                Ready to evaluate an opportunity with Co-ventures?
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                Ready to invest with clarity?
               </h2>
-              <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                Share your goals and preferred horizon. We'll guide you through a clear, capital-first
-                evaluation process.
+              <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+                Let&apos;s explore how Co-ventures can support your real estate investment journey.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
                 <Link href="/contact">
-                  <Button 
-                    size="lg" 
-                    variant="secondary"
-                    className="bg-white text-coral hover:bg-peach-light border-0 shadow-xl"
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="bg-white text-coral border-white hover:bg-white/90 hover:text-coral"
                   >
-                    Schedule a Call
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    Start a Conversation
                   </Button>
                 </Link>
                 <Link href="/properties">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     variant="outline"
-                    className="border-2 border-white text-white hover:bg-white/10"
+                    className="bg-transparent text-white border-white hover:bg-white/10"
                   >
                     Explore Opportunities
                   </Button>
@@ -643,3 +515,4 @@ export default function ServicesPage() {
     </>
   )
 }
+

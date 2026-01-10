@@ -235,7 +235,7 @@ export default function FAQsPage() {
                 Ready to evaluate an opportunity with Co-ventures?
               </h2>
               <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-                Share your goals and preferred horizon. We\'ll guide you through
+                Share your goals and preferred horizon. We&apos;ll guide you through
                 a clear, capital-first evaluation process.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">

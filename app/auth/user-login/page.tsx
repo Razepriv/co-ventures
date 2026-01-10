@@ -124,7 +124,7 @@ export default function UserLoginPage() {
             </Button>
             
             <div className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link 
                 href="/auth/user-signup" 
                 className="text-coral-600 hover:text-coral-700 font-medium hover:underline"
