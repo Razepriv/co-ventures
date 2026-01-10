@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Facebook, Twitter, Linkedin, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 const quickLinks = [
   { label: 'Home', href: '/' },
@@ -34,25 +36,46 @@ const socialLinks = [
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [loading, setLoading] = useState(false);
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setNewsletterStatus('error');
+      toast.error('Please enter a valid email address');
       return;
     }
 
-    // Simulate API call
-    setNewsletterStatus('success');
-    setEmail('');
-    
-    setTimeout(() => {
-      setNewsletterStatus('idle');
-    }, 3000);
+    setLoading(true);
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('newsletter_subscribers')
+        // @ts-ignore
+        .insert({
+          email: email,
+          status: 'active'
+        });
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          toast.info('You are already subscribed to our newsletter!');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success('Thanks for subscribing to our newsletter!');
+        setEmail('');
+      }
+    } catch (error) {
+      console.error('Error subscribing to newsletter:', error);
+      toast.error('Failed to subscribe. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -164,21 +187,17 @@ export const Footer: React.FC = () => {
                 placeholder="Your email"
                 className="flex-1 px-3 py-2 bg-charcoal border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-coral transition-colors"
                 required
+                disabled={loading}
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-coral hover:bg-coral-dark text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-coral hover:bg-coral-dark text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Subscribe to newsletter"
+                disabled={loading}
               >
-                →
+                {loading ? '...' : '→'}
               </button>
             </form>
-            {newsletterStatus === 'success' && (
-              <p className="text-xs text-green-400 mt-2">Thanks for subscribing!</p>
-            )}
-            {newsletterStatus === 'error' && (
-              <p className="text-xs text-red-400 mt-2">Please enter a valid email</p>
-            )}
           </div>
         </div>
 

@@ -14,15 +14,11 @@ import {
   MapPin, Bed, Bath, Square, Calendar, ParkingCircle, Check, Mail, Phone, User,
   ChevronLeft, ChevronRight, Share2, Heart, Download, TrendingUp, DollarSign,
   Building2, Users, Shield, FileText, Video, ExternalLink, Star, Clock,
-  MessageSquare, Sparkles, BarChart3, PieChart, Home, Maximize, X
+  MessageSquare, Sparkles, BarChart3, PieChart, Home, Maximize
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatDistanceToNow } from 'date-fns'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAuth } from '@/lib/auth/AuthProvider'
-import { useSubscription } from '@/lib/hooks/useSubscription'
-import { SubscriptionPlansModal } from '@/components/subscription/SubscriptionPlansModal'
-import { toast } from 'sonner'
 
 interface Property {
   id: string
@@ -85,18 +81,12 @@ interface Property {
 }
 
 export default function PropertyDetailsPage({ params }: { params: { id: string } }) {
-  const { user } = useAuth()
-  const { currentPlan, usage } = useSubscription()
   const [property, setProperty] = useState<Property | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showAIAssistant, setShowAIAssistant] = useState(false)
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [aiMessages, setAiMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
-  const [aiInput, setAiInput] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
     fetchProperty()
@@ -105,107 +95,24 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   async function fetchProperty() {
     try {
       const supabase = getSupabaseClient()
-      
-      // Check if params.id is a UUID or slug
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id)
-      
-      let query = supabase
+      const { data, error } = await supabase
         .from('properties')
         .select('*, property_images(image_url, is_primary, display_order)')
-      
-      if (isUUID) {
-        query = query.eq('id', params.id)
-      } else {
-        query = query.eq('slug', params.id)
-      }
-      
-      const { data, error } = await query.single()
+        .eq('slug', params.id)
+        .single()
 
       if (error) throw error
       
       // Sort images by display_order
-      if (data) {
-        const propertyData = data as any
-        if (propertyData.property_images) {
-          propertyData.property_images.sort((a: any, b: any) => a.display_order - b.display_order)
-        }
-        setProperty(propertyData as Property)
+      if (data.property_images) {
+        data.property_images.sort((a: any, b: any) => a.display_order - b.display_order)
       }
+      
+      setProperty(data)
     } catch (error) {
       console.error('Error fetching property:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleAIChat = () => {
-    if (!user) {
-      toast.error('Please login to use AI Assistant')
-      return
-    }
-
-    if (!currentPlan || currentPlan.slug === 'free') {
-      setShowSubscriptionModal(true)
-      toast.error('AI Assistant is available for premium subscribers only')
-      return
-    }
-
-    setShowAIAssistant(true)
-    if (aiMessages.length === 0) {
-      // Add welcome message
-      setAiMessages([{
-        role: 'assistant',
-        content: `Hello! I'm your AI property investment advisor. I can help you understand this property's investment potential, analyze returns, compare locations, and answer any questions about "${property?.title}". What would you like to know?`
-      }])
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!aiInput.trim() || aiLoading) return
-
-    const userMessage = aiInput.trim()
-    setAiInput('')
-    setAiMessages(prev => [...prev, { role: 'user', content: userMessage }])
-    setAiLoading(true)
-
-    try {
-      // Call AI API
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...aiMessages, { role: 'user', content: userMessage }],
-          propertyId: property?.id,
-          propertyData: {
-            title: property?.title,
-            price: property?.price,
-            location: property?.location,
-            roi: property?.expected_roi_percentage,
-            rental_yield: property?.rental_yield_percentage,
-            investment_type: property?.investment_type
-          }
-        })
-      })
-
-      const data = await response.json()
-      
-      if (data.error) {
-        throw new Error(data.error)
-      }
-
-      setAiMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.message || 'I apologize, but I encountered an error. Please try again.' 
-      }])
-    } catch (error: any) {
-      console.error('AI Chat error:', error)
-      toast.error('Failed to get AI response. Please try again.')
-      setAiMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'I apologize, but I encountered an error processing your request. Please try again.' 
-      }])
-    } finally {
-      setAiLoading(false)
     }
   }
 
@@ -731,17 +638,11 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     </div>
                     <Button
                       variant="outline"
-                      className="w-full relative"
-                      onClick={handleAIChat}
+                      className="w-full"
+                      onClick={() => setShowAIAssistant(true)}
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Chat with AI
-                      {(!currentPlan || currentPlan.slug === 'free') && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-5 w-5 bg-purple-500 items-center justify-center text-[9px] text-white font-bold">PRO</span>
-                        </span>
-                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -767,122 +668,6 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
         </div>
       </main>
       <Footer />
-
-      {/* AI Assistant Modal */}
-      {showAIAssistant && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">AI Investment Advisor</h3>
-                  <p className="text-sm text-gray-600">Powered by Advanced AI</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAIAssistant(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {aiMessages.map((message, idx) => (
-                <div
-                  key={idx}
-                  className={`flex gap-3 ${
-                    message.role === 'assistant' ? 'justify-start' : 'justify-end'
-                  }`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      message.role === 'assistant'
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'bg-gradient-to-r from-coral to-coral-dark text-white'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 bg-gradient-to-br from-coral to-coral-dark rounded-full flex items-center justify-center flex-shrink-0">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </div>
-              ))}
-              {aiLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input */}
-            <div className="p-6 border-t">
-              <div className="flex gap-2">
-                <Input
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                  placeholder="Ask about ROI, location, investment strategy..."
-                  className="flex-1"
-                  disabled={aiLoading}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!aiInput.trim() || aiLoading}
-                  className="px-6"
-                >
-                  {aiLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    'Send'
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                💡 Tip: Ask about returns, market analysis, or investment comparisons
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Subscription Modal */}
-      {showSubscriptionModal && (
-        <SubscriptionPlansModal
-          isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-          onSelectPlan={() => {
-            setShowSubscriptionModal(false)
-            toast.success('Subscription upgraded! You can now use AI Assistant.')
-          }}
-        />
-      )}
     </>
   )
 }

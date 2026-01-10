@@ -56,21 +56,55 @@ export default function NewPropertyPage() {
     furnishing_status: 'unfurnished',
     meta_title: '',
     meta_description: '',
-    slug: ''
+    slug: '',
+    // Investment fields
+    investment_type: 'fractional',
+    total_investment_amount: '',
+    minimum_investment: '',
+    maximum_investment: '',
+    investment_slots: '',
+    expected_roi_percentage: '',
+    investment_duration_months: '',
+    rental_yield_percentage: '',
+    appreciation_rate: '',
+    // Developer info
+    developer_name: '',
+    developer_logo: '',
+    years_of_experience: '',
+    total_projects: '',
+    // Legal
+    rera_number: '',
+    possession_date: '',
+    legal_status: 'verified',
+    // Documents
+    brochure_url: '',
+    floor_plan_url: '',
+    layout_plan_url: '',
+    video_tour_url: '',
+    // Additional details
+    super_area_sqft: '',
+    carpet_area_sqft: '',
+    estimated_monthly_rental: '',
+    maintenance_charges: '',
+    property_tax: '',
+    investment_highlights: ''
   })
 
   useEffect(() => {
     fetchCategories()
   }, [])
 
-  // Auto-generate slug from title
+  // Auto-generate slug from title with uniqueness
   useEffect(() => {
     if (formData.title) {
-      const slug = formData.title
+      const baseSlug = formData.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-      setFormData(prev => ({ ...prev, slug }))
+      
+      // Add timestamp to ensure uniqueness
+      const uniqueSlug = `${baseSlug}-${Date.now()}`
+      setFormData(prev => ({ ...prev, slug: uniqueSlug }))
     }
   }, [formData.title])
 
@@ -133,14 +167,17 @@ export default function NewPropertyPage() {
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
-          .from('property-images')
+          .from('coventures')
           .upload(filePath, file)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error('Upload error:', uploadError)
+          throw uploadError
+        }
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('property-images')
+          .from('coventures')
           .getPublicUrl(filePath)
 
         // Insert into property_images table
@@ -167,8 +204,18 @@ export default function NewPropertyPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     
-    if (!formData.title || !formData.category_id || !formData.price) {
-      toast.error('Please fill in all required fields')
+    if (!formData.title || !formData.category_id || !formData.price || !formData.description) {
+      toast.error('Please fill in all required fields (title, category, price, description)')
+      return
+    }
+
+    if (!formData.size_sqft) {
+      toast.error('Property size is required')
+      return
+    }
+
+    if (!profile?.id) {
+      toast.error('User not authenticated')
       return
     }
 
@@ -176,37 +223,128 @@ export default function NewPropertyPage() {
     try {
       const supabase = getSupabaseClient()
 
+      // Check if slug already exists (additional safety check)
+      const { data: existingProperty } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('slug', formData.slug)
+        .single()
+
+      if (existingProperty) {
+        // If slug exists, append a random string
+        const randomSuffix = Math.random().toString(36).substring(2, 8)
+        formData.slug = `${formData.slug}-${randomSuffix}`
+      }
+
+      // Prepare property data with correct field names matching database schema
+      const propertyData = {
+        user_id: profile.id, // Database uses user_id, not added_by
+        category_id: formData.category_id,
+        title: formData.title,
+        slug: formData.slug,
+        description: formData.description,
+        location: formData.location || formData.city, // Ensure location is not empty
+        city: formData.city,
+        state: formData.state,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        price: parseFloat(formData.price),
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        area_sqft: parseInt(formData.size_sqft), // Database uses area_sqft, not size_sqft
+        bhk_type: formData.bhk_type,
+        property_type: formData.property_type,
+        featured_image: 'placeholder.jpg', // Will be updated after image upload
+        status: formData.status,
+        amenities: formData.amenities ? formData.amenities.split(',').map(a => a.trim()) : [],
+        is_featured: formData.is_featured,
+        // Investment fields
+        investment_type: formData.investment_type || 'fractional',
+        total_investment_amount: formData.total_investment_amount ? parseFloat(formData.total_investment_amount) : null,
+        minimum_investment: formData.minimum_investment ? parseFloat(formData.minimum_investment) : null,
+        maximum_investment: formData.maximum_investment ? parseFloat(formData.maximum_investment) : null,
+        investment_slots: formData.investment_slots ? parseInt(formData.investment_slots) : null,
+        expected_roi_percentage: formData.expected_roi_percentage ? parseFloat(formData.expected_roi_percentage) : null,
+        investment_duration_months: formData.investment_duration_months ? parseInt(formData.investment_duration_months) : null,
+        rental_yield_percentage: formData.rental_yield_percentage ? parseFloat(formData.rental_yield_percentage) : null,
+        appreciation_rate: formData.appreciation_rate ? parseFloat(formData.appreciation_rate) : null,
+        // Developer info
+        developer_name: formData.developer_name || null,
+        developer_logo: formData.developer_logo || null,
+        years_of_experience: formData.years_of_experience ? parseInt(formData.years_of_experience) : null,
+        total_projects: formData.total_projects ? parseInt(formData.total_projects) : null,
+        // Legal
+        rera_number: formData.rera_number || null,
+        possession_date: formData.possession_date || null,
+        legal_status: formData.legal_status || 'verified',
+        // Documents
+        brochure_url: formData.brochure_url || null,
+        floor_plan_url: formData.floor_plan_url || null,
+        layout_plan_url: formData.layout_plan_url || null,
+        video_tour_url: formData.video_tour_url || null,
+        // Additional
+        super_area_sqft: formData.super_area_sqft ? parseInt(formData.super_area_sqft) : null,
+        carpet_area_sqft: formData.carpet_area_sqft ? parseInt(formData.carpet_area_sqft) : null,
+        parking_spaces: formData.parking ? parseInt(formData.parking) : 0,
+        floor_number: formData.floor_number ? parseInt(formData.floor_number) : null,
+        total_floors: formData.total_floors ? parseInt(formData.total_floors) : null,
+        furnishing_status: formData.furnishing_status || 'unfurnished',
+        age_years: formData.age_years ? parseInt(formData.age_years) : null,
+        estimated_monthly_rental: formData.estimated_monthly_rental ? parseFloat(formData.estimated_monthly_rental) : null,
+        maintenance_charges: formData.maintenance_charges ? parseFloat(formData.maintenance_charges) : null,
+        property_tax: formData.property_tax ? parseFloat(formData.property_tax) : null,
+        investment_highlights: formData.investment_highlights ? formData.investment_highlights.split('\n').map(h => h.trim()).filter(h => h) : []
+      }
+
       // Insert property
       const { data: property, error: propertyError } = await supabase
         .from('properties')
         // @ts-ignore
-        .insert({
-          ...formData,
-          price: parseFloat(formData.price),
-          size_sqft: parseFloat(formData.size_sqft) || null,
-          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-          age_years: formData.age_years ? parseInt(formData.age_years) : null,
-          floor_number: formData.floor_number ? parseInt(formData.floor_number) : null,
-          total_floors: formData.total_floors ? parseInt(formData.total_floors) : null,
-          added_by: profile?.id
-        })
+        .insert(propertyData)
         .select()
         .single()
 
-      if (propertyError) throw propertyError
+      if (propertyError) {
+        console.error('Property creation error:', propertyError)
+        throw new Error(propertyError.message || 'Failed to create property')
+      }
 
-      // Upload images
+      // Upload images and update featured_image
       if (images.length > 0) {
         // @ts-ignore
         await uploadImages(property.id)
+        
+        // Get the first uploaded image URL
+        const { data: firstImage } = await supabase
+          .from('property_images')
+          .select('image_url')
+          .eq('property_id', property.id)
+          .eq('is_primary', true)
+          .single()
+
+        if (firstImage) {
+          // Update property with actual featured_image
+          await supabase
+            .from('properties')
+            // @ts-ignore
+            .update({ featured_image: firstImage.image_url })
+            .eq('id', property.id)
+        }
       }
 
       toast.success('Property created successfully')
       router.push('/admin/properties')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating property:', error)
-      toast.error('Failed to create property')
+      
+      // Handle specific error types
+      if (error.message?.includes('duplicate key value') && error.message?.includes('slug')) {
+        toast.error('A property with this URL already exists. Please try again.')
+      } else if (error.code === '23505') {
+        toast.error('Duplicate entry detected. Please modify the property details.')
+      } else {
+        toast.error(error.message || 'Failed to create property')
+      }
     } finally {
       setLoading(false)
     }
@@ -229,10 +367,12 @@ export default function NewPropertyPage() {
 
       <form onSubmit={handleSubmit}>
         <Tabs defaultValue="basic" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
+          <TabsList className="grid w-full grid-cols-6 lg:w-full">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="investment">Investment</TabsTrigger>
             <TabsTrigger value="location">Location</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="legal">Legal & Docs</TabsTrigger>
             <TabsTrigger value="images">Images</TabsTrigger>
           </TabsList>
 
@@ -256,13 +396,14 @@ export default function NewPropertyPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Description *</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     placeholder="Detailed description of the property..."
                     rows={6}
+                    required
                   />
                 </div>
 
@@ -341,13 +482,220 @@ export default function NewPropertyPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="size_sqft">Size (sq ft)</Label>
+                    <Label htmlFor="size_sqft">Size (sq ft) *</Label>
                     <Input
                       id="size_sqft"
                       type="number"
                       value={formData.size_sqft}
                       onChange={(e) => handleInputChange('size_sqft', e.target.value)}
                       placeholder="e.g., 1200"
+                      required
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Investment Tab */}
+          <TabsContent value="investment" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Investment Details</CardTitle>
+                <CardDescription>Configure co-investment parameters</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="investment_type">Investment Type</Label>
+                    <Select value={formData.investment_type} onValueChange={(value) => handleInputChange('investment_type', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fractional">Fractional Ownership</SelectItem>
+                        <SelectItem value="full">Full Ownership</SelectItem>
+                        <SelectItem value="equity">Equity Investment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="total_investment_amount">Total Investment Amount (₹)</Label>
+                    <Input
+                      id="total_investment_amount"
+                      type="number"
+                      value={formData.total_investment_amount}
+                      onChange={(e) => handleInputChange('total_investment_amount', e.target.value)}
+                      placeholder="e.g., 50000000"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="minimum_investment">Minimum Investment (₹)</Label>
+                    <Input
+                      id="minimum_investment"
+                      type="number"
+                      value={formData.minimum_investment}
+                      onChange={(e) => handleInputChange('minimum_investment', e.target.value)}
+                      placeholder="e.g., 500000"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="maximum_investment">Maximum Investment (₹)</Label>
+                    <Input
+                      id="maximum_investment"
+                      type="number"
+                      value={formData.maximum_investment}
+                      onChange={(e) => handleInputChange('maximum_investment', e.target.value)}
+                      placeholder="e.g., 5000000"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="investment_slots">Total Investment Slots</Label>
+                    <Input
+                      id="investment_slots"
+                      type="number"
+                      value={formData.investment_slots}
+                      onChange={(e) => handleInputChange('investment_slots', e.target.value)}
+                      placeholder="e.g., 100"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="investment_duration_months">Investment Duration (Months)</Label>
+                    <Input
+                      id="investment_duration_months"
+                      type="number"
+                      value={formData.investment_duration_months}
+                      onChange={(e) => handleInputChange('investment_duration_months', e.target.value)}
+                      placeholder="e.g., 36"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="expected_roi_percentage">Expected ROI (%)</Label>
+                    <Input
+                      id="expected_roi_percentage"
+                      type="number"
+                      step="0.1"
+                      value={formData.expected_roi_percentage}
+                      onChange={(e) => handleInputChange('expected_roi_percentage', e.target.value)}
+                      placeholder="e.g., 12.5"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="rental_yield_percentage">Rental Yield (%)</Label>
+                    <Input
+                      id="rental_yield_percentage"
+                      type="number"
+                      step="0.1"
+                      value={formData.rental_yield_percentage}
+                      onChange={(e) => handleInputChange('rental_yield_percentage', e.target.value)}
+                      placeholder="e.g., 4.5"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="appreciation_rate">Appreciation Rate (%)</Label>
+                    <Input
+                      id="appreciation_rate"
+                      type="number"
+                      step="0.1"
+                      value={formData.appreciation_rate}
+                      onChange={(e) => handleInputChange('appreciation_rate', e.target.value)}
+                      placeholder="e.g., 8.0"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="estimated_monthly_rental">Est. Monthly Rental (₹)</Label>
+                    <Input
+                      id="estimated_monthly_rental"
+                      type="number"
+                      value={formData.estimated_monthly_rental}
+                      onChange={(e) => handleInputChange('estimated_monthly_rental', e.target.value)}
+                      placeholder="e.g., 50000"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="maintenance_charges">Maintenance Charges (₹/month)</Label>
+                    <Input
+                      id="maintenance_charges"
+                      type="number"
+                      value={formData.maintenance_charges}
+                      onChange={(e) => handleInputChange('maintenance_charges', e.target.value)}
+                      placeholder="e.g., 5000"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="property_tax">Property Tax (₹/year)</Label>
+                    <Input
+                      id="property_tax"
+                      type="number"
+                      value={formData.property_tax}
+                      onChange={(e) => handleInputChange('property_tax', e.target.value)}
+                      placeholder="e.g., 25000"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="investment_highlights">Investment Highlights (one per line)</Label>
+                  <Textarea
+                    id="investment_highlights"
+                    value={formData.investment_highlights}
+                    onChange={(e) => handleInputChange('investment_highlights', e.target.value)}
+                    placeholder="Prime Location - Heart of City&#10;High Rental Demand&#10;Excellent Appreciation Potential&#10;Fully Legal & RERA Approved"
+                    rows={6}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="developer_name">Developer Name</Label>
+                    <Input
+                      id="developer_name"
+                      value={formData.developer_name}
+                      onChange={(e) => handleInputChange('developer_name', e.target.value)}
+                      placeholder="e.g., Prestige Group"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="years_of_experience">Years of Experience</Label>
+                    <Input
+                      id="years_of_experience"
+                      type="number"
+                      value={formData.years_of_experience}
+                      onChange={(e) => handleInputChange('years_of_experience', e.target.value)}
+                      placeholder="e.g., 40"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="total_projects">Total Projects</Label>
+                    <Input
+                      id="total_projects"
+                      type="number"
+                      value={formData.total_projects}
+                      onChange={(e) => handleInputChange('total_projects', e.target.value)}
+                      placeholder="e.g., 300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="developer_logo">Developer Logo URL</Label>
+                    <Input
+                      id="developer_logo"
+                      value={formData.developer_logo}
+                      onChange={(e) => handleInputChange('developer_logo', e.target.value)}
+                      placeholder="https://..."
                     />
                   </div>
                 </div>
@@ -376,12 +724,13 @@ export default function NewPropertyPage() {
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="location">Location/Area</Label>
+                    <Label htmlFor="location">Location/Area *</Label>
                     <Input
                       id="location"
                       value={formData.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
                       placeholder="e.g., Koramangala"
+                      required
                     />
                   </div>
 
@@ -543,6 +892,135 @@ export default function NewPropertyPage() {
                     placeholder="e.g., Swimming Pool, Gym, Club House, Garden"
                     rows={3}
                   />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Legal & Documents Tab */}
+          <TabsContent value="legal" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Legal & Compliance</CardTitle>
+                <CardDescription>RERA and legal documentation</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="rera_number">RERA Number</Label>
+                    <Input
+                      id="rera_number"
+                      value={formData.rera_number}
+                      onChange={(e) => handleInputChange('rera_number', e.target.value)}
+                      placeholder="e.g., RERA/2024/123456"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="possession_date">Possession Date</Label>
+                    <Input
+                      id="possession_date"
+                      type="date"
+                      value={formData.possession_date}
+                      onChange={(e) => handleInputChange('possession_date', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="legal_status">Legal Status</Label>
+                    <Select value={formData.legal_status} onValueChange={(value) => handleInputChange('legal_status', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="verified">Verified</SelectItem>
+                        <SelectItem value="pending">Pending Verification</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Documents & Media</CardTitle>
+                <CardDescription>URLs for brochures, plans, and videos</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <Label htmlFor="brochure_url">Brochure URL</Label>
+                    <Input
+                      id="brochure_url"
+                      value={formData.brochure_url}
+                      onChange={(e) => handleInputChange('brochure_url', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="floor_plan_url">Floor Plan URL</Label>
+                    <Input
+                      id="floor_plan_url"
+                      value={formData.floor_plan_url}
+                      onChange={(e) => handleInputChange('floor_plan_url', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="layout_plan_url">Layout Plan URL</Label>
+                    <Input
+                      id="layout_plan_url"
+                      value={formData.layout_plan_url}
+                      onChange={(e) => handleInputChange('layout_plan_url', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="video_tour_url">Video Tour URL (YouTube/Vimeo)</Label>
+                    <Input
+                      id="video_tour_url"
+                      value={formData.video_tour_url}
+                      onChange={(e) => handleInputChange('video_tour_url', e.target.value)}
+                      placeholder="https://youtube.com/watch?v=..."
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Areas</CardTitle>
+                <CardDescription>Super area, carpet area, and other measurements</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="super_area_sqft">Super Area (sq ft)</Label>
+                    <Input
+                      id="super_area_sqft"
+                      type="number"
+                      value={formData.super_area_sqft}
+                      onChange={(e) => handleInputChange('super_area_sqft', e.target.value)}
+                      placeholder="e.g., 1350"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="carpet_area_sqft">Carpet Area (sq ft)</Label>
+                    <Input
+                      id="carpet_area_sqft"
+                      type="number"
+                      value={formData.carpet_area_sqft}
+                      onChange={(e) => handleInputChange('carpet_area_sqft', e.target.value)}
+                      placeholder="e.g., 1050"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from 'lucide-react'
+import Image from 'next/image'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA
@@ -252,39 +253,48 @@ export default function ServicesPage() {
                   </Button>
                 </Link>
                 <Link href="/properties">
-                  <Button size="lg" variant="outline">
-                    Explore Opportunities
-                  </Button>
-                </Link>
-              </div>
-              <p className="text-sm text-gray-500 tracking-wide">
-                Capital-first • Diligence-led • Plain-English clarity
-              </p>
-            </motion.div>
-          </div>
-        </section>
+                      <main className="pt-20">
+                        {/* Banner */}
+                        <section className="relative h-[50vh] min-h-[320px] flex items-center overflow-hidden">
+                          <div className="absolute inset-0 z-0">
+                            <Image
+                              src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&q=80"
+                              alt="Our Services"
+                              fill
+                              className="object-cover"
+                              priority
+                            />
+                            <div className="absolute inset-0 bg-black/55" />
+                          </div>
 
-        {/* ───────────────────────────────────────────────────────────────────
-            CORE SERVICES
-        ─────────────────────────────────────────────────────────────────── */}
-        <section className="py-16 md:py-20 bg-peach-light">
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="mb-12"
-            >
-              <p className="text-coral text-xs font-semibold tracking-widest uppercase mb-4">
-                OUR SERVICES
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-charcoal mb-4">
-                What we offer
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl">
-                A structured, end-to-end process designed to reduce uncertainty and improve
-                decision quality—without hype.
-              </p>
+                          <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.6 }}
+                              className="max-w-3xl"
+                            >
+                              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 drop-shadow-2xl">
+                                Services built for disciplined real estate investing
+                              </h1>
+                              <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8 max-w-2xl">
+                                From screening and underwriting to documentation support and investor
+                                updates—Co-ventures helps you make decisions with clarity and control.
+                              </p>
+                              <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                                <Link href="/contact">
+                                  <Button size="lg" className="shadow-lg hover:shadow-xl">
+                                    Schedule a Call
+                                    <ArrowRight className="ml-2 w-5 h-5" />
+                                  </Button>
+                                </Link>
+                                <Link href="/properties">
+                                  <Button size="lg" variant="secondary" className="bg-white/10 border-2 border-white text-white hover:bg-white hover:text-coral">
+                                    Explore Opportunities
+                                  </Button>
+                                </Link>
+                              </div>
+                              <p className="text-sm text-white/80 tracking-wide">
             </motion.div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

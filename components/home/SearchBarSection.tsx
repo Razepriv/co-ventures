@@ -24,7 +24,7 @@ export const SearchBarSection: React.FC = () => {
   };
 
   return (
-    <div className="relative -mt-28 mb-16 z-30">
+    <div className="relative mt-6 md:-mt-12 lg:-mt-20 xl:-mt-24 mb-12 md:mb-16 z-30">
       <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1200px]">
         <div className="bg-white rounded-xl shadow-[0_20px_60px_rgb(0,0,0,0.15)] overflow-hidden border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-0">

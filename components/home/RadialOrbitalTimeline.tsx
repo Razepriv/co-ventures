@@ -52,16 +52,16 @@ const usePrefersReducedMotion = () => {
 
 // Responsive orbit radius hook
 const useOrbitRadius = () => {
-  const [radius, setRadius] = useState(220);
+  const [radius, setRadius] = useState(240);
   
   useEffect(() => {
     const updateRadius = () => {
       const width = window.innerWidth;
-      if (width < 480) setRadius(120);
-      else if (width < 640) setRadius(140);
-      else if (width < 768) setRadius(160);
-      else if (width < 1024) setRadius(180);
-      else setRadius(220);
+      if (width < 480) setRadius(135);
+      else if (width < 640) setRadius(155);
+      else if (width < 768) setRadius(175);
+      else if (width < 1024) setRadius(195);
+      else setRadius(240);
     };
     
     updateRadius();
@@ -320,7 +320,7 @@ export const RadialOrbitalTimeline: React.FC<Props> = ({
               }}
               className={`
                 relative flex items-center justify-center
-                w-8 h-8 md:w-10 md:h-10 rounded-full
+                w-10 h-10 md:w-12 md:h-12 rounded-full
                 bg-white border-2 border-charcoal/10
                 shadow-md transition-all duration-300
                 hover:scale-110
@@ -333,7 +333,7 @@ export const RadialOrbitalTimeline: React.FC<Props> = ({
                 transformOrigin: 'center center',
               }}
             >
-              <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive ? 'text-coral' : 'text-charcoal'}`} />
+              <Icon className={`w-5 h-5 md:w-6 md:h-6 ${isActive ? 'text-coral' : 'text-charcoal'}`} />
             </button>
 
             {/* Node label */}

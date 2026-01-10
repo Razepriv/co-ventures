@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
+import { PageBanner } from '@/components/ui/PageBanner'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { motion } from 'framer-motion'
@@ -81,21 +82,16 @@ export default function BlogPage() {
     <>
       <Header />
       <main className="pt-20">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-coral to-coral-dark text-white py-20">
-          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-8"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Blog & Insights</h1>
-              <p className="text-xl text-white/90 max-w-2xl mx-auto">
-                Expert advice, market trends, and success stories from the world of co-housing
-              </p>
-            </motion.div>
+        {/* Banner */}
+        <PageBanner
+          title="Blog & Insights"
+          subtitle="Expert advice, market trends, and success stories from the world of co-housing"
+          imageSrc="https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=1920&q=80"
+        />
 
-            {/* Search Bar */}
+        {/* Search Bar */}
+        <section className="py-8 bg-white border-b">
+          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

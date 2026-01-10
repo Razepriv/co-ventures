@@ -21,7 +21,7 @@ export const HeroSection: React.FC = () => {
       {/* Full-Width Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/hero-image.jpeg"
+          src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=90"
           alt="Invest in India's Growth Corridors"
           fill
           className="object-cover object-[center_25%]"
@@ -87,44 +87,7 @@ export const HeroSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Trust Badges Strip - Bottom */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.9 }}
-        className="absolute bottom-0 left-0 right-0 z-20 bg-white/95 backdrop-blur-lg border-t border-white/20 shadow-2xl"
-      >
-        <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
-          <div className="flex flex-wrap justify-around items-center py-6 gap-6">
-            <div className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-coral/10 rounded-full flex items-center justify-center group-hover:bg-coral/20 transition-all">
-                <Home className="w-6 h-6 text-coral" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600">Curated Deal Pipeline</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-coral/10 rounded-full flex items-center justify-center group-hover:bg-coral/20 transition-all">
-                <IndianRupee className="w-6 h-6 text-coral" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600">Multi-City Coverage</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-coral/10 rounded-full flex items-center justify-center group-hover:bg-coral/20 transition-all">
-                <Shield className="w-6 h-6 text-coral" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600">Diligence-First Process</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      {/* Trust badges removed as requested */}
     </section>
   );
 };

@@ -27,6 +27,7 @@ interface Property {
   size_sqft: number
   status: string
   is_featured: boolean
+  featured_image: string
   created_at: string
   property_images: { image_url: string; is_primary: boolean }[]
   categories: { name: string }
@@ -281,7 +282,12 @@ export default function PropertiesPage() {
                         {/* Image */}
                         <div className="relative h-64 overflow-hidden">
                           <Image
-                            src={property.property_images?.[0]?.image_url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'}
+                            src={
+                              property.property_images?.find(img => img.is_primary)?.image_url ||
+                              property.property_images?.[0]?.image_url ||
+                              property.featured_image ||
+                              'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'
+                            }
                             alt={property.title}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-500"
