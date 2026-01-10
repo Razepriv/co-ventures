@@ -13,13 +13,14 @@ import 'swiper/css/pagination';
 
 interface Testimonial {
   id: string;
-  client_name: string;
-  client_designation: string;
-  client_avatar: string | null;
+  full_name: string;
+  role: string | null;
+  company: string | null;
+  avatar_url: string | null;
   rating: number;
-  testimonial_text: string;
-  property_id: string | null;
-  properties: { title: string } | null;
+  content: string;
+  is_featured: boolean;
+  is_approved: boolean;
 }
 
 export const TestimonialsSection: React.FC = () => {
@@ -35,9 +36,10 @@ export const TestimonialsSection: React.FC = () => {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from('testimonials')
-        .select('*, properties(title)')
+        .select('*')
         .eq('is_approved', true)
         .eq('is_featured', true)
+        .order('display_order', { ascending: true })
         .order('created_at', { ascending: false })
         .limit(6);
 
@@ -88,7 +90,7 @@ export const TestimonialsSection: React.FC = () => {
               <Quote className="w-12 h-12 text-coral/20 mb-6" />
               
               <p className="text-gray-600 italic leading-relaxed mb-6 line-clamp-6">
-                &quot;{testimonial.testimonial_text}&quot;
+                &quot;{testimonial.content}&quot;
               </p>
 
               <div className="flex gap-1 mb-6">
@@ -105,10 +107,10 @@ export const TestimonialsSection: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                {testimonial.client_avatar ? (
+                {testimonial.avatar_url ? (
                   <Image
-                    src={testimonial.client_avatar}
-                    alt={testimonial.client_name}
+                    src={testimonial.avatar_url}
+                    alt={testimonial.full_name}
                     width={48}
                     height={48}
                     className="rounded-full object-cover"
@@ -116,17 +118,17 @@ export const TestimonialsSection: React.FC = () => {
                 ) : (
                   <div className="w-12 h-12 bg-coral/10 rounded-full flex items-center justify-center">
                     <span className="text-coral font-bold text-lg">
-                      {testimonial.client_name.charAt(0)}
+                      {testimonial.full_name.charAt(0)}
                     </span>
                   </div>
                 )}
                 <div>
                   <p className="font-semibold text-charcoal">
-                    {testimonial.client_name}
+                    {testimonial.full_name}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {testimonial.client_designation}
-                    {testimonial.properties && ` • ${testimonial.properties.title}`}
+                    {testimonial.role}
+                    {testimonial.company && ` • ${testimonial.company}`}
                   </p>
                 </div>
               </div>

@@ -19,7 +19,7 @@ interface Property {
   state: string;
   price: number;
   bhk_type: string;
-  property_size: number;
+  area_sqft: number;
   status: string;
   is_featured: boolean;
   featured_image: string;
@@ -187,7 +187,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggle
             <div className="w-px h-4 bg-gray-300" />
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <Maximize className="w-4 h-4 text-coral" />
-              <span>{property.property_size.toLocaleString()} sqft</span>
+              <span>{property.area_sqft?.toLocaleString() || 'N/A'} sqft</span>
             </div>
             <div className="w-px h-4 bg-gray-300" />
             <div className="flex items-center gap-1 text-sm text-gray-600">
