@@ -39,32 +39,7 @@ export default function AboutPage() {
     },
   ]
 
-  const team = [
-    {
-      name: 'Rajesh Kumar',
-      role: 'Founder & CEO',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-      bio: '15+ years in real estate and co-housing ventures',
-    },
-    {
-      name: 'Priya Sharma',
-      role: 'Head of Operations',
-      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80',
-      bio: 'Expert in property management and client relations',
-    },
-    {
-      name: 'Amit Patel',
-      role: 'Legal Advisor',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80',
-      bio: 'Specializes in co-ownership legal frameworks',
-    },
-    {
-      name: 'Sneha Reddy',
-      role: 'Customer Success',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80',
-      bio: 'Dedicated to ensuring seamless client experiences',
-    },
-  ]
+
 
   return (
     <>
@@ -255,50 +230,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Team Section */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl md:text-5xl font-bold text-charcoal mb-4">Meet Our Team</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Passionate professionals dedicated to your homeownership journey
-              </p>
-            </motion.div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {team.map((member, index) => (
-                <motion.div
-                  key={member.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group"
-                >
-                  <div className="relative h-80 rounded-xl overflow-hidden mb-4 shadow-lg">
-                    <Image
-                      src={member.image}
-                      alt={member.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                      <h3 className="text-xl font-bold mb-1">{member.name}</h3>
-                      <p className="text-coral-light font-medium">{member.role}</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 text-center">{member.bio}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* CTA Section */}
         <section className="py-20 bg-gradient-to-br from-coral to-coral-dark text-white">

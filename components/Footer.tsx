@@ -1,12 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { Facebook, Twitter, Linkedin, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
+import { Mail, Phone, MapPin } from 'lucide-react';
 
 const quickLinks = [
   { label: 'Home', href: '/' },
@@ -26,57 +22,9 @@ const resources = [
   { label: 'Careers', href: '/careers' },
 ];
 
-const socialLinks = [
-  { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-  { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-  { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-  { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-  { icon: Youtube, href: 'https://youtube.com', label: 'YouTube' },
-];
+
 
 export const Footer: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleNewsletterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const supabase = getSupabaseClient();
-      
-      const { error } = await supabase
-        .from('newsletter_subscribers')
-        // @ts-ignore
-        .insert({
-          email: email,
-          status: 'active'
-        });
-
-      if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          toast.info('You are already subscribed to our newsletter!');
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success('Thanks for subscribing to our newsletter!');
-        setEmail('');
-      }
-    } catch (error) {
-      console.error('Error subscribing to newsletter:', error);
-      toast.error('Failed to subscribe. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <footer className="bg-charcoal-dark text-white">
@@ -95,24 +43,6 @@ export const Footer: React.FC = () => {
             <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-[280px]">
               Making premium real estate accessible through collaborative co-ownership
             </p>
-
-            <div className="flex gap-3">
-              {socialLinks.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 border border-gray-700 rounded-full flex items-center justify-center hover:bg-coral hover:border-coral transition-all"
-                    aria-label={social.label}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </a>
-                );
-              })}
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -152,7 +82,7 @@ export const Footer: React.FC = () => {
           {/* Contact */}
           <div>
             <h3 className="text-base font-semibold mb-5">Contact</h3>
-            <ul className="space-y-4 mb-6">
+            <ul className="space-y-4">
               <li>
                 <a
                   href="mailto:hello@cohousingventures.com"
@@ -176,28 +106,6 @@ export const Footer: React.FC = () => {
                 123 Business Park, Koramangala, Bangalore - 560095
               </li>
             </ul>
-
-            {/* Newsletter */}
-            <h4 className="text-base font-semibold mb-3">Newsletter</h4>
-            <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email"
-                className="flex-1 px-3 py-2 bg-charcoal border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-coral transition-colors"
-                required
-                disabled={loading}
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-coral hover:bg-coral-dark text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Subscribe to newsletter"
-                disabled={loading}
-              >
-                {loading ? '...' : '→'}
-              </button>
-            </form>
           </div>
         </div>
 

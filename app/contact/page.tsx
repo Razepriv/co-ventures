@@ -99,26 +99,7 @@ export default function ContactPage() {
     }
   ]
 
-  const officeLocations = [
-    {
-      city: 'Bangalore',
-      address: '123 Co-Housing Avenue, Koramangala',
-      phone: '+91 9876543210',
-      image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&q=80'
-    },
-    {
-      city: 'Mumbai',
-      address: '456 Housing Street, Bandra West',
-      phone: '+91 9876543211',
-      image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?w=800&q=80'
-    },
-    {
-      city: 'Delhi',
-      address: '789 Property Lane, Connaught Place',
-      phone: '+91 9876543212',
-      image: 'https://images.unsplash.com/photo-1580674285054-bed31e145f59?w=800&q=80'
-    }
-  ]
+
 
   return (
     <>
@@ -306,60 +287,7 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* Office Locations */}
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-4xl font-bold text-charcoal mb-4">Our Office Locations</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Visit us at any of our offices across major cities
-              </p>
-            </motion.div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              {officeLocations.map((location, index) => (
-                <motion.div
-                  key={location.city}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all"
-                >
-                  <div className="relative h-48 overflow-hidden">
-                    <Image
-                      src={location.image}
-                      alt={location.city}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-2xl font-bold text-charcoal mb-3">{location.city}</h3>
-                    <div className="space-y-2 text-gray-600">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-5 h-5 flex-shrink-0 mt-1 text-coral" />
-                        <span>{location.address}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-5 h-5 flex-shrink-0 text-coral" />
-                        <span>{location.phone}</span>
-                      </div>
-                    </div>
-                    <Button className="w-full mt-6" variant="outline">
-                      Get Directions
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* FAQ Section */}
         <section className="py-16 bg-gray-50">
