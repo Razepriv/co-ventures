@@ -346,31 +346,31 @@ export default function PropertiesPage() {
                 {(selectedCity !== 'all' || selectedBHK !== 'all' || selectedStatus !== 'available' || priceRange !== 'all' || debouncedSearchQuery) && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {debouncedSearchQuery && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         Search: {debouncedSearchQuery}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSearchQuery('')} />
                       </Badge>
                     )}
                     {selectedCity !== 'all' && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         City: {selectedCity}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCity('all')} />
                       </Badge>
                     )}
                     {selectedBHK !== 'all' && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         BHK: {selectedBHK}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedBHK('all')} />
                       </Badge>
                     )}
                     {selectedStatus !== 'available' && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         Status: {selectedStatus}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedStatus('available')} />
                       </Badge>
                     )}
                     {priceRange !== 'all' && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         Price Range
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setPriceRange('all')} />
                       </Badge>
