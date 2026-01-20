@@ -38,6 +38,24 @@ export default function BlogPage() {
 
   useEffect(() => {
     fetchPosts()
+
+    // Set up realtime subscription for blog post changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_blog_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blog_posts' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          toast.success('New blog post created!')
+        } else if (payload.eventType === 'UPDATE') {
+          toast.info('Blog post updated')
+        }
+        fetchPosts()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function fetchPosts() {

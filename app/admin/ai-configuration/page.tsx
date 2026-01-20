@@ -60,6 +60,22 @@ export default function AIConfigurationPage() {
 
   useEffect(() => {
     fetchAgents()
+
+    // Set up realtime subscription for AI configuration changes
+    const supabase = createClient()
+    const channel = supabase
+      .channel('admin_ai_config_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_agent_configurations' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          console.log('AI configuration updated in real-time')
+        }
+        fetchAgents()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   useEffect(() => {

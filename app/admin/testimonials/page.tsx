@@ -10,6 +10,7 @@ import { Plus, MoreHorizontal, Trash2, Star, CheckCircle, XCircle, Eye } from 'l
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
+import Link from 'next/link'
 
 interface Testimonial {
   id: string
@@ -32,6 +33,24 @@ export default function TestimonialsPage() {
 
   useEffect(() => {
     fetchTestimonials()
+
+    // Set up realtime subscription for testimonial changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_testimonials_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          toast.success('New testimonial received!')
+        } else if (payload.eventType === 'UPDATE') {
+          toast.info('Testimonial updated')
+        }
+        fetchTestimonials()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function fetchTestimonials() {
@@ -266,9 +285,17 @@ export default function TestimonialsPage() {
 
   return (
     <div className="space-y-6 px-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Testimonials</h1>
-        <p className="mt-1 text-sm text-gray-500">Manage customer testimonials and reviews</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Testimonials</h1>
+          <p className="mt-1 text-sm text-gray-500">Manage customer testimonials and reviews</p>
+        </div>
+        <Link href="/admin/testimonials/new">
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Testimonial
+          </Button>
+        </Link>
       </div>
 
       {/* Stats */}

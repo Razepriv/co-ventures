@@ -89,7 +89,7 @@ export const Header: React.FC = () => {
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
           isScrolled
             ? 'bg-white shadow-md'
-            : 'bg-transparent backdrop-blur-sm'
+            : 'bg-white/95 backdrop-blur-md shadow-sm'
         )}
       >
         <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl">
@@ -103,9 +103,9 @@ export const Header: React.FC = () => {
               <img 
                 src="/logo.svg" 
                 alt="Co Housing Ventures" 
-                className="h-10 md:h-12 w-auto"
-                width={120}
-                height={48}
+                className="h-12 md:h-14 lg:h-16 w-auto"
+                width={150}
+                height={64}
               />
             </Link>
 
@@ -119,9 +119,7 @@ export const Header: React.FC = () => {
                     "relative px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm xl:text-base group",
                     isActiveLink(item.href)
                       ? "text-coral"
-                      : isScrolled 
-                        ? "text-charcoal hover:text-coral hover:bg-coral/5" 
-                        : "text-white drop-shadow-md hover:text-coral hover:bg-white/10"
+                      : "text-charcoal hover:text-coral hover:bg-coral/5"
                   )}
                   aria-current={isActiveLink(item.href) ? 'page' : undefined}
                 >
@@ -140,10 +138,7 @@ export const Header: React.FC = () => {
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 className={cn(
-                  "hidden sm:block px-2 md:px-3 py-1.5 md:py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-xs md:text-sm transition-all cursor-pointer",
-                  isScrolled 
-                    ? "border border-gray-300 bg-white text-charcoal hover:border-coral" 
-                    : "border border-white/30 bg-white/10 backdrop-blur-md text-white hover:bg-white/20"
+                  "hidden sm:block px-2 md:px-3 py-1.5 md:py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-xs md:text-sm transition-all cursor-pointer border border-gray-300 bg-white text-charcoal hover:border-coral"
                 )}
                 aria-label="Select currency"
               >
@@ -164,8 +159,7 @@ export const Header: React.FC = () => {
               {/* Mobile Menu Button */}
               <button
                 className={cn(
-                  "lg:hidden p-2 rounded-lg hover:bg-coral/10 transition-all",
-                  isScrolled ? "text-charcoal" : "text-white"
+                  "lg:hidden p-2 rounded-lg hover:bg-coral/10 transition-all text-charcoal"
                 )}
                 onClick={toggleMobileMenu}
                 aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}

@@ -1,18 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/Badge'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Search, MapPin, Bed, Bath, Square, Heart, IndianRupee, Filter, X } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { formatDistanceToNow } from 'date-fns'
+import { useDebounce } from '@/lib/hooks/useDebounce'
+import { useRealtimeSubscription } from '@/lib/hooks/useRealtimeSubscription'
+import { useLocalStorage } from '@/lib/hooks/useLocalStorage'
+import { toast } from 'sonner'
 
 interface Property {
   id: string
@@ -42,6 +45,56 @@ export default function PropertiesPage() {
   const [selectedStatus, setSelectedStatus] = useState('available')
   const [priceRange, setPriceRange] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [sortBy, setSortBy] = useState('newest')
+  const [currency, setCurrency] = useState('INR')
+  const [favorites, setFavorites] = useLocalStorage<string[]>('property-favorites', [])
+  
+  // Debounce search query for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+  // Currency conversion rates (you can fetch from API in production)
+  const currencyRates = useMemo(() => ({
+    INR: 1,
+    USD: 0.012,
+    EUR: 0.011
+  }), [])
+
+  // Toggle favorite
+  const toggleFavorite = useCallback((propertyId: string) => {
+    setFavorites(prev => {
+      if (prev.includes(propertyId)) {
+        toast.info('Removed from favorites')
+        return prev.filter(id => id !== propertyId)
+      } else {
+        toast.success('Added to favorites')
+        return [...prev, propertyId]
+      }
+    })
+  }, [setFavorites])
+
+  // Real-time subscription for property updates
+  useRealtimeSubscription<Property>({
+    table: 'properties',
+    event: '*',
+    onInsert: (newProperty) => {
+      setProperties(prev => [newProperty, ...prev])
+      toast.success('New property added!', {
+        description: newProperty.title
+      })
+    },
+    onUpdate: ({ old: oldProperty, new: newProperty }) => {
+      setProperties(prev => prev.map(p => p.id === newProperty.id ? newProperty : p))
+      toast.info('Property updated', {
+        description: newProperty.title
+      })
+    },
+    onDelete: (deletedProperty) => {
+      setProperties(prev => prev.filter(p => p.id !== deletedProperty.id))
+      toast.error('Property removed', {
+        description: deletedProperty.title
+      })
+    }
+  })
 
   useEffect(() => {
     fetchProperties()
@@ -100,11 +153,53 @@ export default function PropertiesPage() {
     }
   }
 
-  const filteredProperties = properties.filter(property =>
-    property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    property.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    property.city.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Filter and sort properties with memoization
+  const filteredAndSortedProperties = useMemo(() => {
+    // First filter by search query
+    let filtered = properties.filter(property =>
+      property.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      property.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      property.city.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+    )
+
+    // Then sort
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low':
+          return a.price - b.price
+        case 'price-high':
+          return b.price - a.price
+        case 'popular':
+          return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
+        case 'newest':
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+    })
+
+    return sorted
+  }, [properties, debouncedSearchQuery, sortBy])
+
+  // Convert price based on selected currency
+  const convertPrice = useCallback((price: number) => {
+    const converted = price * currencyRates[currency as keyof typeof currencyRates]
+    return converted
+  }, [currency, currencyRates])
+
+  // Format price display
+  const formatPrice = useCallback((price: number) => {
+    const converted = convertPrice(price)
+    
+    switch (currency) {
+      case 'USD':
+        return `$${(converted / 1000).toFixed(1)}K`
+      case 'EUR':
+        return `€${(converted / 1000).toFixed(1)}K`
+      case 'INR':
+      default:
+        return `₹${(converted / 100000).toFixed(1)}L`
+    }
+  }, [currency, convertPrice])
 
   const cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune']
   const bhkTypes = ['1BHK', '2BHK', '3BHK', '4BHK', '5+BHK']
@@ -144,6 +239,14 @@ export default function PropertiesPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 h-12 text-base"
                     />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-coral"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   <Button
                     onClick={() => setShowFilters(!showFilters)}
@@ -233,29 +336,80 @@ export default function PropertiesPage() {
         {/* Properties Grid */}
         <section className="py-16 bg-gray-50">
           <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
-            {/* Results Count */}
-            <div className="flex justify-between items-center mb-8">
-              <p className="text-gray-600">
-                Showing <span className="font-semibold text-charcoal">{filteredProperties.length}</span> properties
-              </p>
-              <Select defaultValue="newest">
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Results Count and Controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div>
+                <p className="text-gray-600">
+                  Showing <span className="font-semibold text-charcoal">{filteredAndSortedProperties.length}</span> properties
+                </p>
+                {/* Active Filters */}
+                {(selectedCity !== 'all' || selectedBHK !== 'all' || selectedStatus !== 'available' || priceRange !== 'all' || debouncedSearchQuery) && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {debouncedSearchQuery && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        Search: {debouncedSearchQuery}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSearchQuery('')} />
+                      </Badge>
+                    )}
+                    {selectedCity !== 'all' && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        City: {selectedCity}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCity('all')} />
+                      </Badge>
+                    )}
+                    {selectedBHK !== 'all' && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        BHK: {selectedBHK}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedBHK('all')} />
+                      </Badge>
+                    )}
+                    {selectedStatus !== 'available' && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        Status: {selectedStatus}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedStatus('available')} />
+                      </Badge>
+                    )}
+                    {priceRange !== 'all' && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        Price Range
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setPriceRange('all')} />
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Currency Selector */}
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INR">₹ INR</SelectItem>
+                    <SelectItem value="USD">$ USD</SelectItem>
+                    <SelectItem value="EUR">€ EUR</SelectItem>
+                  </SelectContent>
+                </Select>
+                {/* Sort Selector */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="popular">Most Popular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral"></div>
               </div>
-            ) : filteredProperties.length === 0 ? (
+            ) : filteredAndSortedProperties.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-xl text-gray-600 mb-4">No properties found matching your criteria</p>
                 <Button onClick={() => {
@@ -270,7 +424,7 @@ export default function PropertiesPage() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredProperties.map((property, index) => (
+                {filteredAndSortedProperties.map((property: Property, index: number) => (
                   <motion.div
                     key={property.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -297,8 +451,20 @@ export default function PropertiesPage() {
                               <Badge className="bg-amber-500 text-white">Featured</Badge>
                             </div>
                           )}
-                          <button className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                            <Heart className="w-5 h-5 text-gray-600 hover:text-coral" />
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault()
+                              toggleFavorite(property.id)
+                            }}
+                            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                          >
+                            <Heart 
+                              className={`w-5 h-5 transition-colors ${
+                                favorites.includes(property.id)
+                                  ? 'fill-coral text-coral'
+                                  : 'text-gray-600 hover:text-coral'
+                              }`} 
+                            />
                           </button>
                           <div className="absolute bottom-4 left-4">
                             <Badge className={
@@ -342,9 +508,9 @@ export default function PropertiesPage() {
                             <div>
                               <p className="text-sm text-gray-500">Starting from</p>
                               <div className="flex items-center">
-                                <IndianRupee className="w-5 h-5 text-coral" />
+                                {currency === 'INR' && <IndianRupee className="w-5 h-5 text-coral" />}
                                 <span className="text-2xl font-bold text-charcoal">
-                                  {(property.price / 100000).toFixed(1)}L
+                                  {formatPrice(property.price)}
                                 </span>
                               </div>
                             </div>
@@ -361,7 +527,7 @@ export default function PropertiesPage() {
             )}
 
             {/* Load More */}
-            {filteredProperties.length > 0 && filteredProperties.length % 9 === 0 && (
+            {filteredAndSortedProperties.length > 0 && filteredAndSortedProperties.length % 9 === 0 && (
               <div className="text-center mt-12">
                 <Button size="lg" variant="outline">
                   Load More Properties

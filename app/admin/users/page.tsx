@@ -41,6 +41,24 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers()
+
+    // Set up realtime subscription for user changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_users_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          toast.success('New user registered!')
+        } else if (payload.eventType === 'UPDATE') {
+          toast.info('User updated')
+        }
+        fetchUsers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function fetchUsers() {

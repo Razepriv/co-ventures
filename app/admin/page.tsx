@@ -102,6 +102,36 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
+
+    // Set up realtime subscriptions for dashboard updates
+    const supabase = getSupabaseClient()
+    
+    const propertiesChannel = supabase
+      .channel('dashboard_properties')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
+        fetchDashboardData()
+      })
+      .subscribe()
+
+    const enquiriesChannel = supabase
+      .channel('dashboard_enquiries')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
+        fetchDashboardData()
+      })
+      .subscribe()
+
+    const usersChannel = supabase
+      .channel('dashboard_users')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchDashboardData()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(propertiesChannel)
+      supabase.removeChannel(enquiriesChannel)
+      supabase.removeChannel(usersChannel)
+    }
   }, [])
 
   async function fetchDashboardData() {

@@ -30,6 +30,24 @@ export default function MediaPage() {
 
   useEffect(() => {
     fetchFiles()
+
+    // Set up realtime subscription for media file changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_media_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media_files' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          toast.success('New file uploaded!')
+        } else if (payload.eventType === 'DELETE') {
+          toast.info('File deleted')
+        }
+        fetchFiles()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function fetchFiles() {

@@ -45,6 +45,26 @@ export default function PropertiesPage() {
 
   useEffect(() => {
     fetchProperties()
+
+    // Set up realtime subscription for property changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_properties_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          toast.success('New property added!')
+        } else if (payload.eventType === 'UPDATE') {
+          toast.info('Property updated')
+        } else if (payload.eventType === 'DELETE') {
+          toast.info('Property deleted')
+        }
+        fetchProperties()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function fetchProperties() {

@@ -26,6 +26,20 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchSettings()
+
+    // Set up realtime subscription for settings changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_settings_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
+        fetchSettings()
+        toast.info('Settings updated by another admin')
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function fetchSettings() {

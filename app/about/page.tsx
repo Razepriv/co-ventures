@@ -44,7 +44,7 @@ export default function AboutPage() {
   return (
     <>
       <Header />
-      <main>
+      <main className="pt-20">
         {/* Hero Section */}
         <section className="relative h-[60vh] min-h-[400px] flex items-center overflow-hidden">
           <div className="absolute inset-0 z-0">
