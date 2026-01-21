@@ -181,8 +181,7 @@ export default function PhoneLoginPage() {
 
       if (existingUser) {
         // Update existing user
-        // @ts-ignore - Supabase type mismatch
-        const updateResult = await supabase
+        await (supabase as any)
           .from('users')
           .update({
             firebase_uid: firebaseUser.uid,
@@ -194,8 +193,7 @@ export default function PhoneLoginPage() {
         toast.success('Welcome back!')
       } else {
         // Create new user
-        // @ts-ignore - Supabase type mismatch
-        const insertResult = await supabase
+        const insertResult = await (supabase as any)
           .from('users')
           .insert({
             firebase_uid: firebaseUser.uid,
