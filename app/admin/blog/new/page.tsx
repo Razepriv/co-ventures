@@ -83,7 +83,7 @@ export default function NewBlogPostPage() {
 
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
-        .from('media')
+        .from('coventures')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -93,7 +93,7 @@ export default function NewBlogPostPage() {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('media')
+        .from('coventures')
         .getPublicUrl(filePath)
 
       setFormData({ ...formData, featured_image: publicUrl })

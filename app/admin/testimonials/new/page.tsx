@@ -65,7 +65,7 @@ export default function NewTestimonialPage() {
 
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
-        .from('media')
+        .from('coventures')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -75,7 +75,7 @@ export default function NewTestimonialPage() {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('media')
+        .from('coventures')
         .getPublicUrl(filePath)
 
       setFormData({ ...formData, avatar_url: publicUrl })
