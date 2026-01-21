@@ -7,10 +7,12 @@ import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Plus, MoreHorizontal, Pencil, Trash2, Eye, Star, Image as ImageIcon } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, Trash2, Eye, Star, Image as ImageIcon, CheckSquare } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { Checkbox } from '@/components/ui/checkbox'
+import { exportToCSV, formatPropertiesForExport } from '@/lib/utils/export'
 
 interface Property {
   id: string
@@ -134,7 +136,75 @@ export default function PropertiesPage() {
     }
   }
 
+  async function handleBulkDelete(selectedProperties: Property[]) {
+    try {
+      const supabase = getSupabaseClient()
+      const ids = selectedProperties.map(p => p.id)
+      
+      const { error } = await supabase
+        .from('properties')
+        .delete()
+        .in('id', ids)
+
+      if (error) throw error
+
+      toast.success(`${selectedProperties.length} properties deleted successfully`)
+      fetchProperties()
+    } catch (error) {
+      console.error('Error deleting properties:', error)
+      toast.error('Failed to delete properties')
+    }
+  }
+
+  async function handleBulkUpdate(selectedProperties: Property[], action: string) {
+    try {
+      const supabase = getSupabaseClient()
+      const ids = selectedProperties.map(p => p.id)
+      
+      const isFeatured = action === 'feature'
+      
+      const { error } = await supabase
+        .from('properties')
+        // @ts-ignore
+        .update({ is_featured: isFeatured })
+        .in('id', ids)
+
+      if (error) throw error
+
+      toast.success(`${selectedProperties.length} properties ${isFeatured ? 'featured' : 'unfeatured'}`)
+      fetchProperties()
+    } catch (error) {
+      console.error('Error updating properties:', error)
+      toast.error('Failed to update properties')
+    }
+  }
+
+  function handleExport(data: Property[]) {
+    const formatted = formatPropertiesForExport(data)
+    exportToCSV(formatted, 'properties')
+    toast.success('Properties exported successfully')
+  }
+
   const columns: ColumnDef<Property>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       id: 'image',
       header: 'Image',
@@ -341,6 +411,11 @@ export default function PropertiesPage() {
           data={properties}
           searchKey="title"
           searchPlaceholder="Search properties..."
+          enableBulkActions={true}
+          onBulkDelete={handleBulkDelete}
+          onBulkUpdate={handleBulkUpdate}
+          onExport={handleExport}
+          exportFileName="properties"
         />
       </div>
     </div>

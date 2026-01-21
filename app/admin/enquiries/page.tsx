@@ -10,6 +10,8 @@ import { MoreHorizontal, Mail, Phone, Eye, CheckCircle2, Clock, XCircle } from '
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
+import { DateRangeFilter } from '@/components/ui/DateRangeFilter'
+import { exportToCSV, formatEnquiriesForExport } from '@/lib/utils/export'
 
 interface Enquiry {
   id: string
@@ -37,6 +39,7 @@ export default function EnquiriesPage() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total: 0, new: 0, inProgress: 0, closed: 0 })
+  const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
 
   useEffect(() => {
     fetchEnquiries()
@@ -53,18 +56,27 @@ export default function EnquiriesPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [dateRange])
 
   async function fetchEnquiries() {
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase
+      let query = supabase
         .from('enquiries')
         .select(`
           *,
           properties (title, location)
         `)
         .order('created_at', { ascending: false })
+
+      // Apply date range filter
+      if (dateRange.start && dateRange.end) {
+        query = query
+          .gte('created_at', new Date(dateRange.start).toISOString())
+          .lte('created_at', new Date(dateRange.end + 'T23:59:59').toISOString())
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -121,6 +133,16 @@ export default function EnquiriesPage() {
       console.error('Error deleting enquiry:', error)
       toast.error('Failed to delete enquiry')
     }
+  }
+
+  function handleDateRangeChange(start: string | null, end: string | null) {
+    setDateRange({ start, end })
+  }
+
+  function handleExport(data: Enquiry[]) {
+    const formatted = formatEnquiriesForExport(data)
+    exportToCSV(formatted, 'enquiries')
+    toast.success('Enquiries exported successfully')
   }
 
   const columns: ColumnDef<Enquiry>[] = [
@@ -291,6 +313,12 @@ export default function EnquiriesPage() {
         </div>
       </div>
 
+      {/* Date Range Filter */}
+      <DateRangeFilter
+        onDateRangeChange={handleDateRangeChange}
+        label="Filter by Date"
+      />
+
       {/* Data Table */}
       <div className="rounded-xl border bg-white shadow-sm">
         <DataTable
@@ -298,6 +326,8 @@ export default function EnquiriesPage() {
           data={enquiries}
           searchKey="full_name"
           searchPlaceholder="Search by name..."
+          onExport={handleExport}
+          exportFileName="enquiries"
         />
       </div>
     </div>

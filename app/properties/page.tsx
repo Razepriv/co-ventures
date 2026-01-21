@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
@@ -36,14 +37,31 @@ interface Property {
   categories: { name: string }
 }
 
-export default function PropertiesPage() {
+function PropertiesContent() {
+  const searchParams = useSearchParams()
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCity, setSelectedCity] = useState('all')
   const [selectedBHK, setSelectedBHK] = useState('all')
+  const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('available')
   const [priceRange, setPriceRange] = useState('all')
+  
+  // Set initial filters from URL
+  useEffect(() => {
+    const city = searchParams.get('city')
+    const bhk = searchParams.get('bhk')?.replace(' ', '') // Normalize '1 BHK' to '1BHK'
+    const price = searchParams.get('price')
+    const type = searchParams.get('type')
+    const query = searchParams.get('q')
+
+    if (city) setSelectedCity(city)
+    if (bhk) setSelectedBHK(bhk)
+    if (price) setPriceRange(price)
+    if (type) setSelectedType(type)
+    if (query) setSearchQuery(query)
+  }, [searchParams])
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
   const [currency, setCurrency] = useState('INR')
@@ -98,7 +116,7 @@ export default function PropertiesPage() {
 
   useEffect(() => {
     fetchProperties()
-  }, [selectedCity, selectedBHK, selectedStatus, priceRange])
+  }, [selectedCity, selectedBHK, selectedType, selectedStatus, priceRange])
 
   async function fetchProperties() {
     try {
@@ -125,6 +143,10 @@ export default function PropertiesPage() {
 
       if (selectedBHK !== 'all') {
         query = query.eq('bhk_type', selectedBHK)
+      }
+
+      if (selectedType !== 'all') {
+        query = query.eq('property_type', selectedType)
       }
 
       const { data, error } = await query
@@ -201,8 +223,9 @@ export default function PropertiesPage() {
     }
   }, [currency, convertPrice])
 
-  const cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune']
+  const cities = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Pune', 'Hyderabad', 'Chennai', 'Kolkata', 'Ahmedabad']
   const bhkTypes = ['1BHK', '2BHK', '3BHK', '4BHK', '5+BHK']
+  const propertyTypes = ['Apartments', 'Villas', 'Penthouses', 'Plots']
 
   return (
     <>
@@ -282,6 +305,21 @@ export default function PropertiesPage() {
                     </div>
 
                     <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Asset Type</label>
+                      <Select value={selectedType} onValueChange={setSelectedType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {propertyTypes.map(type => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">BHK</label>
                       <Select value={selectedBHK} onValueChange={setSelectedBHK}>
                         <SelectTrigger>
@@ -319,10 +357,13 @@ export default function PropertiesPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Prices</SelectItem>
-                          <SelectItem value="0-5000000">Under ₹50L</SelectItem>
+                          <SelectItem value="0-2500000">Under ₹25L</SelectItem>
+                          <SelectItem value="2500000-5000000">₹25L - ₹50L</SelectItem>
                           <SelectItem value="5000000-10000000">₹50L - ₹1Cr</SelectItem>
                           <SelectItem value="10000000-20000000">₹1Cr - ₹2Cr</SelectItem>
-                          <SelectItem value="20000000-0">Above ₹2Cr</SelectItem>
+                          <SelectItem value="20000000-50000000">₹2Cr - ₹5Cr</SelectItem>
+                          <SelectItem value="50000000-100000000">₹5Cr - ₹10Cr</SelectItem>
+                          <SelectItem value="100000000-0">Above ₹10Cr</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -361,6 +402,12 @@ export default function PropertiesPage() {
                       <Badge variant="outline" className="flex items-center gap-1">
                         BHK: {selectedBHK}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedBHK('all')} />
+                      </Badge>
+                    )}
+                    {selectedType !== 'all' && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        Type: {selectedType}
+                        <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedType('all')} />
                       </Badge>
                     )}
                     {selectedStatus !== 'available' && (
@@ -439,7 +486,7 @@ export default function PropertiesPage() {
                             src={
                               property.property_images?.find(img => img.is_primary)?.image_url ||
                               property.property_images?.[0]?.image_url ||
-                              property.featured_image ||
+                              (property.featured_image && property.featured_image.startsWith('http') ? property.featured_image : null) ||
                               'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'
                             }
                             alt={property.title}
@@ -573,5 +620,17 @@ export default function PropertiesPage() {
       </main>
       <Footer />
     </>
+  )
+}
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-coral"></div>
+      </div>
+    }>
+      <PropertiesContent />
+    </Suspense>
   )
 }

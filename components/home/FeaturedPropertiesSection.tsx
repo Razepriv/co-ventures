@@ -126,7 +126,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggle
             src={
               property.property_images?.find(img => img.is_primary)?.image_url || 
               property.property_images?.[0]?.image_url || 
-              property.featured_image ||
+              (property.featured_image && property.featured_image.startsWith('http') ? property.featured_image : null) ||
               'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80'
             }
             alt={`${property.title} in ${property.location}`}
