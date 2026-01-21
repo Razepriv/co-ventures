@@ -23,7 +23,7 @@ interface Property {
   state: string
   price: number
   bhk_type: string
-  property_size: number
+  area_sqft: number
   status: 'available' | 'sold' | 'rented'
   is_featured: boolean
   views_count: number
@@ -206,11 +206,11 @@ export default function PropertiesPage() {
       ),
     },
     {
-      accessorKey: 'property_size',
+      accessorKey: 'area_sqft',
       header: 'Size',
       cell: ({ row }) => (
         <p className="text-sm text-gray-600">
-          {row.original.property_size} sq.ft
+          {row.original.area_sqft} sq.ft
         </p>
       ),
     },
