@@ -173,10 +173,11 @@ export default function PhoneLoginPage() {
       // Create or update user in Supabase
       const supabase = getSupabaseClient()
       
+      // Check if user exists by phone or firebase_uid
       const { data: existingUser }: { data: any } = await supabase
         .from('users')
         .select('*')
-        .eq('phone', phoneNumber)
+        .or(`phone.eq.${phoneNumber},firebase_uid.eq.${firebaseUser.uid}`)
         .single()
 
       if (existingUser) {
@@ -185,10 +186,23 @@ export default function PhoneLoginPage() {
           .from('users')
           .update({
             firebase_uid: firebaseUser.uid,
+            phone: phoneNumber,
             phone_verified: true,
             last_login_at: new Date().toISOString()
           })
           .eq('id', existingUser.id)
+
+        // Sign in to Supabase auth (if not already signed in)
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: existingUser.email,
+          password: firebaseUser.uid
+        })
+
+        if (signInError) {
+          console.error('Sign in error:', signInError)
+          // If password doesn't work, user might have registered with different method
+          // Just continue without Supabase auth session for now
+        }
 
         toast.success('Welcome back!')
       } else {
@@ -209,6 +223,35 @@ export default function PhoneLoginPage() {
 
         if (!response.ok) {
           console.error('Error creating user:', data.error)
+          console.error('Response status:', response.status)
+          console.error('Full response:', data)
+          
+          // Check if user already exists (might have been created in previous attempt)
+          if (response.status === 409 || (data.error && data.error.includes('already'))) {
+            // User exists, try to find and update
+            const { data: retryUser } = await (supabase as any)
+              .from('users')
+              .select('id')
+              .eq('email', email)
+              .single()
+
+            if (retryUser) {
+              await (supabase as any)
+                .from('users')
+                .update({
+                  firebase_uid: firebaseUser.uid,
+                  phone: phoneNumber,
+                  phone_verified: true,
+                  last_login_at: new Date().toISOString()
+                })
+                .eq('id', retryUser.id)
+
+              toast.success('Welcome back!')
+              router.push('/')
+              return
+            }
+          }
+
           toast.error(data.error || 'Failed to create account. Please try again.')
           return
         }
