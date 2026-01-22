@@ -1,86 +1,33 @@
--- Create notifications table
-CREATE TABLE IF NOT EXISTS public.notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  type TEXT NOT NULL CHECK (type IN ('new_user', 'new_enquiry', 'new_property', 'property_update', 'enquiry_update')),
-  title TEXT NOT NULL,
-  message TEXT NOT NULL,
-  link TEXT,
-  is_read BOOLEAN DEFAULT FALSE,
-  metadata JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Complete Notifications Setup
+-- Run this to finish setting up the notification system
 
--- Create index for faster queries
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications(is_read);
-CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notifications_type ON public.notifications(type);
+-- Enable realtime for notifications (if not already enabled)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;
 
--- Enable Row Level Security
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS trigger_new_user_notification ON public.users;
+DROP TRIGGER IF EXISTS trigger_new_enquiry_notification ON public.enquiries;
+DROP TRIGGER IF EXISTS trigger_new_property_notification ON public.properties;
+DROP TRIGGER IF EXISTS trigger_property_update_notification ON public.properties;
+DROP TRIGGER IF EXISTS trigger_enquiry_update_notification ON public.enquiries;
+DROP TRIGGER IF EXISTS trigger_update_notifications_updated_at ON public.notifications;
 
--- Drop existing policies if they exist
-DROP POLICY IF EXISTS "Admin users can view all notifications" ON public.notifications;
-DROP POLICY IF EXISTS "Admin users can update notifications" ON public.notifications;
-DROP POLICY IF EXISTS "Admin users can delete notifications" ON public.notifications;
-DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
-
--- Create policies for notifications
--- Admin users can see all notifications
-CREATE POLICY "Admin users can view all notifications"
-ON public.notifications
-FOR SELECT
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE users.id = auth.uid()
-    AND users.role IN ('super_admin', 'admin')
-  )
-);
-
--- Admin users can update notifications (mark as read)
-CREATE POLICY "Admin users can update notifications"
-ON public.notifications
-FOR UPDATE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE users.id = auth.uid()
-    AND users.role IN ('super_admin', 'admin')
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE users.id = auth.uid()
-    AND users.role IN ('super_admin', 'admin')
-  )
-);
-
--- Admin users can delete notifications
-CREATE POLICY "Admin users can delete notifications"
-ON public.notifications
-FOR DELETE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE users.id = auth.uid()
-    AND users.role IN ('super_admin', 'admin')
-  )
-);
-
--- System can insert notifications
-CREATE POLICY "System can insert notifications"
-ON public.notifications
-FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
--- Enable realtime for notifications
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+-- Drop existing functions
+DROP FUNCTION IF EXISTS public.create_new_user_notification();
+DROP FUNCTION IF EXISTS public.create_new_enquiry_notification();
+DROP FUNCTION IF EXISTS public.create_new_property_notification();
+DROP FUNCTION IF EXISTS public.create_property_update_notification();
+DROP FUNCTION IF EXISTS public.create_enquiry_update_notification();
+DROP FUNCTION IF EXISTS public.update_notifications_updated_at();
 
 -- Create function to automatically create notifications for new users
 CREATE OR REPLACE FUNCTION public.create_new_user_notification()
@@ -106,7 +53,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for new users
-DROP TRIGGER IF EXISTS trigger_new_user_notification ON public.users;
 CREATE TRIGGER trigger_new_user_notification
 AFTER INSERT ON public.users
 FOR EACH ROW
@@ -134,7 +80,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for new enquiries
-DROP TRIGGER IF EXISTS trigger_new_enquiry_notification ON public.enquiries;
 CREATE TRIGGER trigger_new_enquiry_notification
 AFTER INSERT ON public.enquiries
 FOR EACH ROW
@@ -164,7 +109,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for new properties
-DROP TRIGGER IF EXISTS trigger_new_property_notification ON public.properties;
 CREATE TRIGGER trigger_new_property_notification
 AFTER INSERT ON public.properties
 FOR EACH ROW
@@ -201,7 +145,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for property updates
-DROP TRIGGER IF EXISTS trigger_property_update_notification ON public.properties;
 CREATE TRIGGER trigger_property_update_notification
 AFTER UPDATE ON public.properties
 FOR EACH ROW
@@ -232,7 +175,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for enquiry updates
-DROP TRIGGER IF EXISTS trigger_enquiry_update_notification ON public.enquiries;
 CREATE TRIGGER trigger_enquiry_update_notification
 AFTER UPDATE ON public.enquiries
 FOR EACH ROW
@@ -248,21 +190,25 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to update updated_at
-DROP TRIGGER IF EXISTS trigger_update_notifications_updated_at ON public.notifications;
 CREATE TRIGGER trigger_update_notifications_updated_at
 BEFORE UPDATE ON public.notifications
 FOR EACH ROW
 EXECUTE FUNCTION public.update_notifications_updated_at();
 
--- Insert a test notification (optional - for testing purposes)
+-- Insert a welcome notification
 INSERT INTO public.notifications (type, title, message, is_read)
 VALUES (
   'new_user',
-  'Welcome to the Notification System',
-  'Notifications are now enabled! You will receive real-time updates about users, enquiries, and properties.',
+  '🎉 Notification System Activated!',
+  'Your real-time notification system is now live. You will receive instant updates about new users, enquiries, and property changes.',
   false
-);
+)
+ON CONFLICT DO NOTHING;
 
-COMMENT ON TABLE public.notifications IS 'Stores system notifications for admin users';
-COMMENT ON COLUMN public.notifications.type IS 'Type of notification: new_user, new_enquiry, new_property, property_update, enquiry_update';
-COMMENT ON COLUMN public.notifications.metadata IS 'Additional JSON data related to the notification';
+-- Success message
+DO $$
+BEGIN
+  RAISE NOTICE '✅ Notification system setup complete!';
+  RAISE NOTICE '📋 All triggers are now active';
+  RAISE NOTICE '🔔 Admins will receive real-time notifications';
+END $$;
