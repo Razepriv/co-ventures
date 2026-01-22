@@ -8,11 +8,12 @@ import { toast } from 'sonner'
 
 interface Notification {
   id: string
-  type: 'new_user' | 'new_enquiry' | 'new_property' | 'property_update' | 'enquiry_update'
+  type: 'new_user' | 'new_enquiry' | 'new_property' | 'property_update' | 'enquiry_update' | 'new_blog' | 'new_testimonial'
   title: string
   message: string
   link?: string
   is_read: boolean
+  target_audience: 'admin' | 'user' | 'all'
   created_at: string
   metadata?: any
 }
@@ -171,6 +172,10 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
         return <FileText className="w-5 h-5 text-orange-500" />
       case 'enquiry_update':
         return <CheckCircle className="w-5 h-5 text-teal-500" />
+      case 'new_blog':
+        return <FileText className="w-5 h-5 text-indigo-500" />
+      case 'new_testimonial':
+        return <CheckCircle className="w-5 h-5 text-pink-500" />
       default:
         return <Bell className="w-5 h-5 text-gray-500" />
     }
