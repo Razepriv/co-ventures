@@ -174,11 +174,26 @@ export default function PhoneLoginPage() {
       const supabase = getSupabaseClient()
       
       // Check if user exists by phone or firebase_uid
-      const { data: existingUser }: { data: any } = await supabase
+      const { data: existingUsers, error: queryError }: { data: any, error: any } = await supabase
         .from('users')
         .select('*')
-        .or(`phone.eq.${phoneNumber},firebase_uid.eq.${firebaseUser.uid}`)
-        .single()
+        .eq('phone', phoneNumber)
+
+      console.log('Query error:', queryError)
+      console.log('Existing users found:', existingUsers)
+
+      let existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null
+
+      // If not found by phone, try by firebase_uid
+      if (!existingUser) {
+        const { data: firebaseUsers } = await supabase
+          .from('users')
+          .select('*')
+          .eq('firebase_uid', firebaseUser.uid)
+          .maybeSingle()
+        
+        existingUser = firebaseUsers
+      }
 
       if (existingUser) {
         // Update existing user

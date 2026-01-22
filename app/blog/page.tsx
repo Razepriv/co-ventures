@@ -291,28 +291,70 @@ export default function BlogPage() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-gradient-to-br from-coral to-coral-dark rounded-2xl p-12 text-center text-white"
+              className="bg-gradient-to-br from-coral to-coral-dark rounded-2xl p-12 text-center text-white relative overflow-hidden"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Subscribe to Our Newsletter
-              </h2>
-              <p className="text-xl mb-8 text-white/90 max-w-2xl mx-auto">
-                Get the latest articles, market insights, and co-housing tips delivered to your inbox
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 h-12 bg-white text-charcoal"
-                />
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="bg-white text-coral hover:bg-gray-100 whitespace-nowrap"
-                >
-                  Subscribe
-                </Button>
+              {/* Animated background particles */}
+              <div className="absolute inset-0 opacity-10">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-2 h-2 bg-white rounded-full"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                    animate={{
+                      y: [0, -30, 0],
+                      opacity: [0.3, 1, 0.3],
+                    }}
+                    transition={{
+                      duration: 3 + Math.random() * 2,
+                      repeat: Infinity,
+                      delay: Math.random() * 2,
+                    }}
+                  />
+                ))}
               </div>
+
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="relative z-10"
+              >
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                  Have Questions? We're Here to Help!
+                </h2>
+                <p className="text-xl mb-8 text-white/90 max-w-2xl mx-auto">
+                  Get expert guidance on co-housing investments, property selection, and more. Our team is ready to assist you.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href="/contact">
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="bg-white text-coral hover:bg-gray-100 whitespace-nowrap shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+                    >
+                      <motion.span
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        Contact Us Now →
+                      </motion.span>
+                    </Button>
+                  </Link>
+                  <a href="tel:+911234567890">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-2 border-white text-white hover:bg-white hover:text-coral whitespace-nowrap"
+                    >
+                      📞 Call Us
+                    </Button>
+                  </a>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
         </section>

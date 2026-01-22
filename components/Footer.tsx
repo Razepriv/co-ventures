@@ -16,10 +16,6 @@ const quickLinks = [
 const resources = [
   { label: 'How It Works', href: '/how-it-works' },
   { label: 'FAQs', href: '/faqs' },
-  { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Terms & Conditions', href: '/terms' },
-  { label: 'Refund Policy', href: '/refund' },
-  { label: 'Careers', href: '/careers' },
 ];
 
 
@@ -111,23 +107,10 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-800">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-center items-center gap-4">
             <p className="text-sm text-gray-500">
               © 2026 Co-ventures. All rights reserved.
             </p>
-            <div className="flex gap-6">
-              <Link href="/privacy" className="text-sm text-gray-500 hover:text-coral transition-colors">
-                Privacy Policy
-              </Link>
-              <span className="text-gray-700">|</span>
-              <Link href="/terms" className="text-sm text-gray-500 hover:text-coral transition-colors">
-                Terms of Service
-              </Link>
-              <span className="text-gray-700">|</span>
-              <Link href="/cookies" className="text-sm text-gray-500 hover:text-coral transition-colors">
-                Cookie Policy
-              </Link>
-            </div>
           </div>
         </div>
       </div>

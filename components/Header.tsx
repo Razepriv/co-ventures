@@ -8,6 +8,7 @@ import { Button } from './ui/Button';
 import { cn } from '@/lib/utils';
 import NotificationPopup from './notifications/NotificationPopup';
 import { createClient } from '@/lib/supabase/client';
+import { useCurrency } from '@/lib/contexts/CurrencyContext';
 
 const navItems = [
   { label: 'Home', href: '/' },
@@ -21,7 +22,7 @@ const navItems = [
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currency, setCurrency] = useState('INR');
+  const { currency, setCurrency, currencySymbols } = useCurrency();
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
@@ -201,7 +202,7 @@ export const Header: React.FC = () => {
               {/* Currency Selector */}
               <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => setCurrency(e.target.value as 'INR' | 'USD' | 'EUR' | 'GBP')}
                 className={cn(
                   "hidden sm:block px-2 md:px-3 py-1.5 md:py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-xs md:text-sm transition-all cursor-pointer border border-gray-300 bg-white text-charcoal hover:border-coral"
                 )}
@@ -210,6 +211,7 @@ export const Header: React.FC = () => {
                 <option value="INR" className="text-charcoal">₹ INR</option>
                 <option value="USD" className="text-charcoal">$ USD</option>
                 <option value="EUR" className="text-charcoal">€ EUR</option>
+                <option value="GBP" className="text-charcoal">£ GBP</option>
               </select>
 
               {/* User Login Button */}
@@ -294,13 +296,14 @@ export const Header: React.FC = () => {
             <div className="pt-6 border-t border-gray-200 space-y-4">
               <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => setCurrency(e.target.value as 'INR' | 'USD' | 'EUR' | 'GBP')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral text-sm cursor-pointer hover:border-coral transition-colors"
                 aria-label="Select currency"
               >
                 <option value="INR">₹ INR</option>
                 <option value="USD">$ USD</option>
                 <option value="EUR">€ EUR</option>
+                <option value="GBP">£ GBP</option>
               </select>
               <Button
                 size="md"

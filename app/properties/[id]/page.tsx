@@ -25,6 +25,7 @@ import { SubscriptionPlansModal } from '@/components/subscription/SubscriptionPl
 import { InvestNowModal } from '@/components/property/InvestNowModal'
 import { LiveTourModal } from '@/components/property/LiveTourModal'
 import { toast } from 'sonner'
+import { useCurrency } from '@/lib/contexts/CurrencyContext'
 
 interface Property {
   id: string
@@ -89,6 +90,7 @@ interface Property {
 export default function PropertyDetailsPage({ params }: { params: { id: string } }) {
   const { user } = useAuth()
   const { currentPlan, usage } = useSubscription()
+  const { formatPrice } = useCurrency()
   const [property, setProperty] = useState<Property | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -415,13 +417,13 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                       <div className="bg-white rounded-lg p-4">
                         <p className="text-xs text-gray-600 mb-1">Minimum Investment</p>
                         <p className="text-xl font-bold text-gray-900">
-                          ₹{(property.minimum_investment! / 100000).toFixed(1)}L
+                          {formatPrice(property.minimum_investment!)}
                         </p>
                       </div>
                       <div className="bg-white rounded-lg p-4">
                         <p className="text-xs text-gray-600 mb-1">Est. Monthly Rental</p>
                         <p className="text-xl font-bold text-gray-900">
-                          ₹{(property.estimated_monthly_rental! / 1000).toFixed(0)}K
+                          {formatPrice(property.estimated_monthly_rental!)}
                         </p>
                       </div>
                       <div className="bg-white rounded-lg p-4">
@@ -666,11 +668,11 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     <div className="text-center mb-6">
                       <p className="text-sm text-gray-600 mb-1">Total Investment</p>
                       <p className="text-4xl font-bold text-gray-900">
-                        ₹{(property.price / 100000).toFixed(2)}L
+                        {formatPrice(property.price)}
                       </p>
                       {property.minimum_investment && (
                         <p className="text-sm text-gray-600 mt-1">
-                          Starting from ₹{(property.minimum_investment / 100000).toFixed(1)}L
+                          Starting from {formatPrice(property.minimum_investment)}
                         </p>
                       )}
                     </div>

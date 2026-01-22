@@ -4,6 +4,7 @@ import './globals.css';
 import { organizationSchema, websiteSchema } from '@/lib/seo';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
+import { CurrencyProvider } from '@/lib/contexts/CurrencyContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -60,8 +61,10 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <AuthProvider>
-          {children}
-          <Toaster />
+          <CurrencyProvider>
+            {children}
+            <Toaster />
+          </CurrencyProvider>
         </AuthProvider>
       </body>
     </html>
