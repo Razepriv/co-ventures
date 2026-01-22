@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth/AuthProvider'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useEnquiryNotifications } from '@/lib/hooks/useRealtimeSubscription'
 import {
@@ -51,6 +51,7 @@ export default function AdminLayout({
 }) {
   const { user, profile, loading, signOut } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // Enable realtime enquiry notifications
@@ -105,7 +106,7 @@ export default function AdminLayout({
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navigation.map((item) => {
-            const isActive = typeof window !== 'undefined' && window.location.pathname === item.href
+            const isActive = pathname === item.href
             return (
               <Link
                 key={item.name}
