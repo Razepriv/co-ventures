@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Bell } from 'lucide-react';
 import { Button } from './ui/Button';
 import { cn } from '@/lib/utils';
+import NotificationPopup from './notifications/NotificationPopup';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { label: 'Home', href: '/' },
@@ -20,7 +22,10 @@ export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('INR');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
+  const supabase = createClient();
 
   // Memoized scroll handler with throttle
   const handleScroll = useCallback(() => {
@@ -52,7 +57,10 @@ export const Header: React.FC = () => {
   // Close mobile menu on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        setShowNotifications(false);
+      }
     };
 
     if (isMobileMenuOpen) {
@@ -79,6 +87,45 @@ export const Header: React.FC = () => {
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(prev => !prev);
   }, []);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_read', false);
+
+        if (error) throw error;
+        setUnreadCount(count || 0);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Real-time subscription for new notifications
+    const channel = supabase
+      .channel('unread_notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications'
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   // Memoize active link check
   const isActiveLink = useCallback((href: string) => {
@@ -137,6 +184,20 @@ export const Header: React.FC = () => {
 
             {/* Right Section */}
             <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
+              {/* Notification Bell */}
+              <button
+                onClick={() => setShowNotifications(true)}
+                className="relative p-2 rounded-lg hover:bg-coral/10 transition-all text-charcoal"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
               {/* Currency Selector */}
               <select
                 value={currency}
@@ -266,6 +327,12 @@ export const Header: React.FC = () => {
           </nav>
         </div>
       </div>
+
+      {/* Notification Popup */}
+      <NotificationPopup 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
     </>
   );
 };
