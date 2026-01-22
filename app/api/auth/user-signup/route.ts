@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
-    const { email, password, fullName, phone } = await request.json()
+    const { email, password, fullName, phone, firebase_uid } = await request.json()
 
     // Validate required fields
     if (!email || !password || !fullName) {
@@ -52,6 +52,7 @@ export async function POST(request: Request) {
         email: authData.user.email!,
         full_name: fullName,
         phone: phone || null,
+        firebase_uid: firebase_uid || null,
         role: 'user', // Regular user role
       })
 

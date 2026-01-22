@@ -192,24 +192,43 @@ export default function PhoneLoginPage() {
 
         toast.success('Welcome back!')
       } else {
-        // Create new user
-        const insertResult = await (supabase as any)
-          .from('users')
-          .insert({
-            firebase_uid: firebaseUser.uid,
-            full_name: fullName,
+        // Create new user via API (which handles Supabase auth + profile creation)
+        const response = await fetch('/api/auth/user-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             email: email,
+            password: firebaseUser.uid, // Use Firebase UID as password
+            fullName: fullName,
             phone: phoneNumber,
-            phone_verified: true,
-            role: 'user',
-            is_active: true,
-            created_at: new Date().toISOString()
+            firebase_uid: firebaseUser.uid
           })
+        })
 
-        if (insertResult.error) {
-          console.error('Error creating user:', insertResult.error)
-          toast.error('Failed to create account. Please try again.')
+        const data = await response.json()
+
+        if (!response.ok) {
+          console.error('Error creating user:', data.error)
+          toast.error(data.error || 'Failed to create account. Please try again.')
           return
+        }
+
+        // Update the newly created user with Firebase fields
+        const { data: newUser } = await (supabase as any)
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .single()
+
+        if (newUser) {
+          await (supabase as any)
+            .from('users')
+            .update({
+              firebase_uid: firebaseUser.uid,
+              phone_verified: true,
+              last_login_at: new Date().toISOString()
+            })
+            .eq('id', newUser.id)
         }
 
         toast.success('Account created successfully!')
