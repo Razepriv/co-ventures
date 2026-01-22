@@ -8,7 +8,7 @@ import { Section } from '../ui/Section';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/contexts/CurrencyContext';
 
 interface Property {
   id: string;
@@ -117,6 +117,8 @@ interface PropertyCardProps {
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggleSave }) => {
+  const { formatPrice } = useCurrency();
+  
   return (
     <Card hover className="overflow-hidden">
       <Link href={`/properties/${property.slug}`}>

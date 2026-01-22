@@ -7,7 +7,7 @@ import { FeaturedPropertiesSection } from '@/components/home/FeaturedPropertiesS
 import { AICommitteeSection } from '@/components/home/AICommitteeSection';
 import { HowItWorksSection } from '@/components/home/HowItWorksSection';
 import { ServicesSection } from '@/components/home/ServicesSection';
-import { SuccessStoriesSection } from '@/components/home/SuccessStoriesSection';
+import { TestimonialsMarquee } from '@/components/home/TestimonialsMarquee';
 import { ByTheNumbersSection } from '@/components/home/ByTheNumbersSection';
 import { TestimonialsSection } from '@/components/home/TestimonialsSection';
 import { BlogInsightsSection } from '@/components/home/BlogInsightsSection';
@@ -25,7 +25,7 @@ export default function HomePage() {
         <AICommitteeSection />
         <HowItWorksSection />
         <ServicesSection />
-        <SuccessStoriesSection />
+        <TestimonialsMarquee />
         <ByTheNumbersSection />
         <TestimonialsSection />
         <BlogInsightsSection />
