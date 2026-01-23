@@ -9,7 +9,6 @@ import { HowItWorksSection } from '@/components/home/HowItWorksSection';
 import { ServicesSection } from '@/components/home/ServicesSection';
 import { TestimonialsMarquee } from '@/components/home/TestimonialsMarquee';
 import { ByTheNumbersSection } from '@/components/home/ByTheNumbersSection';
-import { TestimonialsSection } from '@/components/home/TestimonialsSection';
 import { BlogInsightsSection } from '@/components/home/BlogInsightsSection';
 import { CTASection } from '@/components/home/CTASection';
 
@@ -27,7 +26,6 @@ export default function HomePage() {
         <ServicesSection />
         <TestimonialsMarquee />
         <ByTheNumbersSection />
-        <TestimonialsSection />
         <BlogInsightsSection />
         <CTASection />
       </main>

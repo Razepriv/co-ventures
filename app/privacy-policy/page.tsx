@@ -3,6 +3,7 @@
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA
@@ -165,24 +166,35 @@ export default function PrivacyPolicyPage() {
         {/* ───────────────────────────────────────────────────────────────────
             HERO
         ─────────────────────────────────────────────────────────────────── */}
-        <section className="py-16 md:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <section className="relative h-[50vh] min-h-[350px] flex items-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1920&q=80"
+              alt="Privacy Policy"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/65" />
+          </div>
+
+          <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="max-w-3xl mx-auto"
+              className="max-w-3xl mx-auto text-center"
             >
-              <p className="text-sm text-gray-500 tracking-wide mb-4">
+              <p className="text-sm text-white/70 tracking-wide mb-4">
                 Last Updated: {meta.lastUpdated}
               </p>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-charcoal mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 drop-shadow-2xl">
                 {hero.h1}
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8">
+              <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8">
                 {hero.subhead}
               </p>
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-white/70 leading-relaxed">
                 {hero.note}
               </p>
             </motion.div>

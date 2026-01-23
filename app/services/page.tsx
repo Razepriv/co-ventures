@@ -222,18 +222,29 @@ export default function ServicesPage() {
       <Header />
       <main className="pt-20">
         {/* HERO */}
-        <section className="py-16 md:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <section className="relative h-[60vh] min-h-[400px] flex items-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1920&q=80"
+              alt="Our Services"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/60" />
+          </div>
+
+          <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="max-w-3xl"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-charcoal mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 drop-shadow-2xl">
                 Services built for disciplined real estate investing
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
+              <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8 max-w-2xl">
                 From screening and underwriting to documentation support and investor
                 updates - Co-ventures helps you make decisions with clarity and control.
               </p>
@@ -244,12 +255,12 @@ export default function ServicesPage() {
                   </Button>
                 </Link>
                 <Link href="/properties">
-                  <Button variant="outline" size="lg">
+                  <Button variant="outline" size="lg" className="bg-white/10 backdrop-blur-md border-2 border-white text-white hover:bg-white hover:text-coral">
                     Explore Opportunities
                   </Button>
                 </Link>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-white/70">
                 For informational purposes only. Not an offer or solicitation.
               </p>
             </motion.div>

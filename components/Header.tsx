@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Bell } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut } from 'lucide-react';
 import { Button } from './ui/Button';
 import { cn } from '@/lib/utils';
 import NotificationPopup from './notifications/NotificationPopup';
 import { createClient } from '@/lib/supabase/client';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
+import { useAuth } from '@/lib/auth/AuthProvider';
 
 const navItems = [
   { label: 'Home', href: '/' },
@@ -25,8 +26,10 @@ export const Header: React.FC = () => {
   const { currency, setCurrency, currencySymbols } = useCurrency();
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
   const supabase = createClient();
+  const { user, profile, signOut } = useAuth();
 
   // Memoized scroll handler with throttle
   const handleScroll = useCallback(() => {
@@ -85,6 +88,16 @@ export const Header: React.FC = () => {
     window.location.href = '/auth/phone-login';
   }, []);
 
+  const handleProfileClick = useCallback(() => {
+    window.location.href = '/profile';
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await signOut();
+    setShowUserMenu(false);
+    window.location.href = '/';
+  }, [signOut]);
+
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(prev => !prev);
   }, []);
@@ -127,6 +140,19 @@ export const Header: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, [supabase]);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (showUserMenu && !target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showUserMenu]);
 
   // Memoize active link check
   const isActiveLink = useCallback((href: string) => {
@@ -214,15 +240,52 @@ export const Header: React.FC = () => {
                 <option value="GBP" className="text-charcoal">£ GBP</option>
               </select>
 
-              {/* User Login Button */}
-              <Button
-                size="sm"
-                variant="outline"
-                className="hidden md:inline-flex"
-                onClick={handleUserLoginClick}
-              >
-                User Login
-              </Button>
+              {/* User Login/Profile Buttons */}
+              {user ? (
+                <div className="relative user-menu-container">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 hover:border-coral transition-all"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-coral-light flex items-center justify-center">
+                      <User className="w-4 h-4 text-coral" />
+                    </div>
+                    <span className="text-sm font-medium text-charcoal max-w-[100px] truncate">
+                      {profile?.full_name || 'User'}
+                    </span>
+                  </button>
+                  
+                  {/* User Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50">
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-charcoal hover:bg-coral/5 hover:text-coral transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        My Profile
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="hidden md:inline-flex"
+                  onClick={handleUserLoginClick}
+                >
+                  User Login
+                </Button>
+              )}
 
               {/* Admin Login Button */}
               <Button
@@ -305,17 +368,45 @@ export const Header: React.FC = () => {
                 <option value="EUR">€ EUR</option>
                 <option value="GBP">£ GBP</option>
               </select>
-              <Button
-                size="md"
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  handleUserLoginClick();
-                  toggleMobileMenu();
-                }}
-              >
-                User Login
-              </Button>
+              
+              {user ? (
+                <>
+                  <Link href="/profile" onClick={toggleMobileMenu}>
+                    <Button
+                      size="md"
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      My Profile
+                    </Button>
+                  </Link>
+                  <Button
+                    size="md"
+                    variant="outline"
+                    className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => {
+                      handleLogout();
+                      toggleMobileMenu();
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="md"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    handleUserLoginClick();
+                    toggleMobileMenu();
+                  }}
+                >
+                  User Login
+                </Button>
+              )}
               <Button
                 size="md"
                 className="w-full shadow-lg hover:shadow-xl transition-shadow"

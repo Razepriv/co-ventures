@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, MessageSquare } from 'lucide-react'
 
@@ -104,18 +105,29 @@ export default function FAQsPage() {
         {/* ───────────────────────────────────────────────────────────────────
             HERO
         ─────────────────────────────────────────────────────────────────── */}
-        <section className="py-16 md:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <section className="relative h-[60vh] min-h-[400px] flex items-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1920&q=80"
+              alt="FAQs"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/60" />
+          </div>
+
+          <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="max-w-3xl"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-charcoal mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 drop-shadow-2xl">
                 FAQs
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
+              <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8 max-w-2xl">
                 Straight answers to common questions—so you can evaluate opportunities with clarity.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -126,7 +138,7 @@ export default function FAQsPage() {
                   </Button>
                 </Link>
                 <Link href="/properties">
-                  <Button size="lg" variant="outline">
+                  <Button size="lg" variant="outline" className="bg-white/10 backdrop-blur-md border-2 border-white text-white hover:bg-white hover:text-coral">
                     Explore Opportunities
                   </Button>
                 </Link>

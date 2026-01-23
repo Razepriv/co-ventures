@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
@@ -26,18 +27,29 @@ export default function HowItWorksPage() {
         {/* ───────────────────────────────────────────────────────────────────
             HERO
         ─────────────────────────────────────────────────────────────────── */}
-        <section className="py-16 md:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <section className="relative h-[60vh] min-h-[400px] flex items-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=1920&q=80"
+              alt="How It Works"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/60" />
+          </div>
+
+          <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="max-w-3xl"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-charcoal mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 drop-shadow-2xl">
                 How it works
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
+              <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8 max-w-2xl">
                 A disciplined, investor-friendly process built to reduce uncertainty and improve decision quality—without hype.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -48,12 +60,12 @@ export default function HowItWorksPage() {
                   </Button>
                 </Link>
                 <Link href="/properties">
-                  <Button size="lg" variant="outline">
+                  <Button size="lg" variant="outline" className="bg-white/10 backdrop-blur-md border-2 border-white text-white hover:bg-white hover:text-coral">
                     Explore Opportunities
                   </Button>
                 </Link>
               </div>
-              <p className="text-sm text-gray-500 tracking-wide">
+              <p className="text-sm text-white/70 tracking-wide">
                 Capital-first • Diligence-led • Plain-English clarity
               </p>
             </motion.div>

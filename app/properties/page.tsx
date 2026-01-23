@@ -232,14 +232,25 @@ function PropertiesContent() {
       <Header />
       <main className="pt-20">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-coral to-coral-dark text-white py-20">
-          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px]">
+        <section className="relative py-20 overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80"
+              alt="Find Your Dream Property"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-black/70 to-black/50" />
+          </div>
+
+          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px] relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center mb-8"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Find Your Dream Property</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-2xl">Find Your Dream Property</h1>
               <p className="text-xl text-white/90 max-w-2xl mx-auto">
                 Browse our curated collection of premium properties available for co-housing
               </p>
