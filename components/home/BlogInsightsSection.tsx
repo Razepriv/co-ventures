@@ -18,7 +18,7 @@ interface BlogPost {
   featured_image: string;
   published_at: string;
   read_time: number;
-  users: { full_name: string };
+  users: { full_name?: string };
 }
 
 export const BlogInsightsSection: React.FC = () => {
@@ -106,7 +106,7 @@ export const BlogInsightsSection: React.FC = () => {
                   </p>
 
                   <div className="flex items-center gap-3 text-sm text-gray-400 mb-4">
-                    <span>By {featuredPost.users.full_name}</span>
+                    <span>By {featuredPost.users?.full_name || 'Admin'}</span>
                     <span>•</span>
                     <span>{formatDate(featuredPost.published_at)}</span>
                     <span>•</span>

@@ -26,8 +26,8 @@ interface BlogPost {
   meta_title: string
   meta_description: string
   users: {
-    full_name: string
-    avatar_url: string
+    full_name?: string
+    avatar_url?: string
   }
 }
 
@@ -188,27 +188,35 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
               
               <div className="flex flex-wrap items-center gap-6 text-white/80">
                 <div className="flex items-center gap-3">
-                  {post.users?.avatar_url ? (
-                    <Image
-                      src={post.users.avatar_url}
-                      alt={post.users.full_name}
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
+                  {post.users?.full_name ? (
+                    <>
+                      {post.users?.avatar_url ? (
+                        <Image
+                          src={post.users.avatar_url}
+                          alt={post.users.full_name}
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-coral flex items-center justify-center text-white font-semibold">
+                          {post.users?.full_name?.[0] || 'A'}
+                        </div>
+                      )}
+                      <span className="font-medium">{post.users.full_name}</span>
+                    </>
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-coral flex items-center justify-center text-white font-semibold">
-                      {post.users?.full_name?.[0] || 'A'}
+                      A
                     </div>
                   )}
-                  <span className="font-medium">{post.users?.full_name || 'Admin'}</span>
                 </div>
-                
+                                
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   <span>{format(new Date(post.published_at), 'MMM d, yyyy')}</span>
                 </div>
-                
+                                
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   <span>{post.read_time || 5} min read</span>
@@ -297,23 +305,31 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                   <div className="bg-gray-50 rounded-xl p-6">
                     <h4 className="font-semibold text-charcoal mb-4">About the Author</h4>
                     <div className="flex items-center gap-3">
-                      {post.users?.avatar_url ? (
-                        <Image
-                          src={post.users.avatar_url}
-                          alt={post.users.full_name}
-                          width={48}
-                          height={48}
-                          className="rounded-full"
-                        />
+                      {post.users?.full_name ? (
+                        <>
+                          {post.users?.avatar_url ? (
+                            <Image
+                              src={post.users.avatar_url}
+                              alt={post.users.full_name}
+                              width={48}
+                              height={48}
+                              className="rounded-full"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-coral flex items-center justify-center text-white font-bold text-lg">
+                              {post.users?.full_name?.[0] || 'A'}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-semibold text-charcoal">{post.users.full_name || 'Admin'}</p>
+                            <p className="text-sm text-gray-500">Content Writer</p>
+                          </div>
+                        </>
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-coral flex items-center justify-center text-white font-bold text-lg">
-                          {post.users?.full_name?.[0] || 'A'}
+                          A
                         </div>
                       )}
-                      <div>
-                        <p className="font-semibold text-charcoal">{post.users?.full_name || 'Admin'}</p>
-                        <p className="text-sm text-gray-500">Content Writer</p>
-                      </div>
                     </div>
                   </div>
 

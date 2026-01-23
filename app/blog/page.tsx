@@ -25,7 +25,7 @@ interface BlogPost {
   views_count: number
   author_id: string
   users: {
-    full_name: string
+    full_name?: string
   }
 }
 
