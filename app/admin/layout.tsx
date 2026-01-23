@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useEnquiryNotifications } from '@/lib/hooks/useRealtimeSubscription'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard,
   Building2,
@@ -19,6 +20,8 @@ import {
   LogOut,
   Bell,
   Search,
+  X,
+  Check,
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
@@ -30,6 +33,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { formatDistanceToNow } from 'date-fns'
+
+interface Notification {
+  id: string
+  type: string
+  title: string
+  message: string
+  link?: string
+  is_read: boolean
+  created_at: string
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -53,9 +67,50 @@ export default function AdminLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
 
   // Enable realtime enquiry notifications
   useEnquiryNotifications()
+
+  // Fetch notifications
+  async function fetchNotifications() {
+    try {
+      setLoadingNotifications(true)
+      const supabase = getSupabaseClient()
+      
+      // Fetch recent enquiries as notifications
+      const { data: enquiries } = await supabase
+        .from('enquiries')
+        .select('id, full_name, email, message, property_id, created_at, status')
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (enquiries) {
+        const notifs: Notification[] = enquiries.map((e: any) => ({
+          id: e.id,
+          type: 'enquiry',
+          title: 'New Enquiry',
+          message: `${e.full_name} sent an enquiry`,
+          link: '/admin/enquiries',
+          is_read: e.status === 'resolved',
+          created_at: e.created_at,
+        }))
+        setNotifications(notifs)
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    } finally {
+      setLoadingNotifications(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user && profile) {
+      fetchNotifications()
+    }
+  }, [user, profile])
 
   useEffect(() => {
     if (!loading && (!user || !profile || (profile.role !== 'admin' && profile.role !== 'super_admin'))) {
@@ -163,10 +218,86 @@ export default function AdminLayout({
           {/* Right Side */}
           <div className="flex items-center gap-3">
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative hover:bg-gray-100">
-              <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-            </Button>
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="relative hover:bg-gray-100"
+                onClick={() => {
+                  setShowNotifications(!showNotifications)
+                  if (!showNotifications) fetchNotifications()
+                }}
+              >
+                <Bell className="h-5 w-5 text-gray-600" />
+                {notifications.filter(n => !n.is_read).length > 0 && (
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                )}
+              </Button>
+
+              {/* Notifications Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+                    <h3 className="font-semibold text-gray-900">Notifications</h3>
+                    <button 
+                      onClick={() => setShowNotifications(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto">
+                    {loadingNotifications ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-coral"></div>
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No notifications</p>
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <Link
+                          key={notif.id}
+                          href={notif.link || '#'}
+                          onClick={() => setShowNotifications(false)}
+                          className={`block px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors ${
+                            !notif.is_read ? 'bg-coral/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                              notif.is_read ? 'bg-gray-300' : 'bg-coral'
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-gray-900 truncate">
+                                {notif.title}
+                              </p>
+                              <p className="text-sm text-gray-600 truncate">
+                                {notif.message}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                  
+                  <Link
+                    href="/admin/enquiries"
+                    onClick={() => setShowNotifications(false)}
+                    className="block text-center py-3 text-sm text-coral font-medium hover:bg-gray-50 border-t"
+                  >
+                    View All Enquiries
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {/* Profile Menu */}
             <DropdownMenu>
