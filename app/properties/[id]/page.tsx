@@ -85,6 +85,9 @@ interface Property {
   average_rating?: number
   total_reviews?: number
   created_at: string
+  // Location coordinates
+  latitude?: number
+  longitude?: number
 }
 
 export default function PropertyDetailsPage({ params }: { params: { id: string } }) {
@@ -594,9 +597,20 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                       <CardTitle>Location</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
-                        <MapPin className="w-12 h-12 text-gray-400" />
-                        <p className="ml-2 text-gray-500">Map integration here</p>
+                      <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          allowFullScreen
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={
+                            property.latitude && property.longitude
+                              ? `https://maps.google.com/maps?q=${property.latitude},${property.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+                              : `https://maps.google.com/maps?q=${encodeURIComponent(`${property.location}, ${property.city}, ${property.state}, India`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+                          }
+                        />
                       </div>
                       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                         <p className="font-semibold text-gray-900 mb-2">Address</p>
