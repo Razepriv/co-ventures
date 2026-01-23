@@ -103,6 +103,50 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
 
+  // Share property function
+  const handleShare = async () => {
+    const shareUrl = window.location.href
+    const shareTitle = property?.title || 'Property'
+    const shareText = `Check out this property: ${property?.title} in ${property?.location}, ${property?.city} - ${formatPrice(property?.price || 0)}`
+
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        toast.success('Shared successfully!')
+      } catch (error: any) {
+        // User cancelled or error
+        if (error.name !== 'AbortError') {
+          // Fallback to clipboard
+          copyToClipboard(shareUrl)
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      copyToClipboard(shareUrl)
+    }
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Link copied to clipboard!')
+    } catch (error) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      toast.success('Link copied to clipboard!')
+    }
+  }
+
   useEffect(() => {
     fetchProperty()
   }, [params.id])
@@ -342,7 +386,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                         )}
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleShare}>
                       <Share2 className="w-4 h-4 mr-2" />
                       Share
                     </Button>
