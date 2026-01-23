@@ -5,6 +5,7 @@
 
 -- Drop all existing policies
 DROP POLICY IF EXISTS "Anyone can view active testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Anyone can view approved testimonials" ON public.testimonials;
 DROP POLICY IF EXISTS "Admins can view all testimonials" ON public.testimonials;
 DROP POLICY IF EXISTS "Admins can insert testimonials" ON public.testimonials;
 DROP POLICY IF EXISTS "Admins can update testimonials" ON public.testimonials;
@@ -13,24 +14,27 @@ DROP POLICY IF EXISTS "Admins can delete testimonials" ON public.testimonials;
 -- Drop the table (CASCADE will drop all dependent objects)
 DROP TABLE IF EXISTS public.testimonials CASCADE;
 
--- Now create fresh table
+-- Now create fresh table (matching original schema)
 CREATE TABLE public.testimonials (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
   role TEXT,
   company TEXT,
+  content TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   avatar_url TEXT,
-  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
-  testimonial TEXT NOT NULL,
-  is_featured BOOLEAN DEFAULT FALSE,
-  is_active BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT false,
+  is_approved BOOLEAN DEFAULT false,
   display_order INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  approved_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  approved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Create indexes
-CREATE INDEX idx_testimonials_active ON public.testimonials(is_active);
+CREATE INDEX idx_testimonials_approved ON public.testimonials(is_approved);
 CREATE INDEX idx_testimonials_featured ON public.testimonials(is_featured);
 CREATE INDEX idx_testimonials_order ON public.testimonials(display_order);
 
@@ -38,9 +42,9 @@ CREATE INDEX idx_testimonials_order ON public.testimonials(display_order);
 ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS Policies
-CREATE POLICY "Anyone can view active testimonials"
+CREATE POLICY "Anyone can view approved testimonials"
 ON public.testimonials FOR SELECT
-USING (is_active = TRUE);
+USING (is_approved = TRUE);
 
 CREATE POLICY "Admins can view all testimonials"
 ON public.testimonials FOR SELECT
@@ -83,7 +87,7 @@ USING (
 );
 
 -- Insert sample testimonials
-INSERT INTO public.testimonials (name, role, company, rating, testimonial, is_featured, is_active, display_order) 
+INSERT INTO public.testimonials (full_name, role, company, rating, content, is_featured, is_approved, display_order) 
 VALUES
 ('Gabrielle Williams', 'CEO and Co-founder', 'ABC Company', 5, 'Creative geniuses who listen, understand, and craft captivating visuals - an agency that truly understands our needs.', true, true, 1),
 ('Samantha Johnson', 'CTO and Co-founder', 'ABC Company', 5, 'Exceeded our expectations with innovative designs that brought our vision to life - a truly remarkable creative agency.', true, true, 2),
@@ -96,4 +100,5 @@ VALUES
 COMMENT ON TABLE public.testimonials IS 'Stores customer testimonials and reviews';
 COMMENT ON COLUMN public.testimonials.rating IS 'Rating from 1 to 5 stars';
 COMMENT ON COLUMN public.testimonials.is_featured IS 'Whether to show this testimonial prominently';
+COMMENT ON COLUMN public.testimonials.is_approved IS 'Whether the testimonial is approved for display';
 COMMENT ON COLUMN public.testimonials.display_order IS 'Order in which to display testimonials (lower numbers first)';

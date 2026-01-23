@@ -7,12 +7,12 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface Testimonial {
   id: string
-  name: string
+  full_name: string
   role: string | null
   company: string | null
   avatar_url: string | null
   rating: number | null
-  testimonial: string
+  content: string
   is_featured: boolean
 }
 
@@ -30,7 +30,7 @@ export const TestimonialsMarquee: React.FC = () => {
       const { data, error } = await supabase
         .from('testimonials')
         .select('*')
-        .eq('is_active', true)
+        .eq('is_approved', true)
         .order('display_order', { ascending: true })
 
       if (error) throw error
@@ -125,7 +125,7 @@ export const TestimonialsMarquee: React.FC = () => {
 }
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
-  const initials = testimonial.name
+  const initials = testimonial.full_name
     .split(' ')
     .map((n) => n[0])
     .join('')
@@ -141,7 +141,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 
       {/* Testimonial text */}
       <p className="text-gray-700 text-sm leading-relaxed mb-6 line-clamp-4">
-        {testimonial.testimonial}
+        {testimonial.content}
       </p>
 
       {/* Author info */}
@@ -150,7 +150,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         {testimonial.avatar_url ? (
           <img
             src={testimonial.avatar_url}
-            alt={testimonial.name}
+            alt={testimonial.full_name}
             className="w-12 h-12 rounded-full object-cover"
           />
         ) : (
@@ -161,7 +161,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 
         {/* Name and role */}
         <div className="flex-1">
-          <h4 className="font-semibold text-gray-900 text-sm">{testimonial.name}</h4>
+          <h4 className="font-semibold text-gray-900 text-sm">{testimonial.full_name}</h4>
           {(testimonial.role || testimonial.company) && (
             <p className="text-xs text-gray-500">
               {testimonial.role}
