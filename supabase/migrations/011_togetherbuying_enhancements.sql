@@ -182,18 +182,22 @@ CREATE INDEX IF NOT EXISTS idx_developers_active ON public.developers(is_active)
 -- ========================================
 
 -- Updated_at triggers
+DROP TRIGGER IF EXISTS update_developers_updated_at ON public.developers;
 CREATE TRIGGER update_developers_updated_at 
   BEFORE UPDATE ON public.developers
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_property_rera_updated_at ON public.property_rera_info;
 CREATE TRIGGER update_property_rera_updated_at 
   BEFORE UPDATE ON public.property_rera_info
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_property_groups_updated_at ON public.property_groups;
 CREATE TRIGGER update_property_groups_updated_at 
   BEFORE UPDATE ON public.property_groups
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_property_leads_updated_at ON public.property_leads;
 CREATE TRIGGER update_property_leads_updated_at 
   BEFORE UPDATE ON public.property_leads
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
