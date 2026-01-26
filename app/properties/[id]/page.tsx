@@ -127,6 +127,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [reraInfo, setReraInfo] = useState<any>(null)
   const [developer, setDeveloper] = useState<any>(null)
   const [propertyGroup, setPropertyGroup] = useState<any>({ total_slots: 5, filled_slots: 0, is_locked: false })
+  const [contentLoaded, setContentLoaded] = useState(false)
 
   // Share property function
   const handleShare = async () => {
@@ -209,48 +210,58 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   }, [params.id])
 
   const fetchPropertyContent = useCallback(async () => {
+    if (contentLoaded) return // Prevent re-fetching
+
     try {
-      // Fetch highlights, amenities, specifications, nearby places
       const supabase = getSupabaseClient()
 
-      // Wrap in try-catch to handle case where tables don't exist yet (before migration)
+      // Fetch each table separately to handle missing tables gracefully
       try {
-        const [highlightsRes, amenitiesRes, specificationsRes, nearbyRes, reraRes] = await Promise.all([
-          supabase.from('property_highlights').select('*').eq('property_id', params.id).order('display_order'),
-          supabase.from('property_amenities').select('*').eq('property_id', params.id).order('display_order'),
-          supabase.from('property_specifications').select('*').eq('property_id', params.id).order('category, display_order'),
-          supabase.from('nearby_places').select('*').eq('property_id', params.id),
-          supabase.from('property_rera_info').select('*').eq('property_id', params.id).single(),
-        ])
+        const { data } = await supabase.from('property_highlights').select('*').eq('property_id', params.id).order('display_order')
+        setHighlights(data || [])
+      } catch (e) { /* Table may not exist */ }
 
-        setHighlights(highlightsRes.data || [])
-        setAmenities(amenitiesRes.data || [])
-        setSpecifications(specificationsRes.data || [])
-        setNearbyPlaces(nearbyRes.data || [])
-        setReraInfo(reraRes.data)
-      } catch (tableError: any) {
-        // Tables don't exist yet - migration hasn't been run
-        console.log('TogetherBuying tables not found - run migration first')
-      }
+      try {
+        const { data } = await supabase.from('property_amenities').select('*').eq('property_id', params.id).order('display_order')
+        setAmenities(data || [])
+      } catch (e) { /* Table may not exist */ }
+
+      try {
+        const { data } = await supabase.from('property_specifications').select('*').eq('property_id', params.id).order('category, display_order')
+        setSpecifications(data || [])
+      } catch (e) { /* Table may not exist */ }
+
+      try {
+        const { data } = await supabase.from('nearby_places').select('*').eq('property_id', params.id)
+        setNearbyPlaces(data || [])
+      } catch (e) { /* Table may not exist */ }
+
+      // Use .maybeSingle() instead of .single() to avoid 406 on no match
+      try {
+        const { data } = await supabase.from('property_rera_info').select('*').eq('property_id', params.id).maybeSingle()
+        setReraInfo(data)
+      } catch (e) { /* Table may not exist */ }
 
       // Fetch developer if developer_id exists
-      const propertyData = property
-      if (propertyData?.developer_id) {
+      if (property?.developer_id) {
         try {
           const { data: devData } = await supabase
             .from('developers')
             .select('*')
-            .eq('id', propertyData.developer_id)
+            .eq('id', property.developer_id)
             .single()
           setDeveloper(devData)
         } catch (err) {
-          console.log('Developers table not found - run migration first')
+          /* Developers table may not exist */
         }
       }
+
+      setContentLoaded(true)
     } catch (error) {
       console.error('Error fetching property content:', error)
+      setContentLoaded(true) // Mark as loaded even on error to prevent infinite retry
     }
-  }, [params.id, property])
+  }, [params.id, property, contentLoaded])
 
   const fetchGroup = useCallback(async () => {
     try {
