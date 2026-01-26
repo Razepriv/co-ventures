@@ -159,19 +159,23 @@ export function SearchFilterBar() {
     return (
         <div className="relative w-full max-w-7xl mx-auto px-4" ref={filterRef}>
             {/* Main Search Bar - Pill Shape */}
-            <div className="bg-white rounded-full shadow-lg flex items-center overflow-hidden">
+            <div className="bg-white rounded-full shadow-lg flex items-center">
                 {/* City Selector */}
                 <div className="relative" ref={cityDropdownRef}>
                     <button
-                        onClick={() => setShowCityDropdown(!showCityDropdown)}
-                        className="flex items-center gap-2 px-6 py-4 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                        type="button"
+                        onClick={() => {
+                            console.log('City button clicked, current state:', showCityDropdown)
+                            setShowCityDropdown(!showCityDropdown)
+                        }}
+                        className="flex items-center gap-2 px-6 py-4 hover:bg-gray-50 transition-colors border-r border-gray-200 cursor-pointer"
                     >
                         <MapPin className="w-5 h-5 text-coral" />
                         <div className="text-left">
                             <p className="text-xs text-gray-500">City</p>
                             <p className="font-semibold text-coral">{selectedCity?.name || 'Select City'}</p>
                         </div>
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showCityDropdown ? 'rotate-180' : ''}`} />
                     </button>
 
                     {/* City Dropdown */}
