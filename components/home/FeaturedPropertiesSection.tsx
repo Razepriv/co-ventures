@@ -118,7 +118,7 @@ interface PropertyCardProps {
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggleSave }) => {
   const { formatPrice } = useCurrency();
-  
+
   return (
     <Card hover className="overflow-hidden">
       <Link href={`/properties/${property.slug}`}>
@@ -126,16 +126,16 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggle
         <div className="relative h-64 overflow-hidden">
           <Image
             src={
-              property.property_images?.find(img => img.is_primary)?.image_url || 
-              property.property_images?.[0]?.image_url || 
               (property.featured_image && property.featured_image.startsWith('http') ? property.featured_image : null) ||
+              property.property_images?.find(img => img.is_primary)?.image_url ||
+              property.property_images?.[0]?.image_url ||
               'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80'
             }
             alt={`${property.title} in ${property.location}`}
             fill
             className="object-cover transition-transform duration-500 hover:scale-110"
           />
-          
+
           {/* Badges */}
           <div className="absolute top-4 left-4 flex flex-col gap-2">
             {property.is_featured && (
@@ -156,9 +156,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggle
             aria-label={isSaved ? 'Remove from saved' : 'Save property'}
           >
             <Heart
-              className={`w-5 h-5 transition-colors ${
-                isSaved ? 'fill-coral text-coral' : 'text-gray-600'
-              }`}
+              className={`w-5 h-5 transition-colors ${isSaved ? 'fill-coral text-coral' : 'text-gray-600'
+                }`}
             />
           </button>
         </div>

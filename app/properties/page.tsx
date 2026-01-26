@@ -521,9 +521,9 @@ function PropertiesContent() {
                         <div className="relative h-64 overflow-hidden">
                           <Image
                             src={
+                              (property.featured_image && property.featured_image.startsWith('http') ? property.featured_image : null) ||
                               property.property_images?.find(img => img.is_primary)?.image_url ||
                               property.property_images?.[0]?.image_url ||
-                              (property.featured_image && property.featured_image.startsWith('http') ? property.featured_image : null) ||
                               'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'
                             }
                             alt={property.title}
