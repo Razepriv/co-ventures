@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -41,24 +41,7 @@ export default function EnquiriesPage() {
   const [stats, setStats] = useState({ total: 0, new: 0, inProgress: 0, closed: 0 })
   const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
 
-  useEffect(() => {
-    fetchEnquiries()
-    
-    // Set up realtime subscription
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('enquiries_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-        fetchEnquiries()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [dateRange])
-
-  async function fetchEnquiries() {
+  const fetchEnquiries = useCallback(async () => {
     try {
       const supabase = getSupabaseClient()
       let query = supabase
@@ -81,7 +64,7 @@ export default function EnquiriesPage() {
       if (error) throw error
 
       setEnquiries(data || [])
-      
+
       // Calculate stats
       const total = data?.length || 0
       // @ts-ignore
@@ -97,7 +80,24 @@ export default function EnquiriesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [dateRange])
+
+  useEffect(() => {
+    fetchEnquiries()
+
+    // Set up realtime subscription
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('enquiries_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
+        fetchEnquiries()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchEnquiries])
 
   async function updateStatus(id: string, status: string) {
     try {
@@ -231,7 +231,7 @@ export default function EnquiriesPage() {
               Mark as Closed
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-red-600"
               onClick={() => deleteEnquiry(row.original.id)}
             >

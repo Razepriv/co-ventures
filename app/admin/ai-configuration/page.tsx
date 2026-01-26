@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Settings, 
-  Save, 
-  RotateCcw, 
+import {
+  Settings,
+  Save,
+  RotateCcw,
   TestTube2,
   CheckCircle,
   XCircle,
@@ -62,13 +62,88 @@ export default function AIConfigurationPage() {
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<any>(null)
   const [formData, setFormData] = useState<Partial<AgentConfig>>({})
-  
+
   // Gemini API Configuration
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [showApiKey, setShowApiKey] = useState(false)
   const [geminiModels, setGeminiModels] = useState<string[]>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [savingApiKey, setSavingApiKey] = useState(false)
+
+  const fetchGeminiModels = useCallback(async (apiKey: string) => {
+    if (!apiKey) {
+      toast.error('Please enter Gemini API key first')
+      return
+    }
+
+    try {
+      setFetchingModels(true)
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch models. Please check your API key.')
+      }
+
+      const data = await response.json()
+      const modelNames = data.models
+        .filter((model: any) => model.supportedGenerationMethods?.includes('generateContent'))
+        .map((model: any) => model.name.replace('models/', ''))
+
+      setGeminiModels(modelNames)
+      toast.success(`Fetched ${modelNames.length} Gemini models`)
+    } catch (error) {
+      console.error('Error fetching Gemini models:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch models')
+    } finally {
+      setFetchingModels(false)
+    }
+  }, [])
+
+  const fetchAgents = useCallback(async () => {
+    try {
+      setLoading(true)
+      const supabase = createClient()
+
+      const { data, error } = await supabase
+        .from('ai_agent_configurations')
+        .select('*')
+        .order('display_order', { ascending: true })
+
+      if (error) throw error
+      setAgents(data || [])
+      if (data && data.length > 0) {
+        setSelectedAgent((prev) => prev || data[0])
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const fetchGeminiApiKey = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('ai_api_keys')
+        .select('api_key')
+        .eq('provider', 'gemini')
+        .single()
+
+      if (data && !error) {
+        const apiKey = (data as any).api_key
+        setGeminiApiKey(apiKey)
+        // Fetch models if API key exists
+        if (apiKey) {
+          fetchGeminiModels(apiKey)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching Gemini API key:', error)
+    }
+  }, [fetchGeminiModels])
 
   useEffect(() => {
     fetchAgents()
@@ -89,88 +164,13 @@ export default function AIConfigurationPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [fetchAgents, fetchGeminiApiKey])
 
   useEffect(() => {
     if (selectedAgent) {
       setFormData(selectedAgent)
     }
   }, [selectedAgent])
-
-  async function fetchAgents() {
-    try {
-      setLoading(true)
-      const supabase = createClient()
-      
-      const { data, error } = await supabase
-        .from('ai_agent_configurations')
-        .select('*')
-        .order('display_order', { ascending: true })
-
-      if (error) throw error
-      setAgents(data || [])
-      if (data && data.length > 0) {
-        setSelectedAgent(data[0])
-      }
-    } catch (error) {
-      console.error('Error fetching agents:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function fetchGeminiApiKey() {
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('ai_api_keys')
-        .select('api_key')
-        .eq('provider', 'gemini')
-        .single()
-
-      if (data && !error) {
-        const apiKey = (data as any).api_key
-        setGeminiApiKey(apiKey)
-        // Fetch models if API key exists
-        if (apiKey) {
-          fetchGeminiModels(apiKey)
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching Gemini API key:', error)
-    }
-  }
-
-  async function fetchGeminiModels(apiKey: string) {
-    if (!apiKey) {
-      toast.error('Please enter Gemini API key first')
-      return
-    }
-
-    try {
-      setFetchingModels(true)
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-      )
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch models. Please check your API key.')
-      }
-
-      const data = await response.json()
-      const modelNames = data.models
-        .filter((model: any) => model.supportedGenerationMethods?.includes('generateContent'))
-        .map((model: any) => model.name.replace('models/', ''))
-      
-      setGeminiModels(modelNames)
-      toast.success(`Fetched ${modelNames.length} Gemini models`)
-    } catch (error) {
-      console.error('Error fetching Gemini models:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch models')
-    } finally {
-      setFetchingModels(false)
-    }
-  }
 
   async function saveGeminiApiKey() {
     if (!geminiApiKey.trim()) {
@@ -302,12 +302,12 @@ export default function AIConfigurationPage() {
 
   async function handleRollback() {
     if (!selectedAgent) return
-    
+
     if (!confirm('Are you sure you want to rollback to the previous version?')) return
 
     try {
       const supabase = createClient()
-      
+
       // Get previous version
       const { data: history, error: historyError } = await supabase
         .from('ai_agent_configuration_history')
@@ -383,7 +383,7 @@ export default function AIConfigurationPage() {
             <p className="text-gray-600 text-sm mb-4">
               Configure your Google Gemini API key to enable AI-powered features with real-time model updates
             </p>
-            
+
             <div className="space-y-4">
               {/* API Key Input */}
               <div className="flex gap-3">
@@ -466,9 +466,9 @@ export default function AIConfigurationPage() {
                 <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 <p>
                   Get your API key from{' '}
-                  <a 
-                    href="https://makersuite.google.com/app/apikey" 
-                    target="_blank" 
+                  <a
+                    href="https://makersuite.google.com/app/apikey"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:text-blue-600 underline"
                   >
@@ -497,13 +497,12 @@ export default function AIConfigurationPage() {
                   <button
                     key={agent.id}
                     onClick={() => setSelectedAgent(agent)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                      isSelected
-                        ? 'bg-coral-light border-2 border-coral'
-                        : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                    }`}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${isSelected
+                      ? 'bg-coral-light border-2 border-coral'
+                      : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                      }`}
                   >
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center"
                       style={{ backgroundColor: agent.color_theme + '20' }}
                     >
@@ -543,7 +542,7 @@ export default function AIConfigurationPage() {
               {/* Agent Header */}
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-4">
-                  <div 
+                  <div
                     className="w-16 h-16 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: selectedAgent.color_theme + '20' }}
                   >
@@ -742,9 +741,8 @@ export default function AIConfigurationPage() {
 
                 {/* Test Results */}
                 {testResult && (
-                  <div className={`p-4 rounded-lg border-2 ${
-                    testResult.error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
-                  }`}>
+                  <div className={`p-4 rounded-lg border-2 ${testResult.error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+                    }`}>
                     <div className="flex items-start gap-3">
                       {testResult.error ? (
                         <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />

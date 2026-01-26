@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -39,29 +39,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchUsers()
-
-    // Set up realtime subscription for user changes
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('admin_users_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          toast.success('New user registered!')
-        } else if (payload.eventType === 'UPDATE') {
-          toast.info('User updated')
-        }
-        fetchUsers()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase
@@ -85,7 +63,29 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchUsers()
+
+    // Set up realtime subscription for user changes
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('admin_users_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          toast.success('New user registered!')
+        } else if (payload.eventType === 'UPDATE') {
+          toast.info('User updated')
+        }
+        fetchUsers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchUsers])
 
   async function handleUpdateRole(userId: string, newRole: string) {
     try {
@@ -217,6 +217,13 @@ export default function UsersPage() {
     },
   ]
 
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    role: 'user'
+  })
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -227,14 +234,6 @@ export default function UsersPage() {
       </div>
     )
   }
-
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'user'
-  })
-
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault()
 

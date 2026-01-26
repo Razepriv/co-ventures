@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -110,13 +110,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
         investment_highlights: ''
     })
 
-    useEffect(() => {
-        fetchCategories()
-        fetchDevelopers()
-        fetchProperty()
-    }, [params.id])
-
-    async function fetchCategories() {
+    const fetchCategories = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
             const { data, error } = await supabase
@@ -130,9 +124,9 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
             console.error('Error fetching categories:', error)
             toast.error('Failed to load categories')
         }
-    }
+    }, [])
 
-    async function fetchDevelopers() {
+    const fetchDevelopers = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
             const { data, error } = await supabase
@@ -147,9 +141,9 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
             console.error('Error fetching developers:', error)
             toast.error('Failed to load developers')
         }
-    }
+    }, [])
 
-    async function fetchProperty() {
+    const fetchProperty = useCallback(async () => {
         try {
             setLoading(true)
             const supabase = getSupabaseClient()
@@ -244,7 +238,13 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
         } finally {
             setLoading(false)
         }
-    }
+    }, [params.id])
+
+    useEffect(() => {
+        fetchCategories()
+        fetchDevelopers()
+        fetchProperty()
+    }, [fetchCategories, fetchDevelopers, fetchProperty])
 
     function handleDeveloperSelect(developerId: string) {
         const developer = developers.find(d => d.id === developerId)

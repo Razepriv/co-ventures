@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
@@ -172,13 +172,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     }
   }
 
-  useEffect(() => {
-    fetchProperty()
-    fetchPropertyContent()
-    fetchGroup()
-  }, [params.id])
-
-  async function fetchProperty() {
+  const fetchProperty = useCallback(async () => {
     try {
       const supabase = getSupabaseClient()
 
@@ -212,9 +206,9 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
 
-  async function fetchPropertyContent() {
+  const fetchPropertyContent = useCallback(async () => {
     try {
       // Fetch highlights, amenities, specifications, nearby places
       const supabase = getSupabaseClient()
@@ -256,9 +250,9 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     } catch (error) {
       console.error('Error fetching property content:', error)
     }
-  }
+  }, [params.id, property])
 
-  async function fetchGroup() {
+  const fetchGroup = useCallback(async () => {
     try {
       const response = await fetch(`/api/properties/${params.id}/group`)
       if (!response.ok) {
@@ -272,7 +266,13 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     } catch (error) {
       console.log('Error fetching group - tables may not exist yet')
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    fetchProperty()
+    fetchPropertyContent()
+    fetchGroup()
+  }, [fetchProperty, fetchPropertyContent, fetchGroup])
 
   const handleAIChat = () => {
     if (!user) {

@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Users, 
-  Building2, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Users,
+  Building2,
   Eye,
   Calendar,
   ArrowUpRight,
@@ -62,30 +62,7 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [dateRange, setDateRange] = useState('30')
 
-  useEffect(() => {
-    fetchAnalytics()
-
-    // Set up realtime subscriptions
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('analytics_updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-        fetchAnalytics()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-        fetchAnalytics()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        fetchAnalytics()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [dateRange])
-
-  async function fetchAnalytics() {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
       const supabase = getSupabaseClient()
@@ -191,7 +168,30 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [dateRange])
+
+  useEffect(() => {
+    fetchAnalytics()
+
+    // Set up realtime subscriptions
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('analytics_updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
+        fetchAnalytics()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
+        fetchAnalytics()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchAnalytics()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchAnalytics])
 
   function exportData() {
     toast.info('Exporting analytics data...')
@@ -344,10 +344,10 @@ export default function AnalyticsPage() {
                     <span className="text-2xl font-bold text-coral">{analytics?.properties.sold}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-4">
-                    <div 
+                    <div
                       className="bg-coral h-4 rounded-full transition-all"
-                      style={{ 
-                        width: `${analytics?.properties.total ? (analytics.properties.sold / analytics.properties.total) * 100 : 0}%` 
+                      style={{
+                        width: `${analytics?.properties.total ? (analytics.properties.sold / analytics.properties.total) * 100 : 0}%`
                       }}
                     />
                   </div>
