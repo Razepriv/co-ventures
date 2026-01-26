@@ -72,7 +72,7 @@ export default function UsersPage() {
       if (error) throw error
 
       setUsers(data || [])
-      
+
       const total = data?.length || 0
       // @ts-ignore
       const admins = data?.filter(u => u.role === 'admin' || u.role === 'super_admin').length || 0
@@ -174,7 +174,7 @@ export default function UsersPage() {
       header: 'Last Login',
       cell: ({ row }) => (
         <p className="text-sm text-gray-600">
-          {row.original.last_login 
+          {row.original.last_login
             ? formatDistanceToNow(new Date(row.original.last_login), { addSuffix: true })
             : 'Never'}
         </p>
@@ -204,7 +204,7 @@ export default function UsersPage() {
               Make Super Admin
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-red-600"
               onClick={() => handleDelete(row.original.id)}
             >
@@ -228,6 +228,50 @@ export default function UsersPage() {
     )
   }
 
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    role: 'user'
+  })
+
+  async function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault()
+
+    // Basic client-side validation
+    if (!formData.email || !formData.password || !formData.full_name) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create user')
+      }
+
+      toast.success('User created successfully')
+      setIsDialogOpen(false)
+      setFormData({ email: '', password: '', full_name: '', role: 'user' }) // Reset form
+      fetchUsers()
+    } catch (error: any) {
+      console.error('Error creating user:', error)
+      toast.error(error.message)
+    }
+  }
+
   return (
     <div className="space-y-6 px-6">
       <div className="flex items-center justify-between">
@@ -235,6 +279,75 @@ export default function UsersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Users</h1>
           <p className="mt-1 text-sm text-gray-500">Manage user accounts and permissions</p>
         </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New User
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>
+                Create a new user account with a specific role.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Create User</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats */}
