@@ -132,11 +132,40 @@ function PropertiesContent() {
       }
 
       if (selectedCity !== 'all') {
-        query = query.eq('city', selectedCity)
+        // Check if selectedCity is a UUID (city_id) or name
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedCity)
+        if (isUUID) {
+          query = query.eq('city_id', selectedCity)
+        } else {
+          query = query.ilike('city', selectedCity)
+        }
       }
 
-      if (selectedBHK !== 'all') {
-        query = query.eq('bhk_type', selectedBHK)
+      // Handle configuration/BHK filter
+      const searchUrlParams = new URLSearchParams(window.location.search)
+      const configurations = searchUrlParams.get('configurations')
+      const locations = searchUrlParams.get('locations')
+
+      if (configurations) {
+        const configIds = configurations.split(',').filter(Boolean)
+        if (configIds.length > 0) {
+          query = query.in('configuration_id', configIds)
+        }
+      } else if (selectedBHK !== 'all') {
+        // Check if it's a UUID (configuration_id)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedBHK)
+        if (isUUID) {
+          query = query.eq('configuration_id', selectedBHK)
+        } else {
+          query = query.eq('bhk_type', selectedBHK)
+        }
+      }
+
+      if (locations) {
+        const locationIds = locations.split(',').filter(Boolean)
+        if (locationIds.length > 0) {
+          query = query.in('location_id', locationIds)
+        }
       }
 
       if (selectedType !== 'all') {
@@ -147,9 +176,33 @@ function PropertiesContent() {
 
       if (error) throw error
 
-      // Apply price range filter
+      // Apply price range filter (supports both dropdown ranges and slider min/max)
       let filteredData = data || []
-      if (priceRange !== 'all') {
+
+      const searchParams = new URLSearchParams(window.location.search)
+      const minBudget = searchParams.get('minBudget')
+      const maxBudget = searchParams.get('maxBudget')
+
+      if (minBudget || maxBudget) {
+        // Handle slider values (in Crores usually, need to check unit)
+        // SearchFilterBar uses 0.1 to 15.0 (Crores)
+        // Property price is usually in absolute numbers (e.g. 8500000)
+        // We need to normalize. If budget is < 100, assume Crores, multiply by 1Cr (10,000,000)
+
+        const min = minBudget ? parseFloat(minBudget) : 0
+        const max = maxBudget ? parseFloat(maxBudget) : 100
+
+        // Heuristic: if params are small numbers, treat as Cr
+        const isCrores = (min < 1000 && max < 1000)
+
+        const minVal = isCrores ? min * 10000000 : min
+        const maxVal = isCrores ? max * 10000000 : max
+
+        filteredData = filteredData.filter(p => {
+          // @ts-ignore
+          return p.price >= minVal && p.price <= maxVal
+        })
+      } else if (priceRange !== 'all') {
         const [min, max] = priceRange.split('-').map(Number)
         filteredData = filteredData.filter(p => {
           if (max) {

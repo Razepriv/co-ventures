@@ -30,6 +30,8 @@ export default function NewPropertyPage() {
   const [uploadingImages, setUploadingImages] = useState(false)
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null)
+  const [featuredImagePreview, setFeaturedImagePreview] = useState<string | null>(null)
 
   // Document upload states
   const [uploadingDocs, setUploadingDocs] = useState({
@@ -419,11 +421,36 @@ export default function NewPropertyPage() {
         throw new Error('Property created but no data returned')
       }
 
-      // Upload images and update featured_image
+      // Upload featured image FIRST
+      let uploadedFeaturedImageUrl = null
+      if (featuredImageFile) {
+        const fileExt = featuredImageFile.name.split('.').pop()
+        const fileName = `featured-${property.id}-${Date.now()}.${fileExt}`
+        const filePath = `properties/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('coventures')
+          .upload(filePath, featuredImageFile)
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('coventures')
+            .getPublicUrl(filePath)
+          uploadedFeaturedImageUrl = publicUrl
+        }
+      }
+
+      // Upload gallery images
       if (images.length > 0) {
         await uploadImages(property.id)
+      }
 
-        // Get the first uploaded image URL
+      // Update property with featured image
+      // Prioritize explicitly uploaded featured image, then first gallery image, then placeholder
+      let finalFeaturedImage = uploadedFeaturedImageUrl
+
+      if (!finalFeaturedImage && images.length > 0) {
+        // Get the first uploaded gallery image URL
         const { data: firstImage } = (await supabase
           .from('property_images')
           .select('image_url')
@@ -432,13 +459,16 @@ export default function NewPropertyPage() {
           .single()) as { data: { image_url: string } | null; error: any }
 
         if (firstImage) {
-          // Update property with actual featured_image
-          // @ts-ignore - Type inference issue with Supabase generated types
-          await supabase
-            .from('properties')
-            .update({ featured_image: firstImage.image_url })
-            .eq('id', property.id)
+          finalFeaturedImage = firstImage.image_url
         }
+      }
+
+      if (finalFeaturedImage) {
+        // @ts-ignore
+        await supabase
+          .from('properties')
+          .update({ featured_image: finalFeaturedImage })
+          .eq('id', property.id)
       }
 
       toast.success('Property created successfully')
@@ -1301,10 +1331,70 @@ export default function NewPropertyPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Property Images</CardTitle>
-                <CardDescription>Upload up to 10 images (first image will be primary)</CardDescription>
+                <CardDescription>Set a cover image and gallery images</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+
+                {/* Featured Image Section */}
+                <div className="space-y-4 border-b pb-6">
+                  <Label className="text-lg font-semibold">Featured Image (Thumbnail)</Label>
+                  <p className="text-sm text-gray-500">This image will be shown on the home page and listings.</p>
+
+                  <div className="flex items-start gap-6">
+                    <div className="w-full max-w-xs">
+                      <Label htmlFor="featured-image" className="cursor-pointer block">
+                        <div className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-lg transition-colors ${featuredImagePreview ? 'border-coral-400 bg-gray-50' : 'border-gray-300 hover:border-coral-400'}`}>
+                          {featuredImagePreview ? (
+                            <div className="relative w-full h-full p-2">
+                              <img src={featuredImagePreview} alt="Featured" className="w-full h-full object-cover rounded" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded">
+                                <p className="text-white text-sm font-medium">Click to Change</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center p-4">
+                              <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                              <p className="mt-2 text-sm text-gray-600">Upload Cover Image</p>
+                            </div>
+                          )}
+                        </div>
+                        <Input
+                          id="featured-image"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setFeaturedImageFile(file)
+                              const reader = new FileReader()
+                              reader.onloadend = () => setFeaturedImagePreview(reader.result as string)
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </Label>
+                      {featuredImagePreview && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-red-500 w-full"
+                          onClick={() => {
+                            setFeaturedImageFile(null)
+                            setFeaturedImagePreview(null)
+                          }}
+                        >
+                          Remove Cover Image
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
+                  <Label className="text-lg font-semibold">Gallery Images</Label>
+                  <p className="text-sm text-gray-500">Add detailed images for the property gallery.</p>
                   <Label htmlFor="images" className="cursor-pointer">
                     <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg hover:border-coral-400 transition-colors">
                       <div className="text-center">

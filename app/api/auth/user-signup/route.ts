@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create Supabase client
+    // Create Supabase client for Auth (standard flow)
     const supabase = await createClient()
 
     // Sign up the user
@@ -43,8 +43,11 @@ export async function POST(request: Request) {
       )
     }
 
+    // Create Supabase admin client for user table insertion (bypassing RLS)
+    const supabaseAdmin = await createAdminClient()
+
     // Create user profile in the users table with 'user' role
-    const { error: profileError } = await supabase
+    const { error: profileError } = await supabaseAdmin
       .from('users')
       // @ts-ignore
       .insert({
@@ -54,7 +57,14 @@ export async function POST(request: Request) {
         phone: phone || null,
         firebase_uid: firebase_uid || null,
         role: 'user', // Regular user role
+        last_login_at: new Date().toISOString(),
+        phone_verified: !!phone
       })
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError)
+      // We log it but proceed as auth user is created
+    }
 
     if (profileError) {
       console.error('Profile creation error:', profileError)

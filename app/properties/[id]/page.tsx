@@ -918,14 +918,48 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                   <CardHeader>
                     <CardTitle className="text-lg">Contact Agent</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Input placeholder="Your Name" />
-                    <Input type="email" placeholder="Email" />
-                    <Input type="tel" placeholder="Phone" />
-                    <Button className="w-full">
-                      <Mail className="w-4 h-4 mr-2" />
-                      Request Callback
-                    </Button>
+                  <CardContent>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault()
+                      // @ts-ignore
+                      const formData = new FormData(e.target)
+                      const data = {
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        phone: formData.get('phone'),
+                        message: "I am interested in this property",
+                        propertyId: property.id
+                      }
+
+                      try {
+                        const loadingToast = toast.loading('Sending your enquiry...')
+                        const res = await fetch('/api/enquiries', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(data)
+                        })
+                        toast.dismiss(loadingToast)
+
+                        if (res.ok) {
+                          toast.success('Callback requested successfully!')
+                          // @ts-ignore
+                          e.target.reset()
+                        } else {
+                          const err = await res.json()
+                          toast.error(err.error || 'Failed to request callback')
+                        }
+                      } catch (error) {
+                        toast.error('Something went wrong')
+                      }
+                    }} className="space-y-3">
+                      <Input name="name" placeholder="Your Name" required />
+                      <Input name="email" type="email" placeholder="Email" required />
+                      <Input name="phone" type="tel" placeholder="Phone" required />
+                      <Button type="submit" className="w-full">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Request Callback
+                      </Button>
+                    </form>
                   </CardContent>
                 </Card>
               </div>
