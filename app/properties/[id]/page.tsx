@@ -410,14 +410,6 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                 {property.is_featured && (
                   <Badge className="absolute top-4 left-4 bg-amber-500 text-white">Featured</Badge>
                 )}
-                <Button
-                  onClick={() => setSaved(!saved)}
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm"
-                >
-                  <Heart className={`w-4 h-4 ${saved ? 'fill-coral text-coral' : ''}`} />
-                </Button>
               </div>
 
               {/* Thumbnail Grid */}

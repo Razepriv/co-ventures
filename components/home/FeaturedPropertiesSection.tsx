@@ -30,7 +30,7 @@ interface Property {
 export const FeaturedPropertiesSection: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savedProperties, setSavedProperties] = useState<Set<string>>(new Set());
+  // const [savedProperties, setSavedProperties] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchProperties();
@@ -69,17 +69,7 @@ export const FeaturedPropertiesSection: React.FC = () => {
 
   if (properties.length === 0) return null;
 
-  const toggleSave = (propertyId: string) => {
-    setSavedProperties((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(propertyId)) {
-        newSet.delete(propertyId);
-      } else {
-        newSet.add(propertyId);
-      }
-      return newSet;
-    });
-  };
+
 
   return (
     <Section className="py-24 lg:py-32">
@@ -101,8 +91,6 @@ export const FeaturedPropertiesSection: React.FC = () => {
           <PropertyCard
             key={property.id}
             property={property}
-            isSaved={savedProperties.has(property.id)}
-            onToggleSave={toggleSave}
           />
         ))}
       </div>
@@ -112,11 +100,9 @@ export const FeaturedPropertiesSection: React.FC = () => {
 
 interface PropertyCardProps {
   property: Property;
-  isSaved: boolean;
-  onToggleSave: (id: string) => void;
 }
 
-const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggleSave }) => {
+const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
   const { formatPrice } = useCurrency();
 
   return (
@@ -145,21 +131,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isSaved, onToggle
               <Badge variant="green">Available</Badge>
             )}
           </div>
-
-          {/* Save Button */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              onToggleSave(property.id);
-            }}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
-            aria-label={isSaved ? 'Remove from saved' : 'Save property'}
-          >
-            <Heart
-              className={`w-5 h-5 transition-colors ${isSaved ? 'fill-coral text-coral' : 'text-gray-600'
-                }`}
-            />
-          </button>
         </div>
 
         {/* Content */}

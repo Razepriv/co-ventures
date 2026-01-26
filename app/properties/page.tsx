@@ -66,23 +66,12 @@ function PropertiesContent() {
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
   const { currency, setCurrency, formatPrice } = useCurrency()
-  const [favorites, setFavorites] = useLocalStorage<string[]>('property-favorites', [])
+  // const [favorites, setFavorites] = useLocalStorage<string[]>('property-favorites', [])
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  // Toggle favorite
-  const toggleFavorite = useCallback((propertyId: string) => {
-    setFavorites(prev => {
-      if (prev.includes(propertyId)) {
-        toast.info('Removed from favorites')
-        return prev.filter(id => id !== propertyId)
-      } else {
-        toast.success('Added to favorites')
-        return [...prev, propertyId]
-      }
-    })
-  }, [setFavorites])
+
 
   // Real-time subscription for property updates
   useRealtimeSubscription<Property>({
@@ -535,20 +524,6 @@ function PropertiesContent() {
                               <Badge className="bg-amber-500 text-white">Featured</Badge>
                             </div>
                           )}
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              toggleFavorite(property.id)
-                            }}
-                            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
-                          >
-                            <Heart
-                              className={`w-5 h-5 transition-colors ${favorites.includes(property.id)
-                                ? 'fill-coral text-coral'
-                                : 'text-gray-600 hover:text-coral'
-                                }`}
-                            />
-                          </button>
                           <div className="absolute bottom-4 left-4">
                             <Badge className={
                               property.status === 'available' ? 'bg-green-500' :
