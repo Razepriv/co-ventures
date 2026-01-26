@@ -48,6 +48,7 @@ function PropertiesContent() {
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('available')
   const [priceRange, setPriceRange] = useState('all')
+  const [citiesList, setCitiesList] = useState<{ id: string; name: string }[]>([])
 
   // Set initial filters from URL
   useEffect(() => {
@@ -71,7 +72,35 @@ function PropertiesContent() {
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-
+  // Fetch cities for filter dropdown
+  useEffect(() => {
+    async function fetchCities() {
+      try {
+        const response = await fetch('/api/search/cities')
+        const data = await response.json()
+        if (data.cities && data.cities.length > 0) {
+          setCitiesList(data.cities)
+        } else {
+          // Fallback cities
+          setCitiesList([
+            { id: 'new-delhi', name: 'New Delhi' },
+            { id: 'mumbai', name: 'Mumbai' },
+            { id: 'bangalore', name: 'Bangalore' },
+            { id: 'hyderabad', name: 'Hyderabad' },
+            { id: 'chennai', name: 'Chennai' },
+            { id: 'kolkata', name: 'Kolkata' },
+            { id: 'pune', name: 'Pune' },
+            { id: 'ahmedabad', name: 'Ahmedabad' },
+            { id: 'gurgaon', name: 'Gurgaon' },
+            { id: 'noida', name: 'Noida' },
+          ])
+        }
+      } catch (error) {
+        console.error('Error fetching cities:', error)
+      }
+    }
+    fetchCities()
+  }, [])
 
   // Real-time subscription for property updates
   useRealtimeSubscription<Property>({
@@ -238,7 +267,6 @@ function PropertiesContent() {
     return sorted
   }, [properties, debouncedSearchQuery, sortBy])
 
-  const cities = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Pune', 'Hyderabad', 'Chennai', 'Kolkata', 'Ahmedabad']
   const bhkTypes = ['1BHK', '2BHK', '3BHK', '4BHK', '5+BHK']
   const propertyTypes = ['Apartments', 'Villas', 'Penthouses', 'Plots']
 
@@ -323,8 +351,8 @@ function PropertiesContent() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Cities</SelectItem>
-                          {cities.map(city => (
-                            <SelectItem key={city} value={city}>{city}</SelectItem>
+                          {citiesList.map((city: { id: string; name: string }) => (
+                            <SelectItem key={city.id} value={city.id}>{city.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
