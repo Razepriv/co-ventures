@@ -241,7 +241,7 @@ function PropertiesContent() {
     } finally {
       setLoading(false)
     }
-  }, [selectedCity, selectedBHK, selectedType, selectedStatus, priceRange])
+  }, [selectedCity, selectedBHK, selectedType, selectedStatus, priceRange, citiesList])
 
   useEffect(() => {
     fetchProperties()
@@ -255,6 +255,14 @@ function PropertiesContent() {
       property.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
       property.city.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     )
+
+    // Client-side city filter (backup in case DB filter didn't work)
+    if (selectedCity !== 'all') {
+      const cityName = citiesList.find(c => c.id === selectedCity)?.name?.toLowerCase() || selectedCity.toLowerCase()
+      filtered = filtered.filter(property =>
+        property.city?.toLowerCase().includes(cityName)
+      )
+    }
 
     // Then sort
     const sorted = [...filtered].sort((a, b) => {
@@ -272,7 +280,7 @@ function PropertiesContent() {
     })
 
     return sorted
-  }, [properties, debouncedSearchQuery, sortBy])
+  }, [properties, debouncedSearchQuery, sortBy, selectedCity, citiesList])
 
   const bhkTypes = ['1BHK', '2BHK', '3BHK', '4BHK', '5+BHK']
   const propertyTypes = ['Apartments', 'Villas', 'Penthouses', 'Plots']
