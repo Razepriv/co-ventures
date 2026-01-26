@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   successResponse,
   handleApiError,
@@ -34,14 +34,15 @@ export async function POST(request: NextRequest) {
     const { data, error } = await validateRequest(request, contactMessageSchema)
     if (error) return error
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for public contact form
+    const supabase = await createAdminClient()
 
     // Create contact message
     const { data: message, error: createError } = await supabase
       .from('contact_messages')
       // @ts-ignore
       .insert({
-        name: data.name,
+        full_name: data.name, // Schema validates 'name' but DB expects 'full_name'
         email: data.email,
         phone: data.phone || null,
         subject: data.subject,
