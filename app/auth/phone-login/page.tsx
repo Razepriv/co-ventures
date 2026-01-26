@@ -65,31 +65,20 @@ export default function PhoneLoginPage() {
     setLoading(true)
 
     try {
-      // Check if user exists in database
-      const supabase = getSupabaseClient()
-      const { data: existingUser, error }: { data: any, error: any } = await supabase
-        .from('users')
-        .select('id, full_name, email')
-        .eq('phone', phoneNumber)
-        .single()
-
-      if (!existingUser || error) {
-        // User doesn't exist - redirect to signup
-        toast.error('Account not found. Please sign up first.')
-        setLoading(false)
-        router.push(`/auth/user-signup?phone=${encodeURIComponent(phoneNumber)}`)
-        return
-      }
-
-      // User exists - send OTP
-      setFullName(existingUser.full_name || '')
-      setEmail(existingUser.email || '')
+      // Skip database check - just send OTP directly
+      // User will be verified/created after OTP confirmation
       await sendOTP()
       setStep('otp')
-    } catch (error) {
-      console.error('Error checking user:', error)
-      toast.error('Account not found. Please sign up first.')
-      router.push(`/auth/user-signup?phone=${encodeURIComponent(phoneNumber)}`)
+      toast.success('OTP sent successfully!')
+    } catch (error: any) {
+      console.error('Error sending OTP:', error)
+      if (error.code === 'auth/invalid-phone-number') {
+        toast.error('Invalid phone number format')
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Too many attempts. Please try again later.')
+      } else {
+        toast.error('Failed to send OTP. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
