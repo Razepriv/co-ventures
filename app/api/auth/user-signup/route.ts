@@ -25,8 +25,9 @@ export async function POST(request: Request) {
 
     if (existingUserProfile) {
       // Update firebase_uid if missing
-      if (firebase_uid && !existingUserProfile.firebase_uid) {
-        await supabaseAdmin.from('users').update({ firebase_uid }).eq('id', existingUserProfile.id)
+      const profile = existingUserProfile as any
+      if (firebase_uid && !profile.firebase_uid) {
+        await (supabaseAdmin.from('users') as any).update({ firebase_uid }).eq('id', profile.id)
       }
 
       return NextResponse.json({
