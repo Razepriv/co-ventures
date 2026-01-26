@@ -31,7 +31,7 @@ export default function ContactPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    
+
     if (!formData.full_name || !formData.email || !formData.message) {
       toast.error('Please fill in all required fields')
       return
@@ -43,14 +43,14 @@ export default function ContactPage() {
 
       const { error } = await supabase
         .from('contact_messages')
-        // @ts-ignore
+        // @ts-ignore - Supabase types don't match actual schema
         .insert({
           full_name: formData.full_name,
           email: formData.email,
           phone: formData.phone || null,
           subject: formData.subject || 'General Inquiry',
           message: formData.message,
-          inquiry_type: formData.inquiry_type
+          status: 'new'
         })
 
       if (error) throw error

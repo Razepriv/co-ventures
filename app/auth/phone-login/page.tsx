@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/firebase/config'
-import { 
-  RecaptchaVerifier, 
-  signInWithPhoneNumber, 
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
   ConfirmationResult,
   PhoneAuthProvider,
   signInWithCredential
@@ -52,7 +52,7 @@ export default function PhoneLoginPage() {
 
   async function handlePhoneSubmit(e: React.FormEvent) {
     e.preventDefault()
-    
+
     if (phoneNumber.length < 13) {
       toast.error('Please enter a valid phone number')
       return
@@ -63,26 +63,29 @@ export default function PhoneLoginPage() {
     try {
       // Check if user exists in database
       const supabase = getSupabaseClient()
-      const { data: existingUser }: { data: any } = await supabase
+      const { data: existingUser, error }: { data: any, error: any } = await supabase
         .from('users')
         .select('id, full_name, email')
         .eq('phone', phoneNumber)
         .single()
 
-      if (existingUser) {
-        // Existing user - skip details step
-        setFullName(existingUser.full_name || '')
-        setEmail(existingUser.email || '')
-        await sendOTP()
-        setStep('otp')
-      } else {
-        // New user - collect details first
-        setStep('details')
+      if (!existingUser || error) {
+        // User doesn't exist - redirect to signup
+        toast.error('Account not found. Please sign up first.')
+        setLoading(false)
+        router.push(`/auth/user-signup?phone=${encodeURIComponent(phoneNumber)}`)
+        return
       }
+
+      // User exists - send OTP
+      setFullName(existingUser.full_name || '')
+      setEmail(existingUser.email || '')
+      await sendOTP()
+      setStep('otp')
     } catch (error) {
       console.error('Error checking user:', error)
-      // If user doesn't exist, go to details step
-      setStep('details')
+      toast.error('Account not found. Please sign up first.')
+      router.push(`/auth/user-signup?phone=${encodeURIComponent(phoneNumber)}`)
     } finally {
       setLoading(false)
     }
@@ -102,7 +105,7 @@ export default function PhoneLoginPage() {
     }
 
     setLoading(true)
-    
+
     try {
       await sendOTP()
       setStep('otp')
@@ -128,7 +131,7 @@ export default function PhoneLoginPage() {
       console.error('Error sending OTP:', error)
       console.error('Error code:', error.code)
       console.error('Error message:', error.message)
-      
+
       // More detailed error messages
       if (error.code === 'auth/invalid-phone-number') {
         toast.error('Invalid phone number format. Use +[country code][number]')
@@ -145,7 +148,7 @@ export default function PhoneLoginPage() {
       } else {
         toast.error('Failed to send OTP: ' + (error.message || 'Unknown error'))
       }
-      
+
       throw error
     }
   }
@@ -172,7 +175,7 @@ export default function PhoneLoginPage() {
 
       // Create or update user in Supabase
       const supabase = getSupabaseClient()
-      
+
       // Check if user exists by phone or firebase_uid
       const { data: existingUsers, error: queryError }: { data: any, error: any } = await supabase
         .from('users')
@@ -191,7 +194,7 @@ export default function PhoneLoginPage() {
           .select('*')
           .eq('firebase_uid', firebaseUser.uid)
           .maybeSingle()
-        
+
         existingUser = firebaseUsers
       }
 
@@ -240,7 +243,7 @@ export default function PhoneLoginPage() {
           console.error('Error creating user:', data.error)
           console.error('Response status:', response.status)
           console.error('Full response:', data)
-          
+
           // Check if user already exists (might have been created in previous attempt)
           if (response.status === 409 || (data.error && data.error.includes('already'))) {
             // User exists, try to find and update
@@ -294,10 +297,10 @@ export default function PhoneLoginPage() {
 
       // Redirect to home page
       router.push('/')
-      
+
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
-      
+
       if (error.code === 'auth/invalid-verification-code') {
         toast.error('Invalid OTP. Please try again.')
       } else if (error.code === 'auth/code-expired') {
@@ -329,7 +332,7 @@ export default function PhoneLoginPage() {
 
       <div className="max-w-md w-full">
         {/* Back to Home */}
-        <Link 
+        <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-coral mb-6 transition-colors"
         >
@@ -385,63 +388,6 @@ export default function PhoneLoginPage() {
             </form>
           )}
 
-          {/* Details Step */}
-          {step === 'details' && (
-            <form onSubmit={handleDetailsSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john@example.com"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep('phone')}
-                  className="flex-1"
-                >
-                  Back
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  {loading ? 'Sending OTP...' : 'Send OTP'}
-                </Button>
-              </div>
-            </form>
-          )}
-
           {/* OTP Step */}
           {step === 'otp' && (
             <form onSubmit={handleOTPSubmit} className="space-y-6">
@@ -485,15 +431,17 @@ export default function PhoneLoginPage() {
             </form>
           )}
 
-          {/* Divider */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              Admin user? {' '}
-              <Link href="/auth/login" className="text-coral font-semibold hover:text-coral-dark">
-                Login here
-              </Link>
-            </p>
-          </div>
+          {/* Sign Up Link */}
+          {step === 'phone' && (
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-center text-sm text-gray-600">
+                Don't have an account? {' '}
+                <Link href="/auth/user-signup" className="text-coral font-semibold hover:text-coral-dark">
+                  Sign up
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Additional Info */}

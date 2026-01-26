@@ -25,10 +25,23 @@ export default function NewPropertyPage() {
   const router = useRouter()
   const { profile } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
+  const [developers, setDevelopers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [uploadingImages, setUploadingImages] = useState(false)
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+
+  // Document upload states
+  const [uploadingDocs, setUploadingDocs] = useState({
+    brochure: false,
+    floorPlan: false,
+    layoutPlan: false,
+    developerLogo: false
+  })
+
+  // Tab navigation
+  const tabs = ['basic', 'investment', 'location', 'details', 'legal', 'images']
+  const [activeTab, setActiveTab] = useState('basic')
 
   const [formData, setFormData] = useState({
     title: '',
@@ -93,6 +106,7 @@ export default function NewPropertyPage() {
 
   useEffect(() => {
     fetchCategories()
+    fetchDevelopers()
   }, [])
 
   // Auto-generate slug from title with uniqueness
@@ -102,7 +116,7 @@ export default function NewPropertyPage() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-      
+
       // Add timestamp to ensure uniqueness
       const uniqueSlug = `${baseSlug}-${Date.now()}`
       setFormData(prev => ({ ...prev, slug: uniqueSlug }))
@@ -125,6 +139,36 @@ export default function NewPropertyPage() {
     }
   }
 
+  async function fetchDevelopers() {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('developers')
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
+
+      if (error) throw error
+      setDevelopers(data || [])
+    } catch (error) {
+      console.error('Error fetching developers:', error)
+      toast.error('Failed to load developers')
+    }
+  }
+
+  function handleDeveloperSelect(developerId: string) {
+    const developer = developers.find(d => d.id === developerId)
+    if (developer) {
+      setFormData(prev => ({
+        ...prev,
+        developer_name: developer.name,
+        developer_logo: developer.logo_url || '',
+        years_of_experience: developer.years_of_experience?.toString() || '',
+        total_projects: developer.total_projects?.toString() || ''
+      }))
+    }
+  }
+
   function handleInputChange(field: string, value: any) {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -137,7 +181,7 @@ export default function NewPropertyPage() {
     }
 
     setImages(prev => [...prev, ...files])
-    
+
     // Create previews
     files.forEach(file => {
       const reader = new FileReader()
@@ -151,6 +195,68 @@ export default function NewPropertyPage() {
   function removeImage(index: number) {
     setImages(prev => prev.filter((_, i) => i !== index))
     setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  async function uploadDocument(file: File, type: 'brochure' | 'floorPlan' | 'layoutPlan' | 'developerLogo') {
+    try {
+      setUploadingDocs(prev => ({ ...prev, [type]: true }))
+      const supabase = getSupabaseClient()
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${type}-${Date.now()}.${fileExt}`
+      const filePath = `documents/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('coventures')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('coventures')
+        .getPublicUrl(filePath)
+
+      // Update form data based on type
+      if (type === 'brochure') {
+        handleInputChange('brochure_url', publicUrl)
+      } else if (type === 'floorPlan') {
+        handleInputChange('floor_plan_url', publicUrl)
+      } else if (type === 'layoutPlan') {
+        handleInputChange('layout_plan_url', publicUrl)
+      } else if (type === 'developerLogo') {
+        handleInputChange('developer_logo', publicUrl)
+      }
+
+      toast.success(`${type} uploaded successfully!`)
+    } catch (error) {
+      console.error(`Error uploading ${type}:`, error)
+      toast.error(`Failed to upload ${type}`)
+    } finally {
+      setUploadingDocs(prev => ({ ...prev, [type]: false }))
+    }
+  }
+
+  function handleDocumentSelect(e: React.ChangeEvent<HTMLInputElement>, type: 'brochure' | 'floorPlan' | 'layoutPlan' | 'developerLogo') {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = type === 'developerLogo'
+      ? ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+      : ['application/pdf', 'image/jpeg', 'image/png']
+
+    if (!validTypes.includes(file.type)) {
+      toast.error(`Invalid file type. Please upload ${type === 'developerLogo' ? 'an image' : 'a PDF or image'}.`)
+      return
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB')
+      return
+    }
+
+    uploadDocument(file, type)
   }
 
   async function uploadImages(propertyId: string) {
@@ -204,7 +310,7 @@ export default function NewPropertyPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    
+
     if (!formData.title || !formData.category_id || !formData.price || !formData.description) {
       toast.error('Please fill in all required fields (title, category, price, description)')
       return
@@ -255,7 +361,7 @@ export default function NewPropertyPage() {
         area_sqft: parseInt(formData.size_sqft), // Database uses area_sqft, not size_sqft
         bhk_type: formData.bhk_type,
         property_type: formData.property_type,
-        featured_image: 'placeholder.jpg', // Will be updated after image upload
+        featured_image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80', // Default placeholder
         status: formData.status,
         amenities: formData.amenities ? formData.amenities.split(',').map(a => a.trim()) : [],
         is_featured: formData.is_featured,
@@ -316,7 +422,7 @@ export default function NewPropertyPage() {
       // Upload images and update featured_image
       if (images.length > 0) {
         await uploadImages(property.id)
-        
+
         // Get the first uploaded image URL
         const { data: firstImage } = (await supabase
           .from('property_images')
@@ -339,7 +445,7 @@ export default function NewPropertyPage() {
       router.push('/admin/properties')
     } catch (error: any) {
       console.error('Error creating property:', error)
-      
+
       // Handle specific error types
       if (error.message?.includes('duplicate key value') && error.message?.includes('slug')) {
         toast.error('A property with this URL already exists. Please try again.')
@@ -353,8 +459,24 @@ export default function NewPropertyPage() {
     }
   }
 
+  function handleNext() {
+    const currentIndex = tabs.indexOf(activeTab)
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1])
+      window.scrollTo(0, 0)
+    }
+  }
+
+  function handlePrev() {
+    const currentIndex = tabs.indexOf(activeTab)
+    if (currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1])
+      window.scrollTo(0, 0)
+    }
+  }
+
   return (
-    <div className="space-y-6 px-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/admin/properties">
@@ -369,7 +491,7 @@ export default function NewPropertyPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="basic" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6 lg:w-full">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="investment">Investment</TabsTrigger>
@@ -405,7 +527,7 @@ export default function NewPropertyPage() {
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     placeholder="Detailed description of the property..."
-                    rows={6}
+                    rows={4}
                     required
                   />
                 </div>
@@ -660,13 +782,33 @@ export default function NewPropertyPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <Label htmlFor="developer_select">Select Developer *</Label>
+                    <Select onValueChange={handleDeveloperSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a developer..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {developers.map((dev) => (
+                          <SelectItem key={dev.id} value={dev.id}>
+                            {dev.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Select a developer to auto-fill details below
+                    </p>
+                  </div>
+
                   <div>
                     <Label htmlFor="developer_name">Developer Name</Label>
                     <Input
                       id="developer_name"
                       value={formData.developer_name}
-                      onChange={(e) => handleInputChange('developer_name', e.target.value)}
-                      placeholder="e.g., Prestige Group"
+                      readOnly
+                      className="bg-gray-50"
+                      placeholder="Auto-filled from selection"
                     />
                   </div>
 
@@ -676,8 +818,9 @@ export default function NewPropertyPage() {
                       id="years_of_experience"
                       type="number"
                       value={formData.years_of_experience}
-                      onChange={(e) => handleInputChange('years_of_experience', e.target.value)}
-                      placeholder="e.g., 40"
+                      readOnly
+                      className="bg-gray-50"
+                      placeholder="Auto-filled"
                     />
                   </div>
 
@@ -687,19 +830,59 @@ export default function NewPropertyPage() {
                       id="total_projects"
                       type="number"
                       value={formData.total_projects}
-                      onChange={(e) => handleInputChange('total_projects', e.target.value)}
-                      placeholder="e.g., 300"
+                      readOnly
+                      className="bg-gray-50"
+                      placeholder="Auto-filled"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="developer_logo">Developer Logo URL</Label>
-                    <Input
-                      id="developer_logo"
-                      value={formData.developer_logo}
-                      onChange={(e) => handleInputChange('developer_logo', e.target.value)}
-                      placeholder="https://..."
-                    />
+                    <Label htmlFor="developer_logo">Developer Logo</Label>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          id="developer_logo"
+                          value={formData.developer_logo}
+                          readOnly
+                          className="bg-gray-50"
+                          placeholder="Upload logo or auto-filled"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          disabled={uploadingDocs.developerLogo}
+                        >
+                          {uploadingDocs.developerLogo ? (
+                            <>
+                              <Upload className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
+                        <input
+                          id="logo-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleDocumentSelect(e, 'developerLogo')}
+                        />
+                      </div>
+                      {formData.developer_logo && (
+                        <div className="relative w-32 h-32 border rounded">
+                          <img
+                            src={formData.developer_logo}
+                            alt="Developer logo preview"
+                            className="w-full h-full object-contain p-2"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -949,38 +1132,122 @@ export default function NewPropertyPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Documents & Media</CardTitle>
-                <CardDescription>URLs for brochures, plans, and videos</CardDescription>
+                <CardDescription>Upload brochures, plans, and add video links</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 gap-6">
                   <div>
-                    <Label htmlFor="brochure_url">Brochure URL</Label>
-                    <Input
-                      id="brochure_url"
-                      value={formData.brochure_url}
-                      onChange={(e) => handleInputChange('brochure_url', e.target.value)}
-                      placeholder="https://..."
-                    />
+                    <Label htmlFor="brochure_url">Brochure</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="brochure_url"
+                        value={formData.brochure_url}
+                        readOnly
+                        className="bg-gray-50"
+                        placeholder="Upload brochure PDF"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('brochure-upload')?.click()}
+                        disabled={uploadingDocs.brochure}
+                      >
+                        {uploadingDocs.brochure ? (
+                          <>
+                            <Upload className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload
+                          </>
+                        )}
+                      </Button>
+                      <input
+                        id="brochure-upload"
+                        type="file"
+                        accept=".pdf,image/*"
+                        className="hidden"
+                        onChange={(e) => handleDocumentSelect(e, 'brochure')}
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="floor_plan_url">Floor Plan URL</Label>
-                    <Input
-                      id="floor_plan_url"
-                      value={formData.floor_plan_url}
-                      onChange={(e) => handleInputChange('floor_plan_url', e.target.value)}
-                      placeholder="https://..."
-                    />
+                    <Label htmlFor="floor_plan_url">Floor Plan</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="floor_plan_url"
+                        value={formData.floor_plan_url}
+                        readOnly
+                        className="bg-gray-50"
+                        placeholder="Upload floor plan"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('floorplan-upload')?.click()}
+                        disabled={uploadingDocs.floorPlan}
+                      >
+                        {uploadingDocs.floorPlan ? (
+                          <>
+                            <Upload className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload
+                          </>
+                        )}
+                      </Button>
+                      <input
+                        id="floorplan-upload"
+                        type="file"
+                        accept=".pdf,image/*"
+                        className="hidden"
+                        onChange={(e) => handleDocumentSelect(e, 'floorPlan')}
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="layout_plan_url">Layout Plan URL</Label>
-                    <Input
-                      id="layout_plan_url"
-                      value={formData.layout_plan_url}
-                      onChange={(e) => handleInputChange('layout_plan_url', e.target.value)}
-                      placeholder="https://..."
-                    />
+                    <Label htmlFor="layout_plan_url">Layout Plan</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="layout_plan_url"
+                        value={formData.layout_plan_url}
+                        readOnly
+                        className="bg-gray-50"
+                        placeholder="Upload layout plan"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('layoutplan-upload')?.click()}
+                        disabled={uploadingDocs.layoutPlan}
+                      >
+                        {uploadingDocs.layoutPlan ? (
+                          <>
+                            <Upload className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload
+                          </>
+                        )}
+                      </Button>
+                      <input
+                        id="layoutplan-upload"
+                        type="file"
+                        accept=".pdf,image/*"
+                        className="hidden"
+                        onChange={(e) => handleDocumentSelect(e, 'layoutPlan')}
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -1090,14 +1357,36 @@ export default function NewPropertyPage() {
         </Tabs>
 
         {/* Submit Button */}
-        <div className="flex justify-end gap-4 pt-6">
-          <Link href="/admin/properties">
-            <Button type="button" variant="outline">Cancel</Button>
-          </Link>
-          <Button type="submit" disabled={loading || uploadingImages} className="gap-2">
-            <Save className="h-4 w-4" />
-            {loading ? 'Creating...' : uploadingImages ? 'Uploading Images...' : 'Create Property'}
-          </Button>
+        {/* Navigation Buttons */}
+        <div className="flex justify-between gap-4 pt-6 border-t mt-6">
+          <div className="flex gap-2">
+            <Link href="/admin/properties">
+              <Button type="button" variant="outline">Cancel</Button>
+            </Link>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrev}
+              disabled={activeTab === 'basic'}
+              className={activeTab === 'basic' ? 'invisible' : ''}
+            >
+              Previous
+            </Button>
+
+            {activeTab === 'images' ? (
+              <Button type="submit" disabled={loading || uploadingImages} className="gap-2 bg-coral hover:bg-coral-dark">
+                <Save className="h-4 w-4" />
+                {loading ? 'Creating...' : uploadingImages ? 'Uploading Images...' : 'Create Property'}
+              </Button>
+            ) : (
+              <Button type="button" onClick={handleNext}>
+                Next
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </div>

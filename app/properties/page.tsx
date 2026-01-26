@@ -16,6 +16,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import { useRealtimeSubscription } from '@/lib/hooks/useRealtimeSubscription'
 import { useLocalStorage } from '@/lib/hooks/useLocalStorage'
+import { useCurrency } from '@/lib/contexts/CurrencyContext'
 import { toast } from 'sonner'
 
 interface Property {
@@ -47,7 +48,7 @@ function PropertiesContent() {
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('available')
   const [priceRange, setPriceRange] = useState('all')
-  
+
   // Set initial filters from URL
   useEffect(() => {
     const city = searchParams.get('city')
@@ -64,18 +65,11 @@ function PropertiesContent() {
   }, [searchParams])
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
-  const [currency, setCurrency] = useState('INR')
+  const { currency, setCurrency, formatPrice } = useCurrency()
   const [favorites, setFavorites] = useLocalStorage<string[]>('property-favorites', [])
-  
+
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
-
-  // Currency conversion rates (you can fetch from API in production)
-  const currencyRates = useMemo(() => ({
-    INR: 1,
-    USD: 0.012,
-    EUR: 0.011
-  }), [])
 
   // Toggle favorite
   const toggleFavorite = useCallback((propertyId: string) => {
@@ -122,7 +116,7 @@ function PropertiesContent() {
     try {
       setLoading(true)
       const supabase = getSupabaseClient()
-      
+
       let query = supabase
         .from('properties')
         .select(`
@@ -201,27 +195,6 @@ function PropertiesContent() {
 
     return sorted
   }, [properties, debouncedSearchQuery, sortBy])
-
-  // Convert price based on selected currency
-  const convertPrice = useCallback((price: number) => {
-    const converted = price * currencyRates[currency as keyof typeof currencyRates]
-    return converted
-  }, [currency, currencyRates])
-
-  // Format price display
-  const formatPrice = useCallback((price: number) => {
-    const converted = convertPrice(price)
-    
-    switch (currency) {
-      case 'USD':
-        return `$${(converted / 1000).toFixed(1)}K`
-      case 'EUR':
-        return `€${(converted / 1000).toFixed(1)}K`
-      case 'INR':
-      default:
-        return `₹${(converted / 100000).toFixed(1)}L`
-    }
-  }, [currency, convertPrice])
 
   const cities = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Pune', 'Hyderabad', 'Chennai', 'Kolkata', 'Ahmedabad']
   const bhkTypes = ['1BHK', '2BHK', '3BHK', '4BHK', '5+BHK']
@@ -509,25 +482,24 @@ function PropertiesContent() {
                               <Badge className="bg-amber-500 text-white">Featured</Badge>
                             </div>
                           )}
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.preventDefault()
                               toggleFavorite(property.id)
                             }}
                             className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
                           >
-                            <Heart 
-                              className={`w-5 h-5 transition-colors ${
-                                favorites.includes(property.id)
-                                  ? 'fill-coral text-coral'
-                                  : 'text-gray-600 hover:text-coral'
-                              }`} 
+                            <Heart
+                              className={`w-5 h-5 transition-colors ${favorites.includes(property.id)
+                                ? 'fill-coral text-coral'
+                                : 'text-gray-600 hover:text-coral'
+                                }`}
                             />
                           </button>
                           <div className="absolute bottom-4 left-4">
                             <Badge className={
                               property.status === 'available' ? 'bg-green-500' :
-                              property.status === 'sold' ? 'bg-red-500' : 'bg-blue-500'
+                                property.status === 'sold' ? 'bg-red-500' : 'bg-blue-500'
                             }>
                               {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
                             </Badge>
@@ -565,12 +537,9 @@ function PropertiesContent() {
                           <div className="flex items-center justify-between pt-4 border-t">
                             <div>
                               <p className="text-sm text-gray-500">Starting from</p>
-                              <div className="flex items-center">
-                                {currency === 'INR' && <IndianRupee className="w-5 h-5 text-coral" />}
-                                <span className="text-2xl font-bold text-charcoal">
-                                  {formatPrice(property.price)}
-                                </span>
-                              </div>
+                              <span className="text-2xl font-bold text-charcoal">
+                                {formatPrice(property.price)}
+                              </span>
                             </div>
                             <Button size="sm" className="group-hover:bg-coral-dark transition-colors">
                               View Details

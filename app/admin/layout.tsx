@@ -22,6 +22,8 @@ import {
   Search,
   X,
   Check,
+  TrendingUp,
+  Mail,
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
@@ -48,7 +50,10 @@ interface Notification {
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Properties', href: '/admin/properties', icon: Building2 },
-  { name: 'Enquiries', href: '/admin/enquiries', icon: MessageSquare },
+  { name: 'Leads & Enquiries', href: '/admin/leads', icon: TrendingUp },
+  { name: 'Groups', href: '/admin/groups', icon: Users },
+  { name: 'Contacts', href: '/admin/contacts', icon: MessageSquare },
+  { name: 'Developers', href: '/admin/developers', icon: Building2 },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Blog', href: '/admin/blog', icon: FileText },
   { name: 'Testimonials', href: '/admin/testimonials', icon: Star },
@@ -79,7 +84,7 @@ export default function AdminLayout({
     try {
       setLoadingNotifications(true)
       const supabase = getSupabaseClient()
-      
+
       // Fetch recent enquiries as notifications
       const { data: enquiries } = await supabase
         .from('enquiries')
@@ -137,9 +142,8 @@ export default function AdminLayout({
     <div className="flex h-screen bg-gray-50">
       {/* Dark Sidebar */}
       <aside
-        className={`flex flex-col bg-charcoal text-white transition-all duration-300 shadow-xl ${
-          sidebarCollapsed ? 'w-20' : 'w-64'
-        }`}
+        className={`flex flex-col bg-charcoal text-white transition-all duration-300 shadow-xl ${sidebarCollapsed ? 'w-20' : 'w-64'
+          }`}
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-gray-700">
@@ -166,11 +170,10 @@ export default function AdminLayout({
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-coral text-white shadow-lg shadow-coral/30'
-                    : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
-                }`}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${isActive
+                  ? 'bg-coral text-white shadow-lg shadow-coral/30'
+                  : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                  }`}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
                 {!sidebarCollapsed && <span>{item.name}</span>}
@@ -219,9 +222,9 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             {/* Notifications */}
             <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="relative hover:bg-gray-100"
                 onClick={() => {
                   setShowNotifications(!showNotifications)
@@ -239,14 +242,14 @@ export default function AdminLayout({
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
                     <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    <button 
+                    <button
                       onClick={() => setShowNotifications(false)}
                       className="text-gray-400 hover:text-gray-600"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                  
+
                   <div className="max-h-96 overflow-y-auto">
                     {loadingNotifications ? (
                       <div className="flex items-center justify-center py-8">
@@ -263,14 +266,12 @@ export default function AdminLayout({
                           key={notif.id}
                           href={notif.link || '#'}
                           onClick={() => setShowNotifications(false)}
-                          className={`block px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors ${
-                            !notif.is_read ? 'bg-coral/5' : ''
-                          }`}
+                          className={`block px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors ${!notif.is_read ? 'bg-coral/5' : ''
+                            }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                              notif.is_read ? 'bg-gray-300' : 'bg-coral'
-                            }`} />
+                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notif.is_read ? 'bg-gray-300' : 'bg-coral'
+                              }`} />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm text-gray-900 truncate">
                                 {notif.title}
@@ -287,7 +288,7 @@ export default function AdminLayout({
                       ))
                     )}
                   </div>
-                  
+
                   <Link
                     href="/admin/enquiries"
                     onClick={() => setShowNotifications(false)}

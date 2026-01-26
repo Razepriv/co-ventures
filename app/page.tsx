@@ -1,7 +1,7 @@
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
-import { SearchBarSection } from '@/components/home/SearchBarSection';
+import { SearchFilterBar } from '@/components/search/SearchFilterBar';
 import { WhyCoHousingSection } from '@/components/home/WhyCoHousingSection';
 import { FeaturedPropertiesSection } from '@/components/home/FeaturedPropertiesSection';
 import { AICommitteeSection } from '@/components/home/AICommitteeSection';
@@ -18,7 +18,9 @@ export default function HomePage() {
       <Header />
       <main>
         <HeroSection />
-        <SearchBarSection />
+        <div className="py-8 bg-gray-50">
+          <SearchFilterBar />
+        </div>
         <WhyCoHousingSection />
         <FeaturedPropertiesSection />
         <AICommitteeSection />

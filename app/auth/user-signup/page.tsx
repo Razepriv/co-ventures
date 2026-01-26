@@ -1,217 +1,378 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { auth } from '@/lib/firebase/config'
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult
+} from 'firebase/auth'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Building2, Loader2, AlertCircle, CheckCircle2, Home } from 'lucide-react'
+import { Phone, Lock, User, Mail, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+import Link from 'next/link'
 
-export default function UserSignUpPage() {
+export default function UserSignupPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const searchParams = useSearchParams()
+  const [step, setStep] = useState<'details' | 'otp'>('details')
+  const [phoneNumber, setPhoneNumber] = useState(searchParams.get('phone') || '+91')
   const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    // Initialize reCAPTCHA
+    if (typeof window !== 'undefined' && !recaptchaVerifier) {
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {
+          console.log('reCAPTCHA verified')
+        },
+        'expired-callback': () => {
+          toast.error('reCAPTCHA expired. Please try again.')
+        }
+      })
+      setRecaptchaVerifier(verifier)
+    }
+
+    return () => {
+      if (recaptchaVerifier) {
+        recaptchaVerifier.clear()
+      }
+    }
+  }, [])
+
+  async function handleDetailsSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+
+    if (!fullName.trim()) {
+      toast.error('Please enter your full name')
+      return
+    }
+
+    if (!email.trim() || !email.includes('@')) {
+      toast.error('Please enter a valid email')
+      return
+    }
+
+    if (phoneNumber.length < 13) {
+      toast.error('Please enter a valid phone number')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/user-signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          fullName,
-          phone,
-        }),
-      })
+      // Check if user already exists
+      const supabase = getSupabaseClient()
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('phone', phoneNumber)
+        .single()
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to create account')
+      if (existingUser) {
+        toast.error('Account already exists. Please login instead.')
         setLoading(false)
+        router.push(`/auth/phone-login?phone=${encodeURIComponent(phoneNumber)}`)
         return
       }
 
-      setSuccess(true)
-      setTimeout(() => {
-        router.push('/auth/user-login')
-      }, 2000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      // Send OTP
+      await sendOTP()
+      setStep('otp')
+    } catch (error) {
+      console.error('Error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-coral-50 via-white to-blue-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto" />
-              <h2 className="text-2xl font-bold text-gray-900">Account Created!</h2>
-              <p className="text-gray-600">
-                Your account has been created successfully. Redirecting to login...
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  async function sendOTP() {
+    if (!recaptchaVerifier) {
+      toast.error('reCAPTCHA not initialized. Please refresh the page.')
+      return
+    }
+
+    try {
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+      setConfirmationResult(confirmation)
+      toast.success('OTP sent successfully!')
+    } catch (error: any) {
+      console.error('Error sending OTP:', error)
+
+      if (error.code === 'auth/invalid-phone-number') {
+        toast.error('Invalid phone number format')
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Too many requests. Please try again later.')
+      } else {
+        toast.error('Failed to send OTP')
+      }
+
+      throw error
+    }
+  }
+
+  async function handleOTPSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (otp.length !== 6) {
+      toast.error('Please enter the 6-digit OTP')
+      return
+    }
+
+    if (!confirmationResult) {
+      toast.error('Please request OTP first')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Verify OTP
+      const result = await confirmationResult.confirm(otp)
+      const firebaseUser = result.user
+
+      // Create user via API
+      const response = await fetch('/api/auth/user-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          password: firebaseUser.uid,
+          fullName: fullName,
+          phone: phoneNumber,
+          firebase_uid: firebaseUser.uid
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to create account')
+        setLoading(false)
+        return
+      }
+
+      // Update with Firebase fields
+      const supabase = getSupabaseClient()
+      const { data: newUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      if (newUser) {
+        await supabase
+          .from('users')
+          .update({
+            firebase_uid: firebaseUser.uid,
+            phone_verified: true,
+            last_login_at: new Date().toISOString()
+          })
+          .eq('id', newUser.id)
+      }
+
+      toast.success('Account created successfully!')
+      router.push('/')
+
+    } catch (error: any) {
+      console.error('Error verifying OTP:', error)
+
+      if (error.code === 'auth/invalid-verification-code') {
+        toast.error('Invalid OTP. Please try again.')
+      } else if (error.code === 'auth/code-expired') {
+        toast.error('OTP expired. Please request a new one.')
+      } else {
+        toast.error('Verification failed. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function resendOTP() {
+    setLoading(true)
+    try {
+      await sendOTP()
+      toast.success('OTP resent successfully!')
+    } catch (error) {
+      console.error('Error resending OTP:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-coral-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-8 w-8 text-coral-600" />
-              <span className="text-2xl font-bold text-gray-900">Co Housing Ventures</span>
+    <div className="min-h-screen bg-gradient-to-br from-coral-light via-white to-blue-50 flex items-center justify-center p-4">
+      {/* reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
+
+      <div className="max-w-md w-full">
+        {/* Back to Home */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-coral mb-6 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+
+        {/* Signup Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-coral rounded-full mb-4">
+              <Phone className="h-8 w-8 text-white" />
             </div>
+            <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+            <p className="mt-2 text-gray-600">
+              {step === 'details' && 'Enter your details to get started'}
+              {step === 'otp' && 'Verify your phone number'}
+            </p>
           </div>
-          <CardTitle className="text-2xl">Create Your Account</CardTitle>
-          <CardDescription>
-            Join us to find your perfect co-housing property
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
+
+          {/* Details Step */}
+          {step === 'details' && (
+            <form onSubmit={handleDetailsSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="John Doe"
+                    className="pl-10"
+                    required
+                  />
+                </div>
               </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="John Doe"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (Optional)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+1 (555) 000-0000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                minLength={6}
-              />
-              <p className="text-xs text-gray-500">
-                Password must be at least 6 characters long
-              </p>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="john@example.com"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
 
-            <div className="text-xs text-gray-600">
-              By signing up, you agree to our{' '}
-              <Link href="/terms" className="text-coral-600 hover:underline">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="text-coral-600 hover:underline">
-                Privacy Policy
-              </Link>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </Button>
-            
-            <div className="text-center text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link 
-                href="/auth/user-login" 
-                className="text-coral-600 hover:text-coral-700 font-medium hover:underline"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+91 9876543210"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Enter number with country code (e.g., +91 for India)
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
               >
-                Sign in
-              </Link>
-            </div>
+                {loading ? 'Sending OTP...' : 'Continue'}
+              </Button>
+            </form>
+          )}
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+          {/* OTP Step */}
+          {step === 'otp' && (
+            <form onSubmit={handleOTPSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter OTP
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="123456"
+                    className="pl-10 text-center text-2xl tracking-widest"
+                    maxLength={6}
+                    required
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  OTP sent to {phoneNumber}
+                </p>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or</span>
-              </div>
-            </div>
 
-            <div className="text-center text-sm">
-              <Link 
-                href="/auth/login" 
-                className="text-gray-600 hover:text-gray-900 hover:underline flex items-center justify-center gap-2"
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
               >
-                <Home className="h-4 w-4" />
-                Admin Login
+                {loading ? 'Verifying...' : 'Create Account'}
+              </Button>
+
+              <button
+                type="button"
+                onClick={resendOTP}
+                disabled={loading}
+                className="w-full text-sm text-coral hover:text-coral-dark transition-colors"
+              >
+                Resend OTP
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStep('details')}
+                className="w-full text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                ← Back to details
+              </button>
+            </form>
+          )}
+
+          {/* Login Link */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-center text-sm text-gray-600">
+              Already have an account? {' '}
+              <Link href="/auth/phone-login" className="text-coral font-semibold hover:text-coral-dark">
+                Login
               </Link>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
+            </p>
+          </div>
+        </div>
+
+        {/* Additional Info */}
+        <p className="mt-6 text-center text-xs text-gray-500">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p>
+      </div>
     </div>
   )
 }

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { 
+import {
   MapPin, Bed, Bath, Square, Calendar, ParkingCircle, Check, Mail, Phone, User,
   ChevronLeft, ChevronRight, Share2, Heart, Download, TrendingUp, DollarSign,
   Building2, Users, Shield, FileText, Video, ExternalLink, Star, Clock,
@@ -26,6 +26,13 @@ import { InvestNowModal } from '@/components/property/InvestNowModal'
 import { LiveTourModal } from '@/components/property/LiveTourModal'
 import { toast } from 'sonner'
 import { useCurrency } from '@/lib/contexts/CurrencyContext'
+import { PropertyHighlights } from '@/components/property/PropertyHighlights'
+import { AmenitiesGrid } from '@/components/property/AmenitiesGrid'
+import { SpecificationsPanel } from '@/components/property/SpecificationsPanel'
+import { RERASection } from '@/components/property/RERASection'
+import { DeveloperProfile } from '@/components/property/DeveloperProfile'
+import { NearbyPlacesMap } from '@/components/property/NearbyPlacesMap'
+import { GroupBuyingSection } from '@/components/property/GroupBuyingSection'
 
 interface Property {
   id: string
@@ -68,10 +75,16 @@ interface Property {
   property_tax?: number
   investment_highlights?: string[]
   // Developer
+  developer_id?: string
   developer_name?: string
   developer_logo?: string
   years_of_experience?: number
   total_projects?: number
+  // Config
+  configuration?: string
+  discount_percentage?: number
+  total_units?: number
+  project_area?: string
   // Legal
   rera_number?: string
   possession_date?: string
@@ -102,9 +115,18 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [showAIAssistant, setShowAIAssistant] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [aiMessages, setAiMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
+  const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([])
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
+
+  // New state for TogetherBuying features
+  const [highlights, setHighlights] = useState<any[]>([])
+  const [amenities, setAmenities] = useState<any[]>([])
+  const [specifications, setSpecifications] = useState<any[]>([])
+  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([])
+  const [reraInfo, setReraInfo] = useState<any>(null)
+  const [developer, setDeveloper] = useState<any>(null)
+  const [propertyGroup, setPropertyGroup] = useState<any>({ total_slots: 5, filled_slots: 0, is_locked: false })
 
   // Share property function
   const handleShare = async () => {
@@ -152,29 +174,31 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
 
   useEffect(() => {
     fetchProperty()
+    fetchPropertyContent()
+    fetchGroup()
   }, [params.id])
 
   async function fetchProperty() {
     try {
       const supabase = getSupabaseClient()
-      
+
       // Check if params.id is a UUID or slug
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id)
-      
+
       let query = supabase
         .from('properties')
         .select('*, property_images(image_url, is_primary, display_order)')
-      
+
       if (isUUID) {
         query = query.eq('id', params.id)
       } else {
         query = query.eq('slug', params.id)
       }
-      
+
       const { data, error } = await query.single()
 
       if (error) throw error
-      
+
       // Sort images by display_order
       if (data) {
         const propertyData = data as any
@@ -187,6 +211,66 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       console.error('Error fetching property:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchPropertyContent() {
+    try {
+      // Fetch highlights, amenities, specifications, nearby places
+      const supabase = getSupabaseClient()
+
+      // Wrap in try-catch to handle case where tables don't exist yet (before migration)
+      try {
+        const [highlightsRes, amenitiesRes, specificationsRes, nearbyRes, reraRes] = await Promise.all([
+          supabase.from('property_highlights').select('*').eq('property_id', params.id).order('display_order'),
+          supabase.from('property_amenities').select('*').eq('property_id', params.id).order('display_order'),
+          supabase.from('property_specifications').select('*').eq('property_id', params.id).order('category, display_order'),
+          supabase.from('nearby_places').select('*').eq('property_id', params.id),
+          supabase.from('property_rera_info').select('*').eq('property_id', params.id).single(),
+        ])
+
+        setHighlights(highlightsRes.data || [])
+        setAmenities(amenitiesRes.data || [])
+        setSpecifications(specificationsRes.data || [])
+        setNearbyPlaces(nearbyRes.data || [])
+        setReraInfo(reraRes.data)
+      } catch (tableError: any) {
+        // Tables don't exist yet - migration hasn't been run
+        console.log('TogetherBuying tables not found - run migration first')
+      }
+
+      // Fetch developer if developer_id exists
+      const propertyData = property
+      if (propertyData?.developer_id) {
+        try {
+          const { data: devData } = await supabase
+            .from('developers')
+            .select('*')
+            .eq('id', propertyData.developer_id)
+            .single()
+          setDeveloper(devData)
+        } catch (err) {
+          console.log('Developers table not found - run migration first')
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching property content:', error)
+    }
+  }
+
+  async function fetchGroup() {
+    try {
+      const response = await fetch(`/api/properties/${params.id}/group`)
+      if (!response.ok) {
+        console.log('Group API not available - run migration first')
+        return
+      }
+      const data = await response.json()
+      if (data.group) {
+        setPropertyGroup(data.group)
+      }
+    } catch (error) {
+      console.log('Error fetching group - tables may not exist yet')
     }
   }
 
@@ -240,21 +324,21 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       })
 
       const data = await response.json()
-      
+
       if (data.error) {
         throw new Error(data.error)
       }
 
-      setAiMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.message || 'I apologize, but I encountered an error. Please try again.' 
+      setAiMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.message || 'I apologize, but I encountered an error. Please try again.'
       }])
     } catch (error: any) {
       console.error('AI Chat error:', error)
       toast.error('Failed to get AI response. Please try again.')
-      setAiMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'I apologize, but I encountered an error processing your request. Please try again.' 
+      setAiMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again.'
       }])
     } finally {
       setAiLoading(false)
@@ -288,12 +372,12 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     )
   }
 
-  const images = property.property_images?.length > 0 
-    ? property.property_images 
+  const images = property.property_images?.length > 0
+    ? property.property_images
     : [{ image_url: property.featured_image, is_primary: true, display_order: 0 }]
 
-  const investmentPercentage = property.investment_slots 
-    ? ((property.filled_slots || 0) / property.investment_slots) * 100 
+  const investmentPercentage = property.investment_slots
+    ? ((property.filled_slots || 0) / property.investment_slots) * 100
     : 0
 
   return (
@@ -342,9 +426,8 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                   <div
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`relative h-[190px] md:h-[240px] rounded-xl overflow-hidden cursor-pointer ${
-                      selectedImage === idx ? 'ring-2 ring-coral' : ''
-                    }`}
+                    className={`relative h-[190px] md:h-[240px] rounded-xl overflow-hidden cursor-pointer ${selectedImage === idx ? 'ring-2 ring-coral' : ''
+                      }`}
                   >
                     <Image
                       src={img.image_url}
@@ -486,10 +569,11 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
 
               {/* Tabs */}
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="highlights">Highlights</TabsTrigger>
                   <TabsTrigger value="amenities">Amenities</TabsTrigger>
+                  <TabsTrigger value="specifications">Specs</TabsTrigger>
                   <TabsTrigger value="location">Location</TabsTrigger>
                   <TabsTrigger value="documents">Documents</TabsTrigger>
                 </TabsList>
@@ -556,68 +640,88 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                 </TabsContent>
 
                 <TabsContent value="highlights">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Investment Highlights</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {property.investment_highlights?.map((highlight, idx) => (
-                          <div key={idx} className="flex items-start gap-3">
-                            <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                            <p className="text-gray-700">{highlight}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {highlights.length > 0 ? (
+                    <PropertyHighlights highlights={highlights} />
+                  ) : (
+                    <Card>
+                      <CardContent className="pt-6">
+                        <p className="text-center text-gray-500">No highlights available for this property.</p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="amenities">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Amenities & Features</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {property.amenities?.map((amenity, idx) => (
-                          <div key={idx} className="flex items-center gap-3">
-                            <Check className="w-5 h-5 text-coral" />
-                            <span className="text-gray-700">{amenity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {amenities.length > 0 ? (
+                    <AmenitiesGrid amenities={amenities} />
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Amenities & Features</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {property.amenities?.map((amenity, idx) => (
+                            <div key={idx} className="flex items-center gap-3">
+                              <Check className="w-5 h-5 text-coral" />
+                              <span className="text-gray-700">{amenity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="specifications">
+                  {specifications.length > 0 ? (
+                    <SpecificationsPanel specifications={specifications} />
+                  ) : (
+                    <Card>
+                      <CardContent className="pt-6">
+                        <p className="text-center text-gray-500">No specifications available for this property.</p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="location">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Location</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                        <iframe
-                          width="100%"
-                          height="100%"
-                          style={{ border: 0 }}
-                          loading="lazy"
-                          allowFullScreen
-                          referrerPolicy="no-referrer-when-downgrade"
-                          src={
-                            property.latitude && property.longitude
-                              ? `https://maps.google.com/maps?q=${property.latitude},${property.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-                              : `https://maps.google.com/maps?q=${encodeURIComponent(`${property.location}, ${property.city}, ${property.state}, India`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-                          }
-                        />
-                      </div>
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <p className="font-semibold text-gray-900 mb-2">Address</p>
-                        <p className="text-gray-700">{property.location}, {property.city}, {property.state}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {nearbyPlaces.length > 0 ? (
+                    <NearbyPlacesMap
+                      nearbyPlaces={nearbyPlaces}
+                      propertyLocation={property.location}
+                      propertyCity={property.city}
+                      latitude={property.latitude}
+                      longitude={property.longitude}
+                    />
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Location</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            allowFullScreen
+                            referrerPolicy="no-referrer-when-downgrade"
+                            src={
+                              property.latitude && property.longitude
+                                ? `https://maps.google.com/maps?q=${property.latitude},${property.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+                                : `https://maps.google.com/maps?q=${encodeURIComponent(`${property.location}, ${property.city}, ${property.state}, India`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+                            }
+                          />
+                        </div>
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                          <p className="font-semibold text-gray-900 mb-2">Address</p>
+                          <p className="text-gray-700">{property.location}, {property.city}, {property.state}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="documents">
@@ -682,40 +786,17 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                 </TabsContent>
               </Tabs>
 
-              {/* Developer Info */}
-              {property.developer_name && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>About Developer</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-start gap-4">
-                      {property.developer_logo && (
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          <Image src={property.developer_logo} alt={property.developer_name} width={80} height={80} className="object-contain" />
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h4 className="text-xl font-bold text-gray-900 mb-2">{property.developer_name}</h4>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                          {property.years_of_experience && (
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-coral" />
-                              <span>{property.years_of_experience}+ Years Experience</span>
-                            </div>
-                          )}
-                          {property.total_projects && (
-                            <div className="flex items-center gap-2">
-                              <BarChart3 className="w-4 h-4 text-coral" />
-                              <span>{property.total_projects}+ Total Projects</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {/* RERA Section */}
+              <RERASection reraInfo={reraInfo} reraNumber={property.rera_number} />
+
+              {/* Developer Profile */}
+              <DeveloperProfile
+                developer={developer}
+                developerName={property.developer_name}
+                developerLogo={property.developer_logo}
+                yearsOfExperience={property.years_of_experience}
+                totalProjects={property.total_projects}
+              />
             </div>
 
             {/* Right Column - Investment Card */}
@@ -736,8 +817,8 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     </div>
 
                     <div className="space-y-3">
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         size="lg"
                         onClick={() => setShowInvestModal(true)}
                       >
@@ -795,6 +876,13 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Group Buying */}
+                <GroupBuyingSection
+                  propertyId={property.id}
+                  group={propertyGroup}
+                  onJoinSuccess={fetchGroup}
+                />
 
                 {/* AI Assistant */}
                 <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
@@ -879,9 +967,8 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
               {aiMessages.map((message, idx) => (
                 <div
                   key={idx}
-                  className={`flex gap-3 ${
-                    message.role === 'assistant' ? 'justify-start' : 'justify-end'
-                  }`}
+                  className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'
+                    }`}
                 >
                   {message.role === 'assistant' && (
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -889,11 +976,10 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      message.role === 'assistant'
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'bg-gradient-to-r from-coral to-coral-dark text-white'
-                    }`}
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'assistant'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'bg-gradient-to-r from-coral to-coral-dark text-white'
+                      }`}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                   </div>
