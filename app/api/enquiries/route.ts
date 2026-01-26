@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   successResponse,
   handleApiError,
@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await validateRequest(request, createEnquirySchema)
     if (error) return error
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for inserting public enquiries
+    const supabase = await createAdminClient()
 
     // Get current user if authenticated
     const {
