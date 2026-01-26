@@ -18,7 +18,7 @@ export default function HomePage() {
       <Header />
       <main>
         <HeroSection />
-        <div className="py-8 bg-gray-50">
+        <div className="py-8 bg-gray-50 relative z-50 overflow-visible">
           <SearchFilterBar />
         </div>
         <WhyCoHousingSection />
