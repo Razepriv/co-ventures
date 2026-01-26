@@ -3,8 +3,14 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('coventures', 'coventures', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS is usually enabled by default on storage.objects, and we might not have permission to change it.
+-- Removing ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY; to avoid "must be owner" error.
+
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete" ON storage.objects;
 
 -- Allow public access to read files
 CREATE POLICY "Public Access"
