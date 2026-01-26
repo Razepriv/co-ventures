@@ -52,18 +52,19 @@ export function SearchFilterBar() {
     // Close filter panel when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
-                setShowFilters(false)
-            }
-            if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+            // Only close city dropdown if click is outside the city dropdown container
+            if (showCityDropdown && cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
                 setShowCityDropdown(false)
+            }
+            // Only close filters if click is outside the filter container
+            if (showFilters && filterRef.current && !filterRef.current.contains(event.target as Node)) {
+                setShowFilters(false)
             }
         }
 
-        if (showFilters || showCityDropdown) {
-            document.addEventListener('mousedown', handleClickOutside)
-            return () => document.removeEventListener('mousedown', handleClickOutside)
-        }
+        // Use click instead of mousedown to avoid race condition with button onClick
+        document.addEventListener('click', handleClickOutside)
+        return () => document.removeEventListener('click', handleClickOutside)
     }, [showFilters, showCityDropdown])
 
     async function fetchCities() {
