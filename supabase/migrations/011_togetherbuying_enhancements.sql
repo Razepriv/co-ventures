@@ -220,6 +220,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_group_filled_slots ON public.group_members;
 CREATE TRIGGER trigger_update_group_filled_slots
   AFTER INSERT OR DELETE ON public.group_members
   FOR EACH ROW
