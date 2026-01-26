@@ -169,30 +169,33 @@ export default function PhoneLoginPage() {
       // Create or update user in Supabase
       const supabase = getSupabaseClient()
 
-      // Check if user exists by phone or firebase_uid
-      const { data: existingUsers, error: queryError }: { data: any, error: any } = await supabase
+      // First, try to find user by phone OR firebase_uid
+      let existingUser = null
+
+      // Try by firebase_uid first (most reliable)
+      const { data: byFirebaseUid } = await supabase
         .from('users')
         .select('*')
-        .eq('phone', phoneNumber)
+        .eq('firebase_uid', firebaseUser.uid)
+        .maybeSingle()
 
-      console.log('Query error:', queryError)
-      console.log('Existing users found:', existingUsers)
-
-      let existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null
-
-      // If not found by phone, try by firebase_uid
-      if (!existingUser) {
-        const { data: firebaseUsers } = await supabase
+      if (byFirebaseUid) {
+        existingUser = byFirebaseUid
+      } else {
+        // Try by phone
+        const { data: byPhone } = await supabase
           .from('users')
           .select('*')
-          .eq('firebase_uid', firebaseUser.uid)
+          .eq('phone', phoneNumber)
           .maybeSingle()
 
-        existingUser = firebaseUsers
+        if (byPhone) {
+          existingUser = byPhone
+        }
       }
 
       if (existingUser) {
-        // Update existing user
+        // User exists - update and login
         await (supabase as any)
           .from('users')
           .update({
@@ -201,94 +204,49 @@ export default function PhoneLoginPage() {
             phone_verified: true,
             last_login_at: new Date().toISOString()
           })
-          .eq('id', existingUser.id)
+          .eq('id', (existingUser as any).id)
 
-        // Sign in to Supabase auth (if not already signed in)
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: existingUser.email,
-          password: firebaseUser.uid
-        })
-
-        if (signInError) {
-          console.error('Sign in error:', signInError)
-          // If password doesn't work, user might have registered with different method
-          // Just continue without Supabase auth session for now
-        }
-
-        toast.success('Welcome back!')
-      } else {
-        // Create new user via API (which handles Supabase auth + profile creation)
-        const response = await fetch('/api/auth/user-signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: email,
-            password: firebaseUser.uid, // Use Firebase UID as password
-            fullName: fullName,
-            phone: phoneNumber,
-            firebase_uid: firebaseUser.uid
-          })
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          console.error('Error creating user:', data.error)
-          console.error('Response status:', response.status)
-          console.error('Full response:', data)
-
-          // Check if user already exists (might have been created in previous attempt)
-          if (response.status === 409 || (data.error && data.error.includes('already'))) {
-            // User exists, try to find and update
-            const { data: retryUser } = await (supabase as any)
-              .from('users')
-              .select('id')
-              .eq('email', email)
-              .single()
-
-            if (retryUser) {
-              await (supabase as any)
-                .from('users')
-                .update({
-                  firebase_uid: firebaseUser.uid,
-                  phone: phoneNumber,
-                  phone_verified: true,
-                  last_login_at: new Date().toISOString()
-                })
-                .eq('id', retryUser.id)
-
-              toast.success('Welcome back!')
-              router.push('/')
-              return
-            }
-          }
-
-          toast.error(data.error || 'Failed to create account. Please try again.')
-          return
-        }
-
-        // Update the newly created user with Firebase fields
-        const { data: newUser } = await (supabase as any)
-          .from('users')
-          .select('id')
-          .eq('email', email)
-          .single()
-
-        if (newUser) {
-          await (supabase as any)
-            .from('users')
-            .update({
-              firebase_uid: firebaseUser.uid,
-              phone_verified: true,
-              last_login_at: new Date().toISOString()
-            })
-            .eq('id', newUser.id)
-        }
-
-        toast.success('Account created successfully!')
+        toast.success('Successfully logged in!')
+        router.push('/')
+        return
       }
 
-      // Redirect to home page
+      // User doesn't exist - need to collect details for signup
+      // Check if we already have details from the form
+      if (!fullName || !email) {
+        // Show details step
+        setStep('details')
+        toast.info('Please provide your details to complete signup')
+        return
+      }
+
+      // Create new user via API
+      const response = await fetch('/api/auth/user-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          password: firebaseUser.uid,
+          fullName: fullName,
+          phone: phoneNumber,
+          firebase_uid: firebaseUser.uid
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Check if user already exists
+        if (response.status === 409 || (data.error && data.error.includes('already'))) {
+          toast.success('Successfully logged in!')
+          router.push('/')
+          return
+        }
+        toast.error(data.error || 'Failed to create account')
+        return
+      }
+
+      toast.success('Account created and logged in!')
       router.push('/')
 
     } catch (error: any) {
