@@ -84,7 +84,7 @@ export default function PropertiesPage() {
       if (error) throw error
 
       setProperties(data || [])
-      
+
       // Calculate stats
       const total = data?.length || 0
       // @ts-ignore
@@ -140,7 +140,7 @@ export default function PropertiesPage() {
     try {
       const supabase = getSupabaseClient()
       const ids = selectedProperties.map(p => p.id)
-      
+
       const { error } = await supabase
         .from('properties')
         .delete()
@@ -160,9 +160,9 @@ export default function PropertiesPage() {
     try {
       const supabase = getSupabaseClient()
       const ids = selectedProperties.map(p => p.id)
-      
+
       const isFeatured = action === 'feature'
-      
+
       const { error } = await supabase
         .from('properties')
         // @ts-ignore
@@ -210,7 +210,8 @@ export default function PropertiesPage() {
       header: 'Image',
       cell: ({ row }) => {
         const primaryImage = row.original.property_images?.find(img => img.is_primary)
-        const imageUrl = primaryImage?.image_url || row.original.property_images?.[0]?.image_url
+        // @ts-ignore
+        const imageUrl = row.original.featured_image || primaryImage?.image_url || row.original.property_images?.[0]?.image_url
 
         return (
           <div className="relative h-16 w-24 rounded-lg overflow-hidden bg-gray-100">
@@ -323,7 +324,7 @@ export default function PropertiesPage() {
               {row.original.is_featured ? 'Remove from Featured' : 'Mark as Featured'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-red-600"
               onClick={() => handleDelete(row.original.id)}
             >
