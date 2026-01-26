@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { MapPin, ChevronDown, Search, Mic, SlidersHorizontal } from 'lucide-react'
+import { MapPin, ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import Slider from 'rc-slider'
 import 'rc-slider/assets/index.css'
@@ -36,6 +36,7 @@ export function SearchFilterBar() {
     const [showCityDropdown, setShowCityDropdown] = useState(false)
 
     const filterRef = useRef<HTMLDivElement>(null)
+    const cityDropdownRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         fetchCities()
@@ -54,25 +55,46 @@ export function SearchFilterBar() {
             if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
                 setShowFilters(false)
             }
+            if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+                setShowCityDropdown(false)
+            }
         }
 
-        if (showFilters) {
+        if (showFilters || showCityDropdown) {
             document.addEventListener('mousedown', handleClickOutside)
             return () => document.removeEventListener('mousedown', handleClickOutside)
         }
-    }, [showFilters])
+    }, [showFilters, showCityDropdown])
 
     async function fetchCities() {
+        // Fallback cities in case API fails
+        const fallbackCities: City[] = [
+            { id: 'new-delhi', name: 'New Delhi', state: 'Delhi' },
+            { id: 'mumbai', name: 'Mumbai', state: 'Maharashtra' },
+            { id: 'bangalore', name: 'Bangalore', state: 'Karnataka' },
+            { id: 'pune', name: 'Pune', state: 'Maharashtra' },
+            { id: 'hyderabad', name: 'Hyderabad', state: 'Telangana' },
+            { id: 'chennai', name: 'Chennai', state: 'Tamil Nadu' },
+            { id: 'kolkata', name: 'Kolkata', state: 'West Bengal' },
+            { id: 'ahmedabad', name: 'Ahmedabad', state: 'Gujarat' },
+            { id: 'gurgaon', name: 'Gurgaon', state: 'Haryana' },
+            { id: 'noida', name: 'Noida', state: 'Uttar Pradesh' },
+        ]
+
         try {
             const response = await fetch('/api/search/cities')
             const data = await response.json()
-            setCities(data.cities || [])
+            const citiesData = data.cities && data.cities.length > 0 ? data.cities : fallbackCities
+            setCities(citiesData)
             // Set first city as default
-            if (data.cities && data.cities.length > 0) {
-                setSelectedCity(data.cities[0])
+            if (citiesData.length > 0) {
+                setSelectedCity(citiesData[0])
             }
         } catch (error) {
             console.error('Error fetching cities:', error)
+            // Use fallback cities on error
+            setCities(fallbackCities)
+            setSelectedCity(fallbackCities[0])
         }
     }
 
@@ -138,7 +160,7 @@ export function SearchFilterBar() {
             {/* Main Search Bar - Pill Shape */}
             <div className="bg-white rounded-full shadow-lg flex items-center overflow-hidden">
                 {/* City Selector */}
-                <div className="relative">
+                <div className="relative" ref={cityDropdownRef}>
                     <button
                         onClick={() => setShowCityDropdown(!showCityDropdown)}
                         className="flex items-center gap-2 px-6 py-4 hover:bg-gray-50 transition-colors border-r border-gray-200"
@@ -203,11 +225,6 @@ export function SearchFilterBar() {
                     <Search className="w-5 h-5" />
                     <span className="font-semibold">Search</span>
                 </button>
-
-                {/* Microphone Icon */}
-                <button className="px-4 py-4 hover:bg-coral/10 transition-colors">
-                    <Mic className="w-5 h-5 text-coral" />
-                </button>
             </div>
 
             {/* Expandable Filter Panel */}
@@ -228,8 +245,8 @@ export function SearchFilterBar() {
                                         key={location.id}
                                         onClick={() => toggleLocation(location.id)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedLocations.includes(location.id)
-                                                ? 'bg-coral text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-coral text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
                                         {location.name}
@@ -257,8 +274,8 @@ export function SearchFilterBar() {
                                             key={config.id}
                                             onClick={() => toggleConfiguration(config.id)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedConfigurations.includes(config.id)
-                                                    ? 'bg-coral text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                ? 'bg-coral text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
                                             {config.name}
