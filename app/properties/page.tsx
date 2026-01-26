@@ -149,9 +149,16 @@ function PropertiesContent() {
         // Check if selectedCity is a UUID (city_id) or name
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedCity)
         if (isUUID) {
-          query = query.eq('city_id', selectedCity)
+          // Get city name from citiesList to also filter by city text field
+          const cityName = citiesList.find(c => c.id === selectedCity)?.name
+          if (cityName) {
+            // Filter by either city_id OR city name (for legacy properties)
+            query = query.or(`city_id.eq.${selectedCity},city.ilike.%${cityName}%`)
+          } else {
+            query = query.eq('city_id', selectedCity)
+          }
         } else {
-          query = query.ilike('city', selectedCity)
+          query = query.ilike('city', `%${selectedCity}%`)
         }
       }
 
@@ -448,7 +455,7 @@ function PropertiesContent() {
                     )}
                     {selectedCity !== 'all' && (
                       <Badge variant="outline" className="flex items-center gap-1">
-                        City: {selectedCity}
+                        City: {citiesList.find(c => c.id === selectedCity)?.name || selectedCity}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCity('all')} />
                       </Badge>
                     )}
