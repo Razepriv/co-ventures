@@ -242,9 +242,11 @@ ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.property_leads ENABLE ROW LEVEL SECURITY;
 
 -- Developers policies
+DROP POLICY IF EXISTS "Anyone can view active developers" ON public.developers;
 CREATE POLICY "Anyone can view active developers" ON public.developers
   FOR SELECT USING (is_active = true);
 
+DROP POLICY IF EXISTS "Admins can manage developers" ON public.developers;
 CREATE POLICY "Admins can manage developers" ON public.developers
   FOR ALL USING (
     EXISTS (
@@ -254,9 +256,11 @@ CREATE POLICY "Admins can manage developers" ON public.developers
   );
 
 -- Property highlights policies
+DROP POLICY IF EXISTS "Anyone can view property highlights" ON public.property_highlights;
 CREATE POLICY "Anyone can view property highlights" ON public.property_highlights
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage property highlights" ON public.property_highlights;
 CREATE POLICY "Admins can manage property highlights" ON public.property_highlights
   FOR ALL USING (
     EXISTS (
@@ -266,9 +270,11 @@ CREATE POLICY "Admins can manage property highlights" ON public.property_highlig
   );
 
 -- Property amenities policies
+DROP POLICY IF EXISTS "Anyone can view property amenities" ON public.property_amenities;
 CREATE POLICY "Anyone can view property amenities" ON public.property_amenities
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage property amenities" ON public.property_amenities;
 CREATE POLICY "Admins can manage property amenities" ON public.property_amenities
   FOR ALL USING (
     EXISTS (
@@ -278,9 +284,11 @@ CREATE POLICY "Admins can manage property amenities" ON public.property_amenitie
   );
 
 -- Property specifications policies
+DROP POLICY IF EXISTS "Anyone can view property specifications" ON public.property_specifications;
 CREATE POLICY "Anyone can view property specifications" ON public.property_specifications
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage property specifications" ON public.property_specifications;
 CREATE POLICY "Admins can manage property specifications" ON public.property_specifications
   FOR ALL USING (
     EXISTS (
@@ -290,9 +298,11 @@ CREATE POLICY "Admins can manage property specifications" ON public.property_spe
   );
 
 -- Nearby places policies
+DROP POLICY IF EXISTS "Anyone can view nearby places" ON public.nearby_places;
 CREATE POLICY "Anyone can view nearby places" ON public.nearby_places
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage nearby places" ON public.nearby_places;
 CREATE POLICY "Admins can manage nearby places" ON public.nearby_places
   FOR ALL USING (
     EXISTS (
@@ -302,9 +312,11 @@ CREATE POLICY "Admins can manage nearby places" ON public.nearby_places
   );
 
 -- Property RERA info policies
+DROP POLICY IF EXISTS "Anyone can view property RERA info" ON public.property_rera_info;
 CREATE POLICY "Anyone can view property RERA info" ON public.property_rera_info
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage property RERA info" ON public.property_rera_info;
 CREATE POLICY "Admins can manage property RERA info" ON public.property_rera_info
   FOR ALL USING (
     EXISTS (
@@ -314,12 +326,15 @@ CREATE POLICY "Admins can manage property RERA info" ON public.property_rera_inf
   );
 
 -- Property groups policies
+DROP POLICY IF EXISTS "Anyone can view property groups" ON public.property_groups;
 CREATE POLICY "Anyone can view property groups" ON public.property_groups
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can join groups" ON public.property_groups;
 CREATE POLICY "Authenticated users can join groups" ON public.property_groups
   FOR UPDATE USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Admins can manage property groups" ON public.property_groups;
 CREATE POLICY "Admins can manage property groups" ON public.property_groups
   FOR ALL USING (
     EXISTS (
@@ -329,15 +344,19 @@ CREATE POLICY "Admins can manage property groups" ON public.property_groups
   );
 
 -- Group members policies
+DROP POLICY IF EXISTS "Anyone can view group members" ON public.group_members;
 CREATE POLICY "Anyone can view group members" ON public.group_members
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can join" ON public.group_members;
 CREATE POLICY "Authenticated users can join" ON public.group_members
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can leave their groups" ON public.group_members;
 CREATE POLICY "Users can leave their groups" ON public.group_members
   FOR DELETE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can manage group members" ON public.group_members;
 CREATE POLICY "Admins can manage group members" ON public.group_members
   FOR ALL USING (
     EXISTS (
@@ -347,12 +366,15 @@ CREATE POLICY "Admins can manage group members" ON public.group_members
   );
 
 -- Property leads policies
+DROP POLICY IF EXISTS "Users can view their own leads" ON public.property_leads;
 CREATE POLICY "Users can view their own leads" ON public.property_leads
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Anyone can create leads" ON public.property_leads;
 CREATE POLICY "Anyone can create leads" ON public.property_leads
   FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admins can view all leads" ON public.property_leads;
 CREATE POLICY "Admins can view all leads" ON public.property_leads
   FOR SELECT USING (
     EXISTS (
@@ -361,6 +383,7 @@ CREATE POLICY "Admins can view all leads" ON public.property_leads
     )
   );
 
+DROP POLICY IF EXISTS "Admins can manage leads" ON public.property_leads;
 CREATE POLICY "Admins can manage leads" ON public.property_leads
   FOR ALL USING (
     EXISTS (
