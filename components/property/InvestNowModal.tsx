@@ -75,7 +75,7 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
           .insert({
             property_id: propertyId,
             user_id: user?.id || null,
-            name: formData.full_name,
+            full_name: formData.full_name,
             email: formData.email,
             phone: formData.phone,
             message: `[Investment Enquiry] Amount: ₹${parseInt(formData.investment_amount).toLocaleString('en-IN')}\n\n${formData.message}`,

@@ -1,5 +1,5 @@
 -- ========================================
--- CREATE MISSING TABLES FOR PROPERTY DETAILS
+-- FIX: CREATE MISSING TABLES WITH DROP POLICY FIRST
 -- Run this in Supabase SQL Editor
 -- ========================================
 
@@ -102,6 +102,23 @@ ALTER TABLE public.nearby_places ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.property_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
 
+-- DROP existing policies first to avoid conflicts
+DROP POLICY IF EXISTS "Anyone can view property rera info" ON public.property_rera_info;
+DROP POLICY IF EXISTS "Anyone can view property highlights" ON public.property_highlights;
+DROP POLICY IF EXISTS "Anyone can view property amenities" ON public.property_amenities;
+DROP POLICY IF EXISTS "Anyone can view property specifications" ON public.property_specifications;
+DROP POLICY IF EXISTS "Anyone can view nearby places" ON public.nearby_places;
+DROP POLICY IF EXISTS "Anyone can view property groups" ON public.property_groups;
+DROP POLICY IF EXISTS "Admins can manage rera info" ON public.property_rera_info;
+DROP POLICY IF EXISTS "Admins can manage highlights" ON public.property_highlights;
+DROP POLICY IF EXISTS "Admins can manage amenities" ON public.property_amenities;
+DROP POLICY IF EXISTS "Admins can manage specifications" ON public.property_specifications;
+DROP POLICY IF EXISTS "Admins can manage nearby places" ON public.nearby_places;
+DROP POLICY IF EXISTS "Admins can manage property groups" ON public.property_groups;
+DROP POLICY IF EXISTS "Users can view their memberships" ON public.group_members;
+DROP POLICY IF EXISTS "Users can request to join" ON public.group_members;
+DROP POLICY IF EXISTS "Admins can manage members" ON public.group_members;
+
 -- PUBLIC READ policies for property detail tables
 CREATE POLICY "Anyone can view property rera info" ON public.property_rera_info FOR SELECT USING (true);
 CREATE POLICY "Anyone can view property highlights" ON public.property_highlights FOR SELECT USING (true);
@@ -139,8 +156,5 @@ CREATE POLICY "Admins can manage members" ON public.group_members FOR ALL USING 
   EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
 );
 
--- Verify tables exist
-SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN (
-  'property_rera_info', 'property_highlights', 'property_amenities', 
-  'property_specifications', 'nearby_places', 'property_groups', 'group_members'
-);
+-- Success
+SELECT 'All tables and policies created successfully!' as status;
