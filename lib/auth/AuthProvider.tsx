@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { getUserProfile } from './auth'
@@ -24,7 +24,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+
+  const loadProfile = useCallback(async (userId: string) => {
+    try {
+      const profileData = await getUserProfile(userId)
+      setProfile(profileData)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     // Get initial session
@@ -51,18 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
-
-  const loadProfile = async (userId: string) => {
-    try {
-      const profileData = await getUserProfile(userId)
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [supabase, loadProfile])
 
   const refreshProfile = async () => {
     if (user) {
@@ -76,16 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       })
-      
+
       if (error) {
         return { error }
       }
-      
+
       if (data.user) {
         setUser(data.user)
         await loadProfile(data.user.id)
       }
-      
+
       return { error: null }
     } catch (err) {
       return { error: err as Error }

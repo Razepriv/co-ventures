@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Sparkles, 
-  TrendingUp, 
-  BarChart3, 
-  Grid3x3, 
+import {
+  Sparkles,
+  TrendingUp,
+  BarChart3,
+  Grid3x3,
   MessageSquare,
   Download,
   X,
@@ -20,11 +20,11 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { createClient } from '@/lib/supabase/client'
 import { useSubscription } from '@/lib/hooks/useSubscription'
-import { 
-  Radar, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
   PolarRadiusAxis,
   ResponsiveContainer,
   BarChart as RechartsBarChart,
@@ -70,18 +70,42 @@ export default function AgentComparisonPage() {
   const [analyzing, setAnalyzing] = useState<string | null>(null)
   const [chatMessage, setChatMessage] = useState('')
   const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([])
-  
+
   const { currentPlan, usage } = useSubscription()
 
-  useEffect(() => {
-    fetchComparisonProperties()
+  const fetchAnalysis = useCallback(async (propertyId: string) => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('ai_property_analyses')
+        .select('analysis_data')
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (!error && data) {
+        // @ts-ignore
+        setAnalyses(prev => ({
+          ...prev,
+          // @ts-ignore
+          [propertyId]: data.analysis_data
+        }))
+      }
+    } catch (error) {
+      console.error('Error fetching analysis:', error)
+    }
   }, [])
 
-  async function fetchComparisonProperties() {
+  const fetchComparisonProperties = useCallback(async () => {
     try {
       setLoading(true)
       const supabase = createClient()
-      
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
@@ -119,35 +143,11 @@ export default function AgentComparisonPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchAnalysis])
 
-  async function fetchAnalysis(propertyId: string) {
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from('ai_property_analyses')
-        .select('analysis_data')
-        .eq('user_id', user.id)
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (!error && data) {
-        // @ts-ignore
-        setAnalyses(prev => ({
-          ...prev,
-          // @ts-ignore
-          [propertyId]: data.analysis_data
-        }))
-      }
-    } catch (error) {
-      console.error('Error fetching analysis:', error)
-    }
-  }
+  useEffect(() => {
+    fetchComparisonProperties()
+  }, [fetchComparisonProperties])
 
   async function handleRemoveProperty(propertyId: string) {
     try {
@@ -181,7 +181,7 @@ export default function AgentComparisonPage() {
     try {
       setAnalyzing(propertyId)
 
-      const agentSlugs = currentPlan.slug === 'ai_basic' 
+      const agentSlugs = currentPlan.slug === 'ai_basic'
         ? ['market_pulse', 'deal_underwriter']
         : ['market_pulse', 'deal_underwriter', 'developer_verification', 'legal_regulatory', 'exit_optimizer', 'committee_synthesizer']
 
@@ -292,8 +292,8 @@ export default function AgentComparisonPage() {
               >
                 {property.property_images?.[0] && (
                   <div className="absolute inset-0 opacity-30">
-                    <img 
-                      src={property.property_images[0].image_url} 
+                    <img
+                      src={property.property_images[0].image_url}
                       alt={property.title}
                       className="w-full h-full object-cover"
                     />
@@ -349,11 +349,10 @@ export default function AgentComparisonPage() {
               <button
                 key={tab.id}
                 onClick={() => setSelectedTab(tab.id as TabType)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all ${
-                  selectedTab === tab.id
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all ${selectedTab === tab.id
                     ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-500/30'
                     : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
               >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}
@@ -383,8 +382,8 @@ export default function AgentComparisonPage() {
               <SideBySideTab properties={properties} analyses={analyses} formatPrice={formatPrice} />
             )}
             {selectedTab === 'ai-insights' && (
-              <AIInsightsTab 
-                properties={properties} 
+              <AIInsightsTab
+                properties={properties}
                 analyses={analyses}
                 chatHistory={chatHistory}
                 setChatHistory={setChatHistory}
@@ -408,7 +407,7 @@ export default function AgentComparisonPage() {
           </div>
         </div>
         <p className="text-gray-300 text-sm">
-          {properties.length > 0 
+          {properties.length > 0
             ? "Click on AI Insights tab to get personalized recommendations."
             : "Add properties to get AI-powered insights and recommendations."}
         </p>
@@ -423,14 +422,14 @@ function OverviewTab({ properties, analyses, formatPrice }: any) {
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {properties.map((property: Property) => {
         const analysis = analyses[property.id]
-        
+
         return (
-          <div 
+          <div
             key={property.id}
             className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6"
           >
             <h3 className="text-white font-semibold text-lg mb-4">{property.title}</h3>
-            
+
             {analysis ? (
               <>
                 <div className="mb-4">
@@ -449,18 +448,17 @@ function OverviewTab({ properties, analyses, formatPrice }: any) {
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
-                
+
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-gray-400 text-sm">Overall Score</span>
                   <span className="text-3xl font-bold text-purple-400">{analysis.overall_score}/100</span>
                 </div>
-                
-                <Badge className={`w-full justify-center py-2 ${
-                  analysis.recommendation === 'STRONG_BUY' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                  analysis.recommendation === 'BUY' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                  analysis.recommendation === 'HOLD' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                  'bg-red-500/20 text-red-400 border-red-500/30'
-                }`}>
+
+                <Badge className={`w-full justify-center py-2 ${analysis.recommendation === 'STRONG_BUY' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                    analysis.recommendation === 'BUY' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                      analysis.recommendation === 'HOLD' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                        'bg-red-500/20 text-red-400 border-red-500/30'
+                  }`}>
                   {analysis.recommendation}
                 </Badge>
               </>
@@ -481,20 +479,20 @@ function DeepDiveTab({ properties, analyses }: any) {
     <div className="space-y-6">
       {properties.map((property: Property) => {
         const analysis = analyses[property.id]
-        
+
         return (
-          <div 
+          <div
             key={property.id}
             className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6"
           >
             <h3 className="text-white font-semibold text-xl mb-6">{property.title}</h3>
-            
+
             {analysis ? (
               <div className="space-y-4">
                 {Object.entries(analysis).map(([key, value]: [string, any]) => {
                   if (key === 'overall_score' || key === 'recommendation' || key === 'confidence_level') return null
                   if (!value || !value.analysis) return null
-                  
+
                   return (
                     <details key={key} className="group">
                       <summary className="flex items-center justify-between p-4 rounded-xl bg-white/5 cursor-pointer hover:bg-white/10 transition-colors">
@@ -576,9 +574,9 @@ function SideBySideTab({ properties, analyses, formatPrice }: any) {
                     {analysis ? (
                       <Badge className={
                         analysis.recommendation === 'STRONG_BUY' ? 'bg-green-500/20 text-green-400' :
-                        analysis.recommendation === 'BUY' ? 'bg-blue-500/20 text-blue-400' :
-                        analysis.recommendation === 'HOLD' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
+                          analysis.recommendation === 'BUY' ? 'bg-blue-500/20 text-blue-400' :
+                            analysis.recommendation === 'HOLD' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-red-500/20 text-red-400'
                       }>
                         {analysis.recommendation}
                       </Badge>
@@ -623,7 +621,7 @@ function AIInsightsTab({ properties, analyses, chatHistory, setChatHistory, chat
       {/* Chat Interface */}
       <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 flex flex-col h-[600px]">
         <h3 className="text-white font-semibold text-lg mb-4">Chat with AI Assistant</h3>
-        
+
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">
           {chatHistory.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
@@ -636,11 +634,10 @@ function AIInsightsTab({ properties, analyses, chatHistory, setChatHistory, chat
                 key={index}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[80%] rounded-2xl p-4 ${
-                  message.role === 'user'
+                <div className={`max-w-[80%] rounded-2xl p-4 ${message.role === 'user'
                     ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white'
                     : 'bg-white/10 text-gray-300'
-                }`}>
+                  }`}>
                   {message.content}
                 </div>
               </div>
@@ -686,7 +683,7 @@ function AIInsightsTab({ properties, analyses, chatHistory, setChatHistory, chat
             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
               <p className="text-blue-400 font-medium text-sm">Highest Score</p>
               <p className="text-white text-xs mt-1">
-                {Object.values(analyses).length > 0 
+                {Object.values(analyses).length > 0
                   ? `${Math.max(...Object.values(analyses).map((a: any) => a.overall_score || 0))}/100`
                   : 'N/A'}
               </p>

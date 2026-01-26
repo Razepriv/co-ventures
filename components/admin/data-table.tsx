@@ -82,9 +82,10 @@ export function DataTable<TData, TValue>({
   })
 
   // Get selected rows
+  const selectedRowsModel = table.getFilteredSelectedRowModel()
   const selectedRows = React.useMemo(
-    () => table.getFilteredSelectedRowModel().rows.map(row => row.original),
-    [table.getFilteredSelectedRowModel().rows]
+    () => selectedRowsModel.rows.map(row => row.original),
+    [table, selectedRowsModel.rows]
   )
 
   // Handle bulk delete
@@ -220,9 +221,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   )
                 })}

@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { 
-  SubscriptionPlan, 
-  UserSubscription, 
-  SubscriptionUsage 
+import type {
+  SubscriptionPlan,
+  UserSubscription,
+  SubscriptionUsage
 } from '@/lib/types/subscription'
 
 export function useSubscription() {
@@ -14,89 +14,12 @@ export function useSubscription() {
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
-  useEffect(() => {
-    fetchSubscriptionData()
-  }, [])
-
-  async function fetchSubscriptionData() {
-    try {
-      setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        // User not logged in, default to free plan
-        const { data: freePlan } = await supabase
-          .from('subscription_plans')
-          .select('*')
-          .eq('slug', 'free')
-          .single()
-        
-        setCurrentPlan(freePlan)
-        setUsage({
-          analyses_used: 0,
-          analyses_limit: 0,
-          properties_in_comparison: 0,
-          properties_limit: 0,
-          can_analyze: false,
-          can_add_property: false
-        })
-        setLoading(false)
-        return
-      }
-
-      // Get user's active subscription
-      const { data: userSub, error: subError } = await supabase
-        .from('user_subscriptions')
-        .select(`
-          *,
-          plan:subscription_plans(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single()
-
-      if (subError && subError.code !== 'PGRST116') {
-        throw subError
-      }
-
-      // @ts-ignore
-      if (userSub && userSub.plan) {
-        setSubscription(userSub)
-        // @ts-ignore
-        setCurrentPlan(userSub.plan as SubscriptionPlan)
-        
-        // Calculate usage
-        // @ts-ignore
-        const usageData = await calculateUsage(user.id, userSub.plan as SubscriptionPlan)
-        setUsage(usageData)
-      } else {
-        // No active subscription, use free plan
-        const { data: freePlan } = await supabase
-          .from('subscription_plans')
-          .select('*')
-          .eq('slug', 'free')
-          .single()
-        
-        setCurrentPlan(freePlan)
-        // @ts-ignore
-        const usageData = await calculateUsage(user.id, freePlan)
-        setUsage(usageData)
-      }
-
-      setLoading(false)
-    } catch (err) {
-      console.error('Error fetching subscription:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load subscription')
-      setLoading(false)
-    }
-  }
-
-  async function calculateUsage(
-    userId: string, 
+  const calculateUsage = useCallback(async (
+    userId: string,
     plan: SubscriptionPlan
-  ): Promise<SubscriptionUsage> {
+  ): Promise<SubscriptionUsage> => {
     try {
       // Get start of current month
       const startOfMonth = new Date()
@@ -141,7 +64,84 @@ export function useSubscription() {
         can_add_property: false
       }
     }
-  }
+  }, [supabase])
+
+  const fetchSubscriptionData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        // User not logged in, default to free plan
+        const { data: freePlan } = await supabase
+          .from('subscription_plans')
+          .select('*')
+          .eq('slug', 'free')
+          .single()
+
+        setCurrentPlan(freePlan)
+        setUsage({
+          analyses_used: 0,
+          analyses_limit: 0,
+          properties_in_comparison: 0,
+          properties_limit: 0,
+          can_analyze: false,
+          can_add_property: false
+        })
+        setLoading(false)
+        return
+      }
+
+      // Get user's active subscription
+      const { data: userSub, error: subError } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          plan:subscription_plans(*)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
+
+      if (subError && subError.code !== 'PGRST116') {
+        throw subError
+      }
+
+      // @ts-ignore
+      if (userSub && userSub.plan) {
+        setSubscription(userSub)
+        // @ts-ignore
+        setCurrentPlan(userSub.plan as SubscriptionPlan)
+
+        // Calculate usage
+        // @ts-ignore
+        const usageData = await calculateUsage(user.id, userSub.plan as SubscriptionPlan)
+        setUsage(usageData)
+      } else {
+        // No active subscription, use free plan
+        const { data: freePlan } = await supabase
+          .from('subscription_plans')
+          .select('*')
+          .eq('slug', 'free')
+          .single()
+
+        setCurrentPlan(freePlan)
+        // @ts-ignore
+        const usageData = await calculateUsage(user.id, freePlan)
+        setUsage(usageData)
+      }
+
+      setLoading(false)
+    } catch (err) {
+      console.error('Error fetching subscription:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load subscription')
+      setLoading(false)
+    }
+  }, [supabase, calculateUsage])
+
+  useEffect(() => {
+    fetchSubscriptionData()
+  }, [fetchSubscriptionData])
 
   async function canAccessAgent(agentSlug: string): Promise<boolean> {
     if (!currentPlan) return false

@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { 
+import {
   MapPin, Bed, Bath, Square, Calendar, ParkingCircle, Check, Mail, Phone, User,
   ChevronLeft, ChevronRight, Share2, Heart, Download, TrendingUp, DollarSign,
   Building2, Users, Shield, FileText, Video, ExternalLink, Star, Clock,
@@ -89,11 +89,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [showAIAssistant, setShowAIAssistant] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => {
-    fetchProperty()
-  }, [params.id])
-
-  async function fetchProperty() {
+  const fetchProperty = useCallback(async () => {
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase
@@ -103,19 +99,23 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
         .single()
 
       if (error) throw error
-      
+
       // Sort images by display_order
       if (data.property_images) {
         data.property_images.sort((a: any, b: any) => a.display_order - b.display_order)
       }
-      
+
       setProperty(data)
     } catch (error) {
       console.error('Error fetching property:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    fetchProperty()
+  }, [fetchProperty])
 
   if (loading) {
     return (
@@ -144,12 +144,12 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     )
   }
 
-  const images = property.property_images?.length > 0 
-    ? property.property_images 
+  const images = property.property_images?.length > 0
+    ? property.property_images
     : [{ image_url: property.featured_image, is_primary: true, display_order: 0 }]
 
-  const investmentPercentage = property.investment_slots 
-    ? ((property.filled_slots || 0) / property.investment_slots) * 100 
+  const investmentPercentage = property.investment_slots
+    ? ((property.filled_slots || 0) / property.investment_slots) * 100
     : 0
 
   return (
@@ -198,9 +198,8 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                   <div
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`relative h-[190px] md:h-[240px] rounded-xl overflow-hidden cursor-pointer ${
-                      selectedImage === idx ? 'ring-2 ring-coral' : ''
-                    }`}
+                    className={`relative h-[190px] md:h-[240px] rounded-xl overflow-hidden cursor-pointer ${selectedImage === idx ? 'ring-2 ring-coral' : ''
+                      }`}
                   >
                     <Image
                       src={img.image_url}

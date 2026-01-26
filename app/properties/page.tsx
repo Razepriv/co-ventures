@@ -97,11 +97,7 @@ function PropertiesContent() {
     }
   })
 
-  useEffect(() => {
-    fetchProperties()
-  }, [selectedCity, selectedBHK, selectedType, selectedStatus, priceRange])
-
-  async function fetchProperties() {
+  const fetchProperties = useCallback(async () => {
     try {
       setLoading(true)
       const supabase = getSupabaseClient()
@@ -209,7 +205,11 @@ function PropertiesContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCity, selectedBHK, selectedType, selectedStatus, priceRange])
+
+  useEffect(() => {
+    fetchProperties()
+  }, [fetchProperties])
 
   // Filter and sort properties with memoization
   const filteredAndSortedProperties = useMemo(() => {

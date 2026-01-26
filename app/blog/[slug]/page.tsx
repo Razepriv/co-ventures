@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
@@ -47,11 +47,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    fetchPost()
-  }, [params.slug])
-
-  async function fetchPost() {
+  const fetchPost = useCallback(async () => {
     try {
       setLoading(true)
       const supabase = getSupabaseClient()
@@ -73,7 +69,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
       if (postData) {
         const postId = postData.id
         const viewsCount = postData.views_count || 0
-        
+
         await supabase
           .from('blog_posts')
           // @ts-expect-error - Supabase type inference
@@ -97,7 +93,11 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.slug])
+
+  useEffect(() => {
+    fetchPost()
+  }, [fetchPost])
 
   const handleShare = async (platform: string) => {
     const url = window.location.href
@@ -170,7 +170,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
           </div>
-          
+
           <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px] relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -181,11 +181,11 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Blog
               </Link>
-              
+
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 max-w-4xl leading-tight">
                 {post.title}
               </h1>
-              
+
               <div className="flex flex-wrap items-center gap-6 text-white/80">
                 <div className="flex items-center gap-3">
                   {post.users?.full_name ? (
@@ -211,12 +211,12 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                     </div>
                   )}
                 </div>
-                                
+
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   <span>{format(new Date(post.published_at), 'MMM d, yyyy')}</span>
                 </div>
-                                
+
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   <span>{post.read_time || 5} min read</span>
@@ -245,7 +245,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                 )}
 
                 {/* Blog Content */}
-                <div 
+                <div
                   className="prose prose-lg max-w-none prose-headings:text-charcoal prose-p:text-gray-600 prose-a:text-coral prose-strong:text-charcoal prose-img:rounded-xl"
                   dangerouslySetInnerHTML={{ __html: post.content || '' }}
                 />
@@ -282,7 +282,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                         </button>
                       </div>
                     </div>
-                    
+
                     <Link href="/blog">
                       <Button variant="outline">
                         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -361,7 +361,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                 viewport={{ once: true }}
               >
                 <h2 className="text-3xl font-bold text-charcoal mb-8">Related Articles</h2>
-                
+
                 <div className="grid md:grid-cols-3 gap-8">
                   {relatedPosts.map((relatedPost, index) => (
                     <motion.div
