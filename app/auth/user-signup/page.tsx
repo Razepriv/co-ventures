@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { auth } from '@/lib/firebase/config'
 import {
@@ -27,9 +27,11 @@ export default function UserSignupPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null)
 
+  const verifierRef = useRef<RecaptchaVerifier | null>(null)
+
   useEffect(() => {
     // Initialize reCAPTCHA
-    if (typeof window !== 'undefined' && !recaptchaVerifier) {
+    if (typeof window !== 'undefined' && !verifierRef.current) {
       const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {
@@ -39,12 +41,14 @@ export default function UserSignupPage() {
           toast.error('reCAPTCHA expired. Please try again.')
         }
       })
+      verifierRef.current = verifier
       setRecaptchaVerifier(verifier)
     }
 
     return () => {
-      if (recaptchaVerifier) {
-        recaptchaVerifier.clear()
+      if (verifierRef.current) {
+        verifierRef.current.clear()
+        verifierRef.current = null
       }
     }
   }, [])
@@ -163,15 +167,18 @@ export default function UserSignupPage() {
 
       // Update with Firebase fields
       const supabase = getSupabaseClient()
-      const { data: newUser } = await supabase
+      const { data: userData } = await supabase
         .from('users')
         .select('id')
         .eq('email', email)
         .single()
 
+      const newUser = userData as any
+
       if (newUser) {
         await supabase
           .from('users')
+          // @ts-ignore
           .update({
             firebase_uid: firebaseUser.uid,
             phone_verified: true,

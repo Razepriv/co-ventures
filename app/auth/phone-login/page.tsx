@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/firebase/config'
 import {
@@ -28,9 +28,11 @@ export default function PhoneLoginPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null)
 
+  const verifierRef = useRef<RecaptchaVerifier | null>(null)
+
   useEffect(() => {
     // Initialize reCAPTCHA
-    if (typeof window !== 'undefined' && !recaptchaVerifier) {
+    if (typeof window !== 'undefined' && !verifierRef.current) {
       const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {
@@ -40,12 +42,14 @@ export default function PhoneLoginPage() {
           toast.error('reCAPTCHA expired. Please try again.')
         }
       })
+      verifierRef.current = verifier
       setRecaptchaVerifier(verifier)
     }
 
     return () => {
-      if (recaptchaVerifier) {
-        recaptchaVerifier.clear()
+      if (verifierRef.current) {
+        verifierRef.current.clear()
+        verifierRef.current = null
       }
     }
   }, [])

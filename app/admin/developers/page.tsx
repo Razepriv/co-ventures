@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +46,28 @@ export default function DevelopersPage() {
         is_active: true
     })
 
+    const fetchDevelopers = useCallback(async () => {
+        try {
+            const supabase = getSupabaseClient()
+            const { data, error } = await supabase
+                .from('developers')
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (error) throw error
+            setDevelopers((data as any[])?.map(d => ({
+                ...d,
+                years_of_experience: d.years_of_experience,
+                total_projects: d.total_projects
+            })) as Developer[] || [])
+        } catch (error) {
+            console.error('Error fetching developers:', error)
+            toast.error('Failed to load developers')
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
     useEffect(() => {
         fetchDevelopers()
 
@@ -61,27 +83,9 @@ export default function DevelopersPage() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [])
+    }, [fetchDevelopers])
 
-    async function fetchDevelopers() {
-        try {
-            const supabase = getSupabaseClient()
-            const { data, error } = await supabase
-                .from('developers')
-                .select('*')
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            setDevelopers(data || [])
-        } catch (error) {
-            console.error('Error fetching developers:', error)
-            toast.error('Failed to load developers')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    function handleEdit(developer: Developer) {
+    async function handleEdit(developer: Developer) {
         setEditingDeveloper(developer)
         setFormData({
             name: developer.name,
@@ -147,6 +151,7 @@ export default function DevelopersPage() {
             } else {
                 const { error } = await supabase
                     .from('developers')
+                    // @ts-ignore
                     .insert(developerData)
 
                 if (error) throw error

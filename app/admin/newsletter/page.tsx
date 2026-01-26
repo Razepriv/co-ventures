@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +23,41 @@ export default function NewsletterPage() {
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, thisMonth: 0 })
 
+    const fetchSubscribers = useCallback(async () => {
+        try {
+            const supabase = getSupabaseClient()
+            const { data, error } = await supabase
+                .from('newsletter_subscribers')
+                .select('*')
+                .order('subscribed_at', { ascending: false })
+
+            if (error) throw error
+
+            const typedData = data as unknown as NewsletterSubscriber[]
+            setSubscribers(typedData || [])
+
+            // Calculate stats
+            const total = typedData?.length || 0
+            const active = typedData?.filter(s => s.is_active).length || 0
+            const inactive = total - active
+
+            // Count subscribers from this month
+            const thisMonthStart = new Date()
+            thisMonthStart.setDate(1)
+            thisMonthStart.setHours(0, 0, 0, 0)
+            const thisMonth = typedData?.filter(s =>
+                new Date(s.subscribed_at) >= thisMonthStart
+            ).length || 0
+
+            setStats({ total, active, inactive, thisMonth })
+        } catch (error) {
+            console.error('Error fetching subscribers:', error)
+            toast.error('Failed to load subscribers')
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
     useEffect(() => {
         fetchSubscribers()
 
@@ -38,41 +73,7 @@ export default function NewsletterPage() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [])
-
-    async function fetchSubscribers() {
-        try {
-            const supabase = getSupabaseClient()
-            const { data, error } = await supabase
-                .from('newsletter_subscribers')
-                .select('*')
-                .order('subscribed_at', { ascending: false })
-
-            if (error) throw error
-
-            setSubscribers(data || [])
-
-            // Calculate stats
-            const total = data?.length || 0
-            const active = data?.filter(s => s.is_active).length || 0
-            const inactive = total - active
-
-            // Count subscribers from this month
-            const thisMonthStart = new Date()
-            thisMonthStart.setDate(1)
-            thisMonthStart.setHours(0, 0, 0, 0)
-            const thisMonth = data?.filter(s =>
-                new Date(s.subscribed_at) >= thisMonthStart
-            ).length || 0
-
-            setStats({ total, active, inactive, thisMonth })
-        } catch (error) {
-            console.error('Error fetching subscribers:', error)
-            toast.error('Failed to load subscribers')
-        } finally {
-            setLoading(false)
-        }
-    }
+    }, [fetchSubscribers])
 
     async function toggleSubscription(id: string, currentStatus: boolean) {
         try {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -33,11 +33,7 @@ export default function PropertyContentPage() {
         nearby_places: []
     })
 
-    useEffect(() => {
-        fetchPropertyContent()
-    }, [propertyId])
-
-    async function fetchPropertyContent() {
+    const fetchPropertyContent = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
             const { data, error } = await supabase
@@ -48,10 +44,11 @@ export default function PropertyContentPage() {
 
             if (error) throw error
 
-            setProperty(data)
+            const typedData = data as any
+            setProperty(typedData)
             setContent({
-                highlights: data.investment_highlights || [],
-                amenities: parseAmenities(data.amenities || []),
+                highlights: (typedData?.investment_highlights as string[]) || [],
+                amenities: parseAmenities((typedData?.amenities as string[]) || []),
                 specifications: {},
                 nearby_places: []
             })
@@ -61,7 +58,11 @@ export default function PropertyContentPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [propertyId])
+
+    useEffect(() => {
+        fetchPropertyContent()
+    }, [fetchPropertyContent])
 
     function parseAmenities(amenitiesArray: string[]) {
         // Group amenities by category (basic parsing)

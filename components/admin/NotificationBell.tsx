@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +46,28 @@ export function NotificationBell() {
     const [unreadCount, setUnreadCount] = useState(0)
     const [open, setOpen] = useState(false)
 
+    const fetchNotifications = useCallback(async () => {
+        if (!profile?.id) return
+
+        try {
+            const supabase = getSupabaseClient()
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', profile.id)
+                .order('created_at', { ascending: false })
+                .limit(10)
+
+            if (error) throw error
+
+            const typedData = data as unknown as Notification[]
+            setNotifications(typedData || [])
+            setUnreadCount(typedData?.filter(n => !n.is_read).length || 0)
+        } catch (error) {
+            console.error('Error fetching notifications:', error)
+        }
+    }, [profile?.id])
+
     useEffect(() => {
         if (!profile?.id) return
 
@@ -75,28 +97,7 @@ export function NotificationBell() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [profile?.id])
-
-    async function fetchNotifications() {
-        if (!profile?.id) return
-
-        try {
-            const supabase = getSupabaseClient()
-            const { data, error } = await supabase
-                .from('notifications')
-                .select('*')
-                .eq('user_id', profile.id)
-                .order('created_at', { ascending: false })
-                .limit(10)
-
-            if (error) throw error
-
-            setNotifications(data || [])
-            setUnreadCount(data?.filter(n => !n.is_read).length || 0)
-        } catch (error) {
-            console.error('Error fetching notifications:', error)
-        }
-    }
+    }, [profile?.id, fetchNotifications])
 
     async function markAsRead(id: string) {
         try {

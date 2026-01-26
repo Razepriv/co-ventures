@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -48,28 +48,7 @@ export default function LeadsPage() {
     const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
     const [teamMembers, setTeamMembers] = useState<any[]>([])
 
-    useEffect(() => {
-        fetchLeads()
-        fetchTeamMembers()
-
-        // Real-time subscription for both tables
-        const supabase = getSupabaseClient()
-        const channel = supabase
-            .channel('leads_and_enquiries_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'property_leads' }, () => {
-                fetchLeads()
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-                fetchLeads()
-            })
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [dateRange])
-
-    async function fetchLeads() {
+    const fetchLeads = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
 
@@ -112,11 +91,11 @@ export default function LeadsPage() {
 
             // Combine and normalize data
             const combinedLeads = [
-                ...(leadsResult.data || []).map(lead => ({
+                ...(leadsResult.data as any[] || []).map(lead => ({
                     ...lead,
                     source: lead.source || 'Group Buying'
                 })),
-                ...(enquiriesResult.data || []).map(enquiry => ({
+                ...(enquiriesResult.data as any[] || []).map(enquiry => ({
                     id: enquiry.id,
                     property_id: enquiry.property_id,
                     properties: enquiry.properties,
@@ -133,7 +112,7 @@ export default function LeadsPage() {
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-            setLeads(combinedLeads)
+            setLeads(combinedLeads as PropertyLead[])
 
             // Calculate stats
             const total = combinedLeads.length
@@ -149,9 +128,9 @@ export default function LeadsPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange])
 
-    async function fetchTeamMembers() {
+    const fetchTeamMembers = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
             const { data, error } = await supabase
@@ -165,7 +144,28 @@ export default function LeadsPage() {
         } catch (error) {
             console.error('Error fetching team members:', error)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchLeads()
+        fetchTeamMembers()
+
+        // Real-time subscription for both tables
+        const supabase = getSupabaseClient()
+        const channel = supabase
+            .channel('leads_and_enquiries_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'property_leads' }, () => {
+                fetchLeads()
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
+                fetchLeads()
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [fetchLeads, fetchTeamMembers])
 
     async function updateStatus(id: string, status: string) {
         try {

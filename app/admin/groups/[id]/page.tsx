@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -57,6 +57,37 @@ export default function GroupDetailPage() {
         investment_amount: ''
     })
 
+    const fetchGroupData = useCallback(async () => {
+        try {
+            const supabase = getSupabaseClient()
+
+            // Fetch group details
+            const { data: groupData, error: groupError } = await supabase
+                .from('property_groups')
+                .select('*, properties (title, location, price, featured_image)')
+                .eq('id', groupId)
+                .single()
+
+            if (groupError) throw groupError
+            setGroup(groupData as unknown as PropertyGroup)
+
+            // Fetch members
+            const { data: membersData, error: membersError } = await supabase
+                .from('group_members')
+                .select('*')
+                .eq('group_id', groupId)
+                .order('joined_at', { ascending: false })
+
+            if (membersError) throw membersError
+            setMembers(membersData as unknown as GroupMember[] || [])
+        } catch (error) {
+            console.error('Error fetching group data:', error)
+            toast.error('Failed to load group data')
+        } finally {
+            setLoading(false)
+        }
+    }, [groupId])
+
     useEffect(() => {
         fetchGroupData()
 
@@ -77,38 +108,7 @@ export default function GroupDetailPage() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [groupId])
-
-    async function fetchGroupData() {
-        try {
-            const supabase = getSupabaseClient()
-
-            // Fetch group details
-            const { data: groupData, error: groupError } = await supabase
-                .from('property_groups')
-                .select('*, properties (title, location, price, featured_image)')
-                .eq('id', groupId)
-                .single()
-
-            if (groupError) throw groupError
-            setGroup(groupData)
-
-            // Fetch members
-            const { data: membersData, error: membersError } = await supabase
-                .from('group_members')
-                .select('*')
-                .eq('group_id', groupId)
-                .order('joined_at', { ascending: false })
-
-            if (membersError) throw membersError
-            setMembers(membersData || [])
-        } catch (error) {
-            console.error('Error fetching group data:', error)
-            toast.error('Failed to load group data')
-        } finally {
-            setLoading(false)
-        }
-    }
+    }, [groupId, fetchGroupData])
 
     async function addMember() {
         if (!newMember.full_name || !newMember.email || !newMember.investment_amount) {
@@ -120,6 +120,7 @@ export default function GroupDetailPage() {
             const supabase = getSupabaseClient()
             const { error } = await supabase
                 .from('group_members')
+                // @ts-ignore
                 .insert({
                     group_id: groupId,
                     full_name: newMember.full_name,

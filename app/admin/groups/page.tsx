@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -43,27 +43,7 @@ export default function GroupsPage() {
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({ total: 0, open: 0, closed: 0, full: 0, totalInvestment: 0 })
 
-    useEffect(() => {
-        fetchGroups()
-
-        // Real-time subscription
-        const supabase = getSupabaseClient()
-        const channel = supabase
-            .channel('groups_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'property_groups' }, () => {
-                fetchGroups()
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => {
-                fetchGroups()
-            })
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [])
-
-    async function fetchGroups() {
+    const fetchGroups = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
 
@@ -83,7 +63,7 @@ export default function GroupsPage() {
 
             // Then get members for each group
             const groupsWithMembers = await Promise.all(
-                (groupsData || []).map(async (group) => {
+                (groupsData as any[] || []).map(async (group) => {
                     const { data: members, error: membersError } = await supabase
                         .from('group_members')
                         .select('id, investment_amount')
@@ -99,7 +79,7 @@ export default function GroupsPage() {
                         }
                     }
 
-                    const currentAmount = members?.reduce((sum, member) =>
+                    const currentAmount = (members as any[])?.reduce((sum, member) =>
                         sum + (member.investment_amount || 0), 0) || 0
 
                     return {
@@ -111,7 +91,7 @@ export default function GroupsPage() {
                 })
             )
 
-            setGroups(groupsWithMembers)
+            setGroups(groupsWithMembers as unknown as PropertyGroup[])
 
             // Calculate stats
             const total = groupsWithMembers.length
@@ -128,7 +108,27 @@ export default function GroupsPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchGroups()
+
+        // Real-time subscription
+        const supabase = getSupabaseClient()
+        const channel = supabase
+            .channel('groups_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'property_groups' }, () => {
+                fetchGroups()
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => {
+                fetchGroups()
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [fetchGroups])
 
     async function updateGroupStatus(id: string, status: string) {
         try {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -36,24 +36,7 @@ export default function ContactsPage() {
     const [stats, setStats] = useState({ total: 0, new: 0, inProgress: 0, resolved: 0 })
     const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
 
-    useEffect(() => {
-        fetchMessages()
-
-        // Real-time subscription
-        const supabase = getSupabaseClient()
-        const channel = supabase
-            .channel('contact_messages_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
-                fetchMessages()
-            })
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [dateRange])
-
-    async function fetchMessages() {
+    const fetchMessages = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
             let query = supabase
@@ -72,13 +55,14 @@ export default function ContactsPage() {
 
             if (error) throw error
 
-            setMessages(data || [])
+            const typedData = data as unknown as ContactMessage[]
+            setMessages(typedData || [])
 
             // Calculate stats
-            const total = data?.length || 0
-            const newCount = data?.filter(m => m.status === 'new').length || 0
-            const inProgress = data?.filter(m => m.status === 'in_progress').length || 0
-            const resolved = data?.filter(m => m.status === 'resolved').length || 0
+            const total = typedData?.length || 0
+            const newCount = typedData?.filter(m => m.status === 'new').length || 0
+            const inProgress = typedData?.filter(m => m.status === 'in_progress').length || 0
+            const resolved = typedData?.filter(m => m.status === 'resolved').length || 0
             setStats({ total, new: newCount, inProgress, resolved })
         } catch (error) {
             console.error('Error fetching messages:', error)
@@ -86,7 +70,24 @@ export default function ContactsPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateRange])
+
+    useEffect(() => {
+        fetchMessages()
+
+        // Real-time subscription
+        const supabase = getSupabaseClient()
+        const channel = supabase
+            .channel('contact_messages_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
+                fetchMessages()
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [fetchMessages])
 
     async function updateStatus(id: string, status: string) {
         try {
