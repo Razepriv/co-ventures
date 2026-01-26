@@ -440,6 +440,26 @@ export default function NewPropertyPage() {
         }
       }
 
+      // CREATE PROPERTY GROUP AUTOMATICALLY
+      if (formData.investment_slots) {
+        const { error: groupError } = await supabase
+          .from('property_groups')
+          // @ts-ignore
+          .insert({
+            property_id: property.id,
+            total_slots: parseInt(formData.investment_slots),
+            filled_slots: 0,
+            status: 'open',
+            target_amount: formData.total_investment_amount ? parseFloat(formData.total_investment_amount) : 0,
+            minimum_investment: formData.minimum_investment ? parseFloat(formData.minimum_investment) : 0
+          })
+
+        if (groupError) {
+          console.error('Error creating property group:', groupError)
+          toast.error('Property created but failed to initialize investment group')
+        }
+      }
+
       // Upload gallery images
       if (images.length > 0) {
         await uploadImages(property.id)

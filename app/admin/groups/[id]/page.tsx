@@ -22,6 +22,7 @@ interface GroupMember {
     phone: string
     investment_amount: number
     joined_at: string
+    status: 'pending' | 'approved' | 'rejected'
 }
 
 interface PropertyGroup {
@@ -57,6 +58,10 @@ export default function GroupDetailPage() {
         investment_amount: ''
     })
 
+
+    const [activeMembers, setActiveMembers] = useState<GroupMember[]>([])
+    const [pendingMembers, setPendingMembers] = useState<GroupMember[]>([])
+
     const fetchGroupData = useCallback(async () => {
         try {
             const supabase = getSupabaseClient()
@@ -79,7 +84,11 @@ export default function GroupDetailPage() {
                 .order('joined_at', { ascending: false })
 
             if (membersError) throw membersError
-            setMembers(membersData as unknown as GroupMember[] || [])
+            const allMembers = membersData as unknown as GroupMember[] || []
+
+            setActiveMembers(allMembers.filter(m => m.status === 'approved'))
+            setPendingMembers(allMembers.filter(m => m.status === 'pending'))
+            setMembers(allMembers)
         } catch (error) {
             console.error('Error fetching group data:', error)
             toast.error('Failed to load group data')
@@ -110,6 +119,48 @@ export default function GroupDetailPage() {
         }
     }, [groupId, fetchGroupData])
 
+    async function handleApprove(memberId: string) {
+        try {
+            const supabase = getSupabaseClient()
+            const { error } = await supabase
+                .from('group_members')
+                // @ts-ignore
+                .update({ status: 'approved' })
+                .eq('id', memberId)
+
+            if (error) throw error
+
+            // Trigger update just in case, though DB trigger handles counts
+            // But we reload data to reflect changes
+            toast.success('Member approved successfully')
+            fetchGroupData()
+        } catch (error) {
+            console.error('Error approving member:', error)
+            toast.error('Failed to approve member')
+        }
+    }
+
+    async function handleReject(memberId: string) {
+        if (!confirm('Are you sure you want to reject this request?')) return
+
+        try {
+            const supabase = getSupabaseClient()
+            const { error } = await supabase
+                .from('group_members')
+                // @ts-ignore
+                .delete() // Or set status to 'rejected'
+                .eq('id', memberId)
+
+            if (error) throw error
+
+            toast.success('Request rejected')
+            fetchGroupData()
+        } catch (error) {
+            console.error('Error rejection member:', error)
+            toast.error('Failed to reject request')
+        }
+    }
+
     async function addMember() {
         if (!newMember.full_name || !newMember.email || !newMember.investment_amount) {
             toast.error('Please fill in all required fields')
@@ -126,7 +177,8 @@ export default function GroupDetailPage() {
                     full_name: newMember.full_name,
                     email: newMember.email,
                     phone: newMember.phone || null,
-                    investment_amount: parseFloat(newMember.investment_amount)
+                    investment_amount: parseFloat(newMember.investment_amount),
+                    status: 'approved' // Direct add by admin is auto-approved
                 })
 
             if (error) throw error
@@ -210,7 +262,7 @@ export default function GroupDetailPage() {
         )
     }
 
-    const currentAmount = members.reduce((sum, m) => sum + (m.investment_amount || 0), 0)
+    const currentAmount = activeMembers.reduce((sum, m) => sum + (m.investment_amount || 0), 0)
     const progress = (group.filled_slots / group.total_slots) * 100
 
     return (
@@ -248,7 +300,7 @@ export default function GroupDetailPage() {
                         <CardDescription>Total Members</CardDescription>
                         <CardTitle className="text-2xl flex items-center gap-2">
                             <Users className="h-5 w-5 text-blue-600" />
-                            {members.length}
+                            {activeMembers.length}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -298,6 +350,58 @@ export default function GroupDetailPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {/* Pending Requests Section */}
+                    {pendingMembers.length > 0 && (
+                        <div className="mb-8">
+                            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                Pending Requests ({pendingMembers.length})
+                            </h3>
+                            <div className="space-y-3">
+                                {pendingMembers.map((member) => (
+                                    <div key={member.id} className="flex items-center justify-between p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                                        <div className="flex-1">
+                                            <p className="font-medium text-gray-900">{member.full_name}</p>
+                                            <div className="flex gap-4 mt-1 text-sm text-gray-600">
+                                                <div className="flex items-center gap-1">
+                                                    <Mail className="h-3 w-3" />
+                                                    {member.email}
+                                                </div>
+                                                {member.phone && (
+                                                    <div className="flex items-center gap-1">
+                                                        <Phone className="h-3 w-3" />
+                                                        {member.phone}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-sm font-semibold text-coral mt-1">
+                                                Requested Investment: {formatCurrency(member.investment_amount)}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                className="bg-green-600 hover:bg-green-700"
+                                                onClick={() => handleApprove(member.id)}
+                                            >
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-red-600 hover:bg-red-50 border-red-200"
+                                                onClick={() => handleReject(member.id)}
+                                            >
+                                                Reject
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="my-6 border-b" />
+                        </div>
+                    )}
+
                     {showAddMember && (
                         <div className="mb-6 p-4 border rounded-lg bg-gray-50">
                             <h3 className="font-semibold mb-4">Add New Member</h3>
@@ -354,10 +458,11 @@ export default function GroupDetailPage() {
 
                     {/* Members List */}
                     <div className="space-y-3">
-                        {members.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">No members yet</p>
+                        <h3 className="font-semibold text-gray-700 mb-4">Active Members ({activeMembers.length})</h3>
+                        {activeMembers.length === 0 ? (
+                            <p className="text-center text-gray-500 py-8">No active members yet</p>
                         ) : (
-                            members.map((member) => (
+                            activeMembers.map((member) => (
                                 <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                                     <div className="flex-1">
                                         <p className="font-medium text-gray-900">{member.full_name}</p>

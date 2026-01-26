@@ -35,23 +35,57 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
 
     try {
       const supabase = getSupabaseClient()
-      
-      // Save investment enquiry
-      const { error } = await supabase
-        .from('enquiries')
-        .insert({
-          property_id: propertyId,
-          user_id: user?.id || null,
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          message: `[Investment Enquiry] Amount: ₹${parseInt(formData.investment_amount).toLocaleString('en-IN')}\n\n${formData.message}`,
-          status: 'new'
-        })
 
-      if (error) throw error
+      // Check if there is a group for this property
+      const { data: group } = await supabase
+        .from('property_groups')
+        .select('id')
+        .eq('property_id', propertyId)
+        .single()
 
-      toast.success('Investment enquiry submitted successfully! Our team will contact you soon.')
+      if (group && user?.id) {
+        // Logged in user + Group exists -> Create Group Join Request
+        const { error: memberError } = await supabase
+          .from('group_members')
+          // @ts-ignore
+          .insert({
+            group_id: group.id,
+            user_id: user.id,
+            full_name: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            investment_amount: parseFloat(formData.investment_amount),
+            status: 'pending'
+          })
+
+        if (memberError) {
+          // If duplicate or other error, fall back to enquiry or show error
+          if (memberError.code === '23505') { // Unique violation
+            toast.error('You have already requested to join this group.')
+            return
+          }
+          throw memberError
+        }
+
+        toast.success('Request to join group submitted! Admin will review your request.')
+      } else {
+        // Fallback: Save investment enquiry (Guest or No Group)
+        const { error } = await supabase
+          .from('enquiries')
+          .insert({
+            property_id: propertyId,
+            user_id: user?.id || null,
+            full_name: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            message: `[Investment Enquiry] Amount: ₹${parseInt(formData.investment_amount).toLocaleString('en-IN')}\n\n${formData.message}`,
+            status: 'new'
+          })
+
+        if (error) throw error
+        toast.success('Investment enquiry submitted successfully! Our team will contact you soon.')
+      }
+
       onClose()
       setFormData({
         full_name: user?.user_metadata?.full_name || '',
@@ -62,7 +96,7 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
       })
     } catch (error: any) {
       console.error('Error submitting enquiry:', error)
-      toast.error('Failed to submit enquiry. Please try again.')
+      toast.error('Failed to submit request. Please try again.')
     } finally {
       setLoading(false)
     }
