@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { auth } from '@/lib/firebase/config'
 import {
@@ -15,7 +15,7 @@ import { Phone, Lock, User, Mail, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-export default function UserSignupPage() {
+function UserSignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [step, setStep] = useState<'details' | 'otp'>('details')
@@ -381,5 +381,17 @@ export default function UserSignupPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function UserSignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-coral-light via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-600"></div>
+      </div>
+    }>
+      <UserSignupContent />
+    </Suspense>
   )
 }

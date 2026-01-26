@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const supabase = await createClient()
-    
+
     // Get all active subscription plans ordered by display_order
     const { data: plans, error } = await supabase
       .from('subscription_plans')
