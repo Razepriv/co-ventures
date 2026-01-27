@@ -42,16 +42,30 @@ export function useRealtimeSubscription<T = any>({
     onErrorRef.current = onError
   }, [onInsert, onUpdate, onDelete, onError])
 
+  // Debug logging
+  const renderCountRef = useRef(0)
+  renderCountRef.current++
+
   useEffect(() => {
     if (!enabled) return
 
     const supabase = getSupabaseClient()
-    // Create channel
-    const channelName = `${table}-${filter ? filter.replace(/[^a-zA-Z0-9]/g, '-') : 'all'}-changes`
+    // Create channel name
+    const safeFilter = filter ? filter.replace(/[^a-zA-Z0-9]/g, '-') : 'all'
+    const channelName = `${table}-${safeFilter}-changes`
+
+    console.log(`[Realtime] 🔄 Effect Starting (#${renderCountRef.current})`, {
+      table,
+      event,
+      filter,
+      enabled,
+      channelName
+    })
+
     const channel = supabase.channel(channelName)
 
     // Build subscription filter
-    let subscription = channel.on(
+    const subscription = channel.on(
       'postgres_changes' as any,
       {
         event,
@@ -61,6 +75,7 @@ export function useRealtimeSubscription<T = any>({
       },
       (payload: any) => {
         try {
+          console.log(`[Realtime] 🔔 Notification received from ${table}:`, payload.eventType)
           if (payload.eventType === 'INSERT' && onInsertRef.current) {
             onInsertRef.current(payload.new as T)
           } else if (payload.eventType === 'UPDATE' && onUpdateRef.current) {
@@ -69,7 +84,7 @@ export function useRealtimeSubscription<T = any>({
             onDeleteRef.current(payload.old as T)
           }
         } catch (error) {
-          console.error('[Realtime] Error handling event:', error)
+          console.error('[Realtime] ❌ Error handling event:', error)
           onErrorRef.current?.(error as Error)
         }
       }
@@ -78,16 +93,15 @@ export function useRealtimeSubscription<T = any>({
     // Subscribe
     subscription.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to ${table}${filter ? ` with filter: ${filter}` : ''}`)
+        console.log(`[Realtime] ✅ Subscribed to ${table}${filter ? ` with filter: ${filter}` : ''}`)
       } else if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] Channel error for ${table}:`, err)
-        toast.error('Real-time connection error. Using polling instead.')
+        console.error(`[Realtime] ❌ Channel error for ${table}:`, err)
+        // Removed toast.error to prevent potential re-render loops
         onErrorRef.current?.(new Error(`Channel error: ${err}`))
       } else if (status === 'TIMED_OUT') {
-        console.error(`[Realtime] Subscription timed out for ${table}`)
-        toast.warning('Real-time connection slow. Retrying...')
+        console.warn(`[Realtime] ⏳ Subscription timed out for ${table}`)
       } else if (status === 'CLOSED') {
-        console.log(`[Realtime] Channel closed for ${table}`)
+        console.log(`[Realtime] 🔒 Channel closed for ${table}`)
       }
     })
 
@@ -95,8 +109,8 @@ export function useRealtimeSubscription<T = any>({
 
     // Cleanup
     return () => {
+      console.log(`[Realtime] 🧹 Effect Cleanup (#${renderCountRef.current}) for ${table}`)
       if (channelRef.current) {
-        console.log(`[Realtime] Unsubscribing from ${table}`)
         supabase.removeChannel(channelRef.current)
         channelRef.current = null
       }
@@ -116,19 +130,20 @@ export function useRealtimeSubscription<T = any>({
 }
 
 // Specialized hook for enquiry notifications
-export function useEnquiryNotifications() {
+export function useEnquiryNotifications(enabled: boolean = true) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
+    if (!enabled) return
     // Create notification sound using data URI (base64 encoded beep sound)
-    // This is a simple notification beep
     const beepSound = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCl+z/PQeC0GK3nI8dygRw'
     audioRef.current = new Audio(beepSound)
-  }, [])
+  }, [enabled])
 
   useRealtimeSubscription({
     table: 'enquiries',
     event: 'INSERT',
+    enabled,
     onInsert: (enquiry: any) => {
       // Show toast notification
       toast.success('New Enquiry Received!', {
@@ -143,7 +158,7 @@ export function useEnquiryNotifications() {
 
       // Play notification sound
       audioRef.current?.play().catch((e) => {
-        console.error('[Notifications] Failed to play sound:', e)
+        console.warn('[Notifications] Sound play failed:', e)
       })
 
       // Show browser notification if permitted
@@ -158,12 +173,13 @@ export function useEnquiryNotifications() {
       }
     },
     onError: (error) => {
-      console.error('[Enquiry Notifications] Error:', error)
+      console.warn('[Realtime] Enquiry subscription error:', error)
     },
   })
 
   // Request notification permission
   useEffect(() => {
+    if (!enabled) return
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
@@ -171,5 +187,5 @@ export function useEnquiryNotifications() {
         }
       })
     }
-  }, [])
+  }, [enabled])
 }

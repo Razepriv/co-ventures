@@ -76,8 +76,8 @@ export default function AdminLayout({
   const [showNotifications, setShowNotifications] = useState(false)
   const [loadingNotifications, setLoadingNotifications] = useState(false)
 
-  // Enable realtime enquiry notifications
-  useEnquiryNotifications()
+  // Enable realtime enquiry notifications - only when loaded and user is present
+  useEnquiryNotifications(!loading && !!user)
 
   // Fetch notifications
   async function fetchNotifications() {
