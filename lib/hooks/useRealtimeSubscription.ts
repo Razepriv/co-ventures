@@ -29,13 +29,26 @@ export function useRealtimeSubscription<T = any>({
   enabled = true,
 }: UseRealtimeSubscriptionOptions<T>) {
   const channelRef = useRef<RealtimeChannel | null>(null)
+  const onInsertRef = useRef(onInsert)
+  const onUpdateRef = useRef(onUpdate)
+  const onDeleteRef = useRef(onDelete)
+  const onErrorRef = useRef(onError)
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onInsertRef.current = onInsert
+    onUpdateRef.current = onUpdate
+    onDeleteRef.current = onDelete
+    onErrorRef.current = onError
+  }, [onInsert, onUpdate, onDelete, onError])
 
   useEffect(() => {
     if (!enabled) return
 
     const supabase = getSupabaseClient()
     // Create channel
-    const channel = supabase.channel(`${table}-changes`)
+    const channelName = `${table}-${filter ? filter.replace(/[^a-zA-Z0-9]/g, '-') : 'all'}-changes`
+    const channel = supabase.channel(channelName)
 
     // Build subscription filter
     let subscription = channel.on(
@@ -48,16 +61,16 @@ export function useRealtimeSubscription<T = any>({
       },
       (payload: any) => {
         try {
-          if (payload.eventType === 'INSERT' && onInsert) {
-            onInsert(payload.new as T)
-          } else if (payload.eventType === 'UPDATE' && onUpdate) {
-            onUpdate({ old: payload.old as T, new: payload.new as T })
-          } else if (payload.eventType === 'DELETE' && onDelete) {
-            onDelete(payload.old as T)
+          if (payload.eventType === 'INSERT' && onInsertRef.current) {
+            onInsertRef.current(payload.new as T)
+          } else if (payload.eventType === 'UPDATE' && onUpdateRef.current) {
+            onUpdateRef.current({ old: payload.old as T, new: payload.new as T })
+          } else if (payload.eventType === 'DELETE' && onDeleteRef.current) {
+            onDeleteRef.current(payload.old as T)
           }
         } catch (error) {
           console.error('[Realtime] Error handling event:', error)
-          onError?.(error as Error)
+          onErrorRef.current?.(error as Error)
         }
       }
     )
@@ -65,11 +78,11 @@ export function useRealtimeSubscription<T = any>({
     // Subscribe
     subscription.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to ${table}`)
+        console.log(`[Realtime] Subscribed to ${table}${filter ? ` with filter: ${filter}` : ''}`)
       } else if (status === 'CHANNEL_ERROR') {
         console.error(`[Realtime] Channel error for ${table}:`, err)
         toast.error('Real-time connection error. Using polling instead.')
-        onError?.(new Error(`Channel error: ${err}`))
+        onErrorRef.current?.(new Error(`Channel error: ${err}`))
       } else if (status === 'TIMED_OUT') {
         console.error(`[Realtime] Subscription timed out for ${table}`)
         toast.warning('Real-time connection slow. Retrying...')
@@ -88,7 +101,7 @@ export function useRealtimeSubscription<T = any>({
         channelRef.current = null
       }
     }
-  }, [table, event, filter, onInsert, onUpdate, onDelete, onError, enabled])
+  }, [table, event, filter, enabled])
 
   return {
     channel: channelRef.current,

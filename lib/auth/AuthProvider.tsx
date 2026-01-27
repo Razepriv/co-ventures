@@ -64,13 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [supabase, loadProfile])
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await loadProfile(user.id)
     }
-  }
+  }, [user, loadProfile])
 
-  const handleSignIn = async (email: string, password: string) => {
+  const handleSignIn = useCallback(async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -90,25 +90,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       return { error: err as Error }
     }
-  }
+  }, [supabase, loadProfile])
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
-  }
+  }, [supabase])
+
+  const contextValue = useMemo(() => ({
+    user,
+    profile,
+    loading,
+    signIn: handleSignIn,
+    signOut: handleSignOut,
+    refreshProfile,
+  }), [user, profile, loading, handleSignIn, handleSignOut, refreshProfile])
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        loading,
-        signIn: handleSignIn,
-        signOut: handleSignOut,
-        refreshProfile,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )
