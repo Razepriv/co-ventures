@@ -6,9 +6,16 @@ import type { Database } from '../types/database.types'
  * This client uses cookies for session management
  */
 export function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    console.error('[Supabase] Missing environment variables')
+  }
+
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    url || '',
+    key || ''
   )
 }
 

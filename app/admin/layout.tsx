@@ -118,8 +118,13 @@ export default function AdminLayout({
   }, [user, profile])
 
   useEffect(() => {
-    if (!loading && (!user || !profile || (profile.role !== 'admin' && profile.role !== 'super_admin'))) {
-      router.push('/auth/login')
+    // Only redirect if NOT loading and we are sure there is no valid admin session
+    if (!loading) {
+      if (!user) {
+        router.push('/auth/login')
+      } else if (profile && profile.role !== 'admin' && profile.role !== 'super_admin') {
+        router.push('/unauthorized')
+      }
     }
   }, [user, profile, loading, router])
 
