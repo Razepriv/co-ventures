@@ -206,8 +206,16 @@ export default function PhoneLoginPage() {
           })
           .eq('id', (existingUser as any).id)
 
+        // Sign in to Supabase Auth to establish session (Bridge Login)
+        await supabase.auth.signInWithPassword({
+          email: (existingUser as any).email || `${phoneNumber}@placeholder.com`,
+          password: firebaseUser.uid
+        })
+
         toast.success('Successfully logged in!')
         router.push('/')
+        // Refresh page after a short delay to ensure AuthProvider picks up the session
+        setTimeout(() => window.location.reload(), 500)
         return
       }
 
@@ -238,16 +246,30 @@ export default function PhoneLoginPage() {
       if (!response.ok) {
         // Check if user already exists
         if (response.status === 409 || (data.error && data.error.includes('already'))) {
+          // Attempt login if user creation failed because they exist
+          await supabase.auth.signInWithPassword({
+            email: email,
+            password: firebaseUser.uid
+          })
           toast.success('Successfully logged in!')
           router.push('/')
+          setTimeout(() => window.location.reload(), 500)
           return
         }
         toast.error(data.error || 'Failed to create account')
         return
       }
 
+      // Sign in with the newly created account
+      await supabase.auth.signInWithPassword({
+        email: email,
+        password: firebaseUser.uid
+      })
+
       toast.success('Account created and logged in!')
       router.push('/')
+      // Refresh page after a short delay to ensure AuthProvider picks up the session
+      setTimeout(() => window.location.reload(), 500)
 
     } catch (error: any) {
       console.error('Error verifying OTP:', error)

@@ -49,10 +49,12 @@ export async function POST(request: Request) {
     // Attempt to create Supabase Auth User
     // We use phone as the primary identifier. Email is optional/placeholder.
     const placeholderEmail = email || `${phone}@placeholder.com`
+    const userPassword = firebase_uid // Use firebase_uid as the password for the bridge
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: placeholderEmail,
       phone: phone,
+      password: userPassword,
       email_confirm: true,
       phone_confirm: true,
       user_metadata: { full_name: fullName, firebase_uid }
@@ -61,18 +63,19 @@ export async function POST(request: Request) {
     if (authError) {
       // If error is "user already exists", we try to find that user to link profile
       if (authError.message?.toLowerCase().includes('already registered')) {
-        // We can't easily get the ID from the error. 
-        // Ideally we should have found the profile in Step 1.
-        // If we are here, it means Auth User exists but Profile User DOES NOT.
-        // We'll proceed to create Profile User. But we need the ID.
-        // We can fetch user list and filter (expensive) or just skip Auth creation and try to insert profile?
-        // But Profile needs ID referenced to auth.users.
+        // If Auth User exists, we should try to update their password to the current firebase_uid
+        // to ensure the login bridge works.
+        const { data: userList } = await supabaseAdmin.auth.admin.listUsers()
+        const existingAuthUser = userList.users.find(u => u.phone === phone || u.email === placeholderEmail)
 
-        // Workaround: We will use a random UUID if we can't find the auth user, 
-        // BUT that breaks RLS foreign key if 'users.id' references 'auth.users.id'.
-        // Let's assume we can't easily recover here without more complex logic, 
-        // so we return error asking to contact support or try to just insert profile if the table allows it.
-        console.error('Auth User exists but Profile missing for phone:', phone)
+        if (existingAuthUser) {
+          authUserId = existingAuthUser.id
+          // Update password to match firebase_uid for the login bridge
+          await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+            password: userPassword,
+            user_metadata: { firebase_uid }
+          })
+        }
       } else {
         console.error('Supabase auth creation failed:', authError)
         return NextResponse.json({ error: authError.message }, { status: 400 })
@@ -83,15 +86,8 @@ export async function POST(request: Request) {
       authUserId = authData.user.id
     }
 
-    // If we still don't have authUserId (e.g. user existed), and we really need one for the FK...
-    // We'll skip that complex recovery for now and rely on the happy path or non-FK table.
-
     if (!authUserId) {
-      // Fallback: If we couldn't create/get Auth User, we might fail to insert into public.users if it has FK.
-      // Let's try to proceed only if we have an ID or if we can generate one (if no FK).
-      // Assuming standard Supabase setup, public.users.id references auth.users.id.
-      // If we can't get the ID, we error out.
-      if (authError) return NextResponse.json({ error: 'User exists in Auth but profile missing. Contact support.' }, { status: 400 })
+      return NextResponse.json({ error: 'Failed to identify or create authenticated user.' }, { status: 400 })
     }
 
     // 3. Create user profile in the users table
@@ -100,7 +96,7 @@ export async function POST(request: Request) {
       // @ts-ignore
       .insert({
         id: authUserId, // Use the auth user ID
-        email: email || null,
+        email: email || placeholderEmail,
         full_name: fullName,
         phone: phone,
         firebase_uid: firebase_uid,
