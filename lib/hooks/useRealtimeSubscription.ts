@@ -42,30 +42,17 @@ export function useRealtimeSubscription<T = any>({
     onErrorRef.current = onError
   }, [onInsert, onUpdate, onDelete, onError])
 
-  // Debug logging
-  const renderCountRef = useRef(0)
-  renderCountRef.current++
-
   useEffect(() => {
     if (!enabled) return
 
     const supabase = getSupabaseClient()
-    // Create channel name
+    // Create channel
     const safeFilter = filter ? filter.replace(/[^a-zA-Z0-9]/g, '-') : 'all'
     const channelName = `${table}-${safeFilter}-changes`
-
-    console.log(`[Realtime] 🔄 Effect Starting (#${renderCountRef.current})`, {
-      table,
-      event,
-      filter,
-      enabled,
-      channelName
-    })
-
     const channel = supabase.channel(channelName)
 
     // Build subscription filter
-    const subscription = channel.on(
+    let subscription = channel.on(
       'postgres_changes' as any,
       {
         event,
@@ -75,7 +62,6 @@ export function useRealtimeSubscription<T = any>({
       },
       (payload: any) => {
         try {
-          console.log(`[Realtime] 🔔 Notification received from ${table}:`, payload.eventType)
           if (payload.eventType === 'INSERT' && onInsertRef.current) {
             onInsertRef.current(payload.new as T)
           } else if (payload.eventType === 'UPDATE' && onUpdateRef.current) {
@@ -84,7 +70,7 @@ export function useRealtimeSubscription<T = any>({
             onDeleteRef.current(payload.old as T)
           }
         } catch (error) {
-          console.error('[Realtime] ❌ Error handling event:', error)
+          console.error('[Realtime] Error handling event:', error)
           onErrorRef.current?.(error as Error)
         }
       }
@@ -93,15 +79,15 @@ export function useRealtimeSubscription<T = any>({
     // Subscribe
     subscription.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] ✅ Subscribed to ${table}${filter ? ` with filter: ${filter}` : ''}`)
+        console.log(`[Realtime] Subscribed to ${table}${filter ? ` with filter: ${filter}` : ''}`)
       } else if (status === 'CHANNEL_ERROR') {
-        console.error(`[Realtime] ❌ Channel error for ${table}:`, err)
+        console.error(`[Realtime] Channel error for ${table}:`, err)
         // Removed toast.error to prevent potential re-render loops
         onErrorRef.current?.(new Error(`Channel error: ${err}`))
       } else if (status === 'TIMED_OUT') {
-        console.warn(`[Realtime] ⏳ Subscription timed out for ${table}`)
+        console.warn(`[Realtime] Subscription timed out for ${table}`)
       } else if (status === 'CLOSED') {
-        console.log(`[Realtime] 🔒 Channel closed for ${table}`)
+        console.log(`[Realtime] Channel closed for ${table}`)
       }
     })
 
@@ -109,7 +95,6 @@ export function useRealtimeSubscription<T = any>({
 
     // Cleanup
     return () => {
-      console.log(`[Realtime] 🧹 Effect Cleanup (#${renderCountRef.current}) for ${table}`)
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current)
         channelRef.current = null
