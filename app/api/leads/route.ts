@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
     try {
-        const cookieStore = cookies()
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                },
-            }
-        )
+        const supabase = await createClient()
 
         // Check if user is admin
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -89,19 +77,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const cookieStore = cookies()
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                },
-            }
-        )
-
         const body = await request.json()
         const { property_id, lead_type, full_name, email, phone, message } = body
 
@@ -113,11 +88,15 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        const supabase = await createClient()
+        // Use admin client to bypass RLS for public leads
+        const adminSupabase = await createAdminClient()
+
         // Get current user (optional for leads)
         const { data: { user } } = await supabase.auth.getUser()
 
-        // Create lead
-        const { data: lead, error } = await supabase
+        // Create lead using admin client
+        const { data: lead, error } = await adminSupabase
             .from('property_leads')
             .insert({
                 property_id,
@@ -146,18 +125,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
     try {
-        const cookieStore = cookies()
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                },
-            }
-        )
+        const supabase = await createClient()
 
         // Check if user is admin
         const { data: { user }, error: authError } = await supabase.auth.getUser()
