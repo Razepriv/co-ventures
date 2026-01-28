@@ -130,6 +130,24 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [propertyGroup, setPropertyGroup] = useState<any>({ total_slots: 5, filled_slots: 0, is_locked: false })
   const [contentLoaded, setContentLoaded] = useState(false)
 
+  // Combine featured image with property images, ensuring no duplicates
+  const images = useMemo(() => {
+    if (!property) return []
+    const gallery = property.property_images || []
+    const hasFeatured = gallery.some(img => img.image_url === property.featured_image)
+
+    let combined = [...gallery]
+    if (!hasFeatured && property.featured_image) {
+      combined = [{
+        image_url: property.featured_image,
+        is_primary: true,
+        display_order: -1
+      }, ...combined]
+    }
+
+    return combined.sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+  }, [property])
+
   // Share property function
   const handleShare = async () => {
     const shareUrl = window.location.href
@@ -392,23 +410,6 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   }
 
   // Combine featured image with property images, ensuring no duplicates
-  const images = useMemo(() => {
-    if (!property) return []
-    const gallery = property.property_images || []
-    const hasFeatured = gallery.some(img => img.image_url === property.featured_image)
-
-    let combined = [...gallery]
-    if (!hasFeatured && property.featured_image) {
-      combined = [{
-        image_url: property.featured_image,
-        is_primary: true,
-        display_order: -1
-      }, ...combined]
-    }
-
-    return combined.sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-  }, [property])
-
   const investmentPercentage = property.investment_slots
     ? ((property.filled_slots || 0) / property.investment_slots) * 100
     : 0
