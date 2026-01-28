@@ -20,7 +20,7 @@ interface Developer {
     name: string
     logo_url: string | null
     description: string | null
-    website: string | null
+    website_url: string | null
     email: string | null
     phone: string | null
     years_of_experience: number | null
@@ -38,13 +38,14 @@ export default function DevelopersPage() {
         name: '',
         logo_url: '',
         description: '',
-        website: '',
+        website_url: '',
         email: '',
         phone: '',
         years_of_experience: '',
         total_projects: '',
         is_active: true
     })
+    const [uploadingLogo, setUploadingLogo] = useState(false)
 
     const fetchDevelopers = useCallback(async () => {
         try {
@@ -91,7 +92,7 @@ export default function DevelopersPage() {
             name: developer.name,
             logo_url: developer.logo_url || '',
             description: developer.description || '',
-            website: developer.website || '',
+            website_url: developer.website_url || '',
             email: developer.email || '',
             phone: developer.phone || '',
             years_of_experience: developer.years_of_experience?.toString() || '',
@@ -107,7 +108,7 @@ export default function DevelopersPage() {
             name: '',
             logo_url: '',
             description: '',
-            website: '',
+            website_url: '',
             email: '',
             phone: '',
             years_of_experience: '',
@@ -131,7 +132,7 @@ export default function DevelopersPage() {
                 name: formData.name,
                 logo_url: formData.logo_url || null,
                 description: formData.description || null,
-                website: formData.website || null,
+                website_url: formData.website_url || null,
                 email: formData.email || null,
                 phone: formData.phone || null,
                 years_of_experience: formData.years_of_experience ? parseInt(formData.years_of_experience) : null,
@@ -160,9 +161,40 @@ export default function DevelopersPage() {
 
             setShowDialog(false)
             fetchDevelopers()
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving developer:', error)
-            toast.error('Failed to save developer')
+            toast.error(error.message || 'Failed to save developer')
+        }
+    }
+
+    async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        try {
+            setUploadingLogo(true)
+            const supabase = getSupabaseClient()
+            const fileExt = file.name.split('.').pop()
+            const fileName = `dev-${Date.now()}.${fileExt}`
+            const filePath = `developers/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('coventures')
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('coventures')
+                .getPublicUrl(filePath)
+
+            setFormData(prev => ({ ...prev, logo_url: publicUrl }))
+            toast.success('Logo uploaded successfully')
+        } catch (error) {
+            console.error('Error uploading logo:', error)
+            toast.error('Failed to upload logo')
+        } finally {
+            setUploadingLogo(false)
         }
     }
 
@@ -210,29 +242,29 @@ export default function DevelopersPage() {
             cell: ({ row }) => (
                 <div className="flex items-center gap-3">
                     {row.original.logo_url ? (
-                        <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-gray-100">
+                        <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border shadow-sm">
                             <Image
                                 src={row.original.logo_url}
                                 alt={row.original.name}
                                 fill
-                                className="object-contain"
+                                className="object-contain p-1"
                             />
                         </div>
                     ) : (
-                        <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                            <Building2 className="h-6 w-6 text-gray-400" />
+                        <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center border border-dashed text-gray-400">
+                            <Building2 className="h-6 w-6" />
                         </div>
                     )}
                     <div>
-                        <p className="font-medium text-gray-900">{row.original.name}</p>
-                        {row.original.website && (
+                        <p className="font-medium text-gray-900 leading-tight">{row.original.name}</p>
+                        {row.original.website_url && (
                             <a
-                                href={row.original.website}
+                                href={row.original.website_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:underline"
+                                className="text-[10px] text-coral hover:underline font-medium"
                             >
-                                {row.original.website}
+                                Visit Website
                             </a>
                         )}
                     </div>
@@ -369,6 +401,43 @@ export default function DevelopersPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="md:col-span-2">
+                                    <Label>Developer Logo</Label>
+                                    <div className="mt-2 flex items-center gap-4">
+                                        <div className="relative h-20 w-20 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden group">
+                                            {formData.logo_url ? (
+                                                <Image src={formData.logo_url} alt="Logo" fill className="object-contain p-2" />
+                                            ) : (
+                                                <Building2 className="h-8 w-8 text-gray-300" />
+                                            )}
+                                            {uploadingLogo && (
+                                                <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-coral"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <input
+                                                type="file"
+                                                id="logo-upload-dev"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleLogoUpload}
+                                                disabled={uploadingLogo}
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => document.getElementById('logo-upload-dev')?.click()}
+                                                disabled={uploadingLogo}
+                                            >
+                                                {uploadingLogo ? 'Uploading...' : formData.logo_url ? 'Change Logo' : 'Upload Logo'}
+                                            </Button>
+                                            <p className="text-[10px] text-gray-500">PNG or JPG, Max 2MB</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="md:col-span-2">
                                     <Label htmlFor="name">Developer Name *</Label>
                                     <Input
                                         id="name"
@@ -376,15 +445,6 @@ export default function DevelopersPage() {
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         placeholder="e.g., Prestige Group"
                                         required
-                                    />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <Label htmlFor="logo_url">Logo URL</Label>
-                                    <Input
-                                        id="logo_url"
-                                        value={formData.logo_url}
-                                        onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                                        placeholder="https://..."
                                     />
                                 </div>
                                 <div className="md:col-span-2">
@@ -398,12 +458,12 @@ export default function DevelopersPage() {
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="website">Website</Label>
+                                    <Label htmlFor="website_url">Website</Label>
                                     <Input
-                                        id="website"
+                                        id="website_url"
                                         type="url"
-                                        value={formData.website}
-                                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                                        value={formData.website_url}
+                                        onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
                                         placeholder="https://example.com"
                                     />
                                 </div>

@@ -38,7 +38,8 @@ interface PropertyGroup {
     filled_slots: number
     minimum_investment: number
     target_amount: number
-    status: string
+    status?: string
+    is_locked: boolean
     created_at: string
 }
 
@@ -74,7 +75,14 @@ export default function GroupDetailPage() {
                 .single()
 
             if (groupError) throw groupError
-            setGroup(groupData as unknown as PropertyGroup)
+            const data = groupData as any
+            const isFull = (data.filled_slots || 0) >= (data.total_slots || 5)
+            const computedStatus = data.is_locked ? 'closed' : (isFull ? 'full' : 'open')
+
+            setGroup({
+                ...data,
+                status: data.status || computedStatus
+            } as unknown as PropertyGroup)
 
             // Fetch members
             const { data: membersData, error: membersError } = await supabase
@@ -324,11 +332,11 @@ export default function GroupDetailPage() {
                         <CardDescription>Status</CardDescription>
                         <CardTitle className="text-2xl">
                             <Badge variant="outline" className={
-                                group.status === 'open' ? 'bg-green-100 text-green-800' :
-                                    group.status === 'full' ? 'bg-blue-100 text-blue-800' :
+                                (group.status || '').toLowerCase() === 'open' ? 'bg-green-100 text-green-800' :
+                                    (group.status || '').toLowerCase() === 'full' ? 'bg-blue-100 text-blue-800' :
                                         'bg-gray-100 text-gray-800'
                             }>
-                                {group.status.toUpperCase()}
+                                {(group.status || 'OPEN').toUpperCase()}
                             </Badge>
                         </CardTitle>
                     </CardHeader>

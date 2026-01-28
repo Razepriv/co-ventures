@@ -519,36 +519,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-coral to-orange-500 rounded-xl p-6 shadow-lg">
-        <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Link href="/admin/properties/new">
-            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
-              <Plus className="mr-2 h-4 w-4" />
-              <span>Add Property</span>
-            </Button>
-          </Link>
-          <Link href="/admin/enquiries">
-            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
-              <Eye className="mr-2 h-4 w-4" />
-              <span>View Enquiries</span>
-            </Button>
-          </Link>
-          <Link href="/admin/blog/new">
-            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
-              <FileText className="mr-2 h-4 w-4" />
-              <span>Create Blog</span>
-            </Button>
-          </Link>
-          <Link href="/admin/users/new">
-            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
-              <UserPlus className="mr-2 h-4 w-4" />
-              <span>Add User</span>
-            </Button>
-          </Link>
-        </div>
-      </div>
     </div>
   )
 }

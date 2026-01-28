@@ -25,7 +25,8 @@ interface PropertyGroup {
     minimum_investment: number
     target_amount: number
     current_amount: number
-    status: 'open' | 'closed' | 'full'
+    status?: 'open' | 'closed' | 'full'
+    is_locked: boolean
     created_at: string
     _count?: {
         group_members: number
@@ -82,8 +83,13 @@ export default function GroupsPage() {
                     const currentAmount = (members as any[])?.reduce((sum, member) =>
                         sum + (member.investment_amount || 0), 0) || 0
 
+                    // Compute status dynamically if not present or to ensure correctness
+                    const isFull = (group.filled_slots || 0) >= (group.total_slots || 5)
+                    const computedStatus = group.is_locked ? 'closed' : (isFull ? 'full' : 'open')
+
                     return {
                         ...group,
+                        status: group.status || computedStatus,
                         group_members: members || [],
                         _count: { group_members: members?.length || 0 },
                         current_amount: currentAmount
@@ -91,7 +97,7 @@ export default function GroupsPage() {
                 })
             )
 
-            setGroups(groupsWithMembers as unknown as PropertyGroup[])
+            setGroups(groupsWithMembers as PropertyGroup[])
 
             // Calculate stats
             const total = groupsWithMembers.length
@@ -217,7 +223,8 @@ export default function GroupsPage() {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
-                const config = statusConfig[row.original.status]
+                const status = row.original.status || 'open'
+                const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.open
                 const Icon = config.icon
                 return (
                     <Badge variant="outline" className={config.color}>
