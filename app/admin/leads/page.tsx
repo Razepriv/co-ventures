@@ -5,6 +5,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Mail, Phone, UserCheck, Clock, CheckCircle2, XCircle, TrendingUp, Users } from 'lucide-react'
@@ -16,8 +17,8 @@ import { exportToCSV } from '@/lib/utils/export'
 
 interface PropertyLead {
     id: string
-    property_id: string
-    properties: {
+    property_id?: string
+    properties?: {
         title: string
         location: string
     }
@@ -25,19 +26,23 @@ interface PropertyLead {
     email: string
     phone: string
     source: string
-    status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+    status: string
     assigned_to: string | null
     users?: {
         full_name: string
     }
     created_at: string
+    message?: string
 }
 
 const statusConfig = {
     new: { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Clock, label: 'New' },
     contacted: { color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Phone, label: 'Contacted' },
+    in_progress: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, label: 'In Progress' },
     qualified: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: UserCheck, label: 'Qualified' },
     converted: { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Converted' },
+    resolved: { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Resolved' },
+    closed: { color: 'bg-gray-100 text-gray-800 border-gray-200', icon: CheckCircle2, label: 'Closed' },
     lost: { color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, label: 'Lost' },
 }
 
@@ -72,6 +77,12 @@ export default function LeadsPage() {
         `)
                 .order('created_at', { ascending: false })
 
+            // Fetch contact messages
+            let contactsQuery = supabase
+                .from('contact_messages')
+                .select('*')
+                .order('created_at', { ascending: false })
+
             // Apply date range filter to both
             if (dateRange.start && dateRange.end) {
                 const startDate = new Date(dateRange.start).toISOString()
@@ -79,21 +90,27 @@ export default function LeadsPage() {
 
                 leadsQuery = leadsQuery.gte('created_at', startDate).lte('created_at', endDate)
                 enquiriesQuery = enquiriesQuery.gte('created_at', startDate).lte('created_at', endDate)
+                contactsQuery = contactsQuery.gte('created_at', startDate).lte('created_at', endDate)
             }
 
-            const [leadsResult, enquiriesResult] = await Promise.all([
+            const [leadsResult, enquiriesResult, contactsResult] = await Promise.all([
                 leadsQuery,
-                enquiriesQuery
+                enquiriesQuery,
+                contactsQuery
             ])
 
             if (leadsResult.error) throw leadsResult.error
             if (enquiriesResult.error) throw enquiriesResult.error
+            if (contactsResult.error) throw contactsResult.error
 
             // Combine and normalize data
             const combinedLeads = [
                 ...(leadsResult.data as any[] || []).map(lead => ({
                     ...lead,
-                    source: lead.source || 'Group Buying'
+                    source: lead.lead_type === 'join_group' ? 'Group Buying' :
+                        lead.lead_type === 'callback_request' ? 'Callback' :
+                            lead.lead_type === 'live_tour' ? 'Live Tour' :
+                                lead.lead_type === 'book_visit' ? 'Site Visit' : 'Lead'
                 })),
                 ...(enquiriesResult.data as any[] || []).map(enquiry => ({
                     id: enquiry.id,
@@ -102,13 +119,22 @@ export default function LeadsPage() {
                     full_name: enquiry.full_name,
                     email: enquiry.email,
                     phone: enquiry.phone,
-                    source: 'Invest Now',
-                    status: enquiry.status === 'new' ? 'new' :
-                        enquiry.status === 'in_progress' ? 'contacted' :
-                            enquiry.status === 'closed' ? 'converted' : 'new',
+                    source: 'Investment',
+                    status: enquiry.status,
                     assigned_to: enquiry.assigned_to,
                     users: enquiry.users,
-                    created_at: enquiry.created_at
+                    created_at: enquiry.created_at,
+                    message: enquiry.message
+                })),
+                ...(contactsResult.data as any[] || []).map(contact => ({
+                    id: contact.id,
+                    full_name: contact.full_name,
+                    email: contact.email,
+                    phone: contact.phone || '',
+                    source: 'Contact Form',
+                    status: contact.status === 'resolved' ? 'converted' : contact.status,
+                    created_at: contact.created_at,
+                    message: contact.message
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
@@ -117,9 +143,9 @@ export default function LeadsPage() {
             // Calculate stats
             const total = combinedLeads.length
             const newCount = combinedLeads.filter(l => l.status === 'new').length
-            const contacted = combinedLeads.filter(l => l.status === 'contacted').length
+            const contacted = combinedLeads.filter(l => l.status === 'contacted' || l.status === 'in_progress').length
             const qualified = combinedLeads.filter(l => l.status === 'qualified').length
-            const converted = combinedLeads.filter(l => l.status === 'converted').length
+            const converted = combinedLeads.filter(l => l.status === 'converted' || l.status === 'resolved' || l.status === 'closed').length
             const lost = combinedLeads.filter(l => l.status === 'lost').length
             setStats({ total, new: newCount, contacted, qualified, converted, lost })
         } catch (error) {
@@ -285,7 +311,8 @@ export default function LeadsPage() {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
-                const config = statusConfig[row.original.status]
+                const status = row.original.status as keyof typeof statusConfig
+                const config = statusConfig[status] || statusConfig.new
                 const Icon = config.icon
                 return (
                     <Badge variant="outline" className={config.color}>
@@ -387,12 +414,12 @@ export default function LeadsPage() {
     const conversionRate = stats.total > 0 ? ((stats.converted / stats.total) * 100).toFixed(1) : '0.0'
 
     return (
-        <div className="space-y-6 px-6">
+        <div className="space-y-6 px-6 pb-10">
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Leads & Enquiries</h1>
                 <p className="mt-1 text-sm text-gray-500">
-                    Track and manage all property leads and investment enquiries
+                    Track and manage all property leads, investment enquiries, and contact messages
                 </p>
             </div>
 
@@ -467,22 +494,88 @@ export default function LeadsPage() {
             </div>
 
             {/* Date Range Filter */}
-            <DateRangeFilter
-                onDateRangeChange={handleDateRangeChange}
-                label="Filter by Date"
-            />
-
-            {/* Data Table */}
-            <div className="rounded-xl border bg-white shadow-sm">
-                <DataTable
-                    columns={columns}
-                    data={leads}
-                    searchKey="full_name"
-                    searchPlaceholder="Search by name..."
-                    onExport={handleExport}
-                    exportFileName="property-leads"
+            <div className="flex items-center justify-between gap-4">
+                <DateRangeFilter
+                    onDateRangeChange={handleDateRangeChange}
+                    label="Filter by Date"
                 />
             </div>
+
+            {/* Tabs & Data Table */}
+            <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-5 mb-8">
+                    <TabsTrigger value="all">All Enquiries</TabsTrigger>
+                    <TabsTrigger value="investment">Investments</TabsTrigger>
+                    <TabsTrigger value="group">Group Buying</TabsTrigger>
+                    <TabsTrigger value="contact">Contact Forms</TabsTrigger>
+                    <TabsTrigger value="other">Visits & Calls</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="all">
+                    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                        <DataTable
+                            columns={columns}
+                            data={leads}
+                            searchKey="full_name"
+                            searchPlaceholder="Search by name..."
+                            onExport={handleExport}
+                            exportFileName="all-enquiries"
+                        />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="investment">
+                    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                        <DataTable
+                            columns={columns}
+                            data={leads.filter(l => l.source === 'Investment')}
+                            searchKey="full_name"
+                            searchPlaceholder="Search investments..."
+                            onExport={handleExport}
+                            exportFileName="investment-enquiries"
+                        />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="group">
+                    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                        <DataTable
+                            columns={columns}
+                            data={leads.filter(l => l.source === 'Group Buying')}
+                            searchKey="full_name"
+                            searchPlaceholder="Search group buying..."
+                            onExport={handleExport}
+                            exportFileName="group-buying-leads"
+                        />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="contact">
+                    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                        <DataTable
+                            columns={columns}
+                            data={leads.filter(l => l.source === 'Contact Form')}
+                            searchKey="full_name"
+                            searchPlaceholder="Search contacts..."
+                            onExport={handleExport}
+                            exportFileName="contact-form-messages"
+                        />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="other">
+                    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                        <DataTable
+                            columns={columns}
+                            data={leads.filter(l => ['Callback', 'Live Tour', 'Site Visit', 'Lead'].includes(l.source))}
+                            searchKey="full_name"
+                            searchPlaceholder="Search other leads..."
+                            onExport={handleExport}
+                            exportFileName="other-leads"
+                        />
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }

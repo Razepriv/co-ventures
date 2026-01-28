@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       .insert({
         property_id: data.propertyId,
         user_id: user?.id || null,
-        name: data.name,
+        full_name: data.name,
         email: data.email,
         phone: data.phone,
         message: data.message,
