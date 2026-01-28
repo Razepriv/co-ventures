@@ -18,6 +18,7 @@ import { exportToCSV } from '@/lib/utils/export'
 interface PropertyLead {
     id: string
     property_id?: string
+    user_id?: string
     properties?: {
         title: string
         location: string
@@ -248,6 +249,33 @@ export default function LeadsPage() {
         }
     }
 
+    async function addToGroup(lead: PropertyLead) {
+        if (!lead.user_id) {
+            toast.error('This lead does not have a registered user account.')
+            return
+        }
+
+        try {
+            const response = await fetch('/api/admin/groups/add-member', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ leadId: lead.id }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to add to group')
+            }
+
+            toast.success('User added to property group!')
+            fetchLeads()
+        } catch (error: any) {
+            console.error('Error adding to group:', error)
+            toast.error(error.message || 'Failed to add to group')
+        }
+    }
+
     function handleDateRangeChange(start: string | null, end: string | null) {
         setDateRange({ start, end })
     }
@@ -386,6 +414,20 @@ export default function LeadsPage() {
                             <XCircle className="mr-2 h-4 w-4" />
                             Lost
                         </DropdownMenuItem>
+
+                        {row.original.source === 'Group Buying' && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => addToGroup(row.original)}
+                                    disabled={!row.original.user_id || row.original.status === 'converted'}
+                                >
+                                    <Users className="mr-2 h-4 w-4" />
+                                    {row.original.status === 'converted' ? 'Already in Group' : 'Add to Group'}
+                                </DropdownMenuItem>
+                            </>
+                        )}
+
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             className="text-red-600"

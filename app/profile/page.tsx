@@ -12,30 +12,36 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Camera, 
-  Save, 
-  Loader2, 
+import {
+  User,
+  Mail,
+  Phone,
+  Camera,
+  Save,
+  Loader2,
   AlertCircle,
   CheckCircle,
   Lock,
   Calendar,
-  Shield
+  Shield,
+  Users,
+  MapPin,
+  ExternalLink
 } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user, profile, loading: authLoading, refreshProfile } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  
+  const [joinedGroups, setJoinedGroups] = useState<any[]>([])
+  const [loadingGroups, setLoadingGroups] = useState(true)
+
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -59,6 +65,49 @@ export default function ProfilePage() {
       })
     }
   }, [profile])
+
+  // Fetch joined groups
+  useEffect(() => {
+    async function fetchGroups() {
+      if (!user) return
+
+      try {
+        setLoadingGroups(true)
+        const supabase = getSupabaseClient()
+        const { data, error } = await supabase
+          .from('group_members')
+          .select(`
+            id,
+            joined_at,
+            property_groups (
+              id,
+              total_slots,
+              filled_slots,
+              is_locked,
+              properties (
+                id,
+                title,
+                location,
+                slug,
+                main_image
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+
+        if (error) throw error
+        setJoinedGroups(data || [])
+      } catch (error) {
+        console.error('Error fetching joined groups:', error)
+      } finally {
+        setLoadingGroups(false)
+      }
+    }
+
+    if (user) {
+      fetchGroups()
+    }
+  }, [user])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -152,7 +201,7 @@ export default function ProfilePage() {
 
       // Refresh profile in context
       await refreshProfile()
-      
+
       setIsEditing(false)
       toast.success('Profile updated successfully!')
     } catch (error: any) {
@@ -283,7 +332,7 @@ export default function ProfilePage() {
                   <div className="space-y-8">
                     {/* Avatar Section */}
                     <div className="flex flex-col items-center">
-                      <div 
+                      <div
                         className={`relative w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg ${isEditing ? 'cursor-pointer hover:opacity-80' : ''}`}
                         onClick={handleAvatarClick}
                       >
@@ -299,20 +348,20 @@ export default function ProfilePage() {
                             <User className="w-16 h-16 text-coral" />
                           </div>
                         )}
-                        
+
                         {uploadingAvatar && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <Loader2 className="w-8 h-8 text-white animate-spin" />
                           </div>
                         )}
-                        
+
                         {isEditing && !uploadingAvatar && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                             <Camera className="w-8 h-8 text-white" />
                           </div>
                         )}
                       </div>
-                      
+
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -320,13 +369,13 @@ export default function ProfilePage() {
                         className="hidden"
                         onChange={handleAvatarUpload}
                       />
-                      
+
                       {isEditing && (
                         <p className="text-sm text-gray-500 mt-2">
                           Click on avatar to upload a new photo
                         </p>
                       )}
-                      
+
                       <h2 className="text-xl font-semibold mt-4">
                         {profile.full_name || 'User'}
                       </h2>
@@ -462,6 +511,125 @@ export default function ProfilePage() {
                       <p className="text-sm text-gray-600">Days Active</p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Joined Groups Card */}
+              <Card className="mt-6 shadow-lg overflow-hidden">
+                <CardHeader className="bg-gray-50/50 border-b">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-coral" />
+                    <CardTitle className="text-xl">My Property Groups</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Property co-ventures you've joined or been added to
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {loadingGroups ? (
+                    <div className="p-12 flex justify-center">
+                      <Loader2 className="w-8 h-8 text-coral animate-spin" />
+                    </div>
+                  ) : joinedGroups.length > 0 ? (
+                    <div className="divide-y">
+                      {joinedGroups.map((membership) => {
+                        const group = membership.property_groups
+                        const property = group?.properties
+
+                        return (
+                          <div key={membership.id} className="p-6 hover:bg-gray-50 transition-colors">
+                            <div className="flex flex-col md:flex-row gap-6">
+                              {/* Property Thumbnail */}
+                              <div className="relative w-full md:w-32 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                {property?.main_image ? (
+                                  <Image
+                                    src={property.main_image}
+                                    alt={property.title}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                    <MapPin className="w-6 h-6 text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Group Details */}
+                              <div className="flex-grow space-y-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <h3 className="text-lg font-bold text-gray-900">
+                                    {property?.title || 'Unknown Property'}
+                                  </h3>
+                                  <Link
+                                    href={`/properties/${property?.slug || property?.id}`}
+                                    className="inline-flex items-center gap-1 text-sm text-coral hover:underline font-medium"
+                                  >
+                                    View Property
+                                    <ExternalLink className="w-3 h-3" />
+                                  </Link>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {property?.location || 'Unknown Location'}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-4 h-4" />
+                                    Joined {formatDate(membership.joined_at)}
+                                  </div>
+                                </div>
+
+                                {/* Slot Info */}
+                                <div className="mt-4 space-y-1">
+                                  <div className="flex justify-between items-center text-xs font-medium uppercase tracking-wider text-gray-400">
+                                    <span>Group Capacity</span>
+                                    <span>{group?.filled_slots} of {group?.total_slots} Slots Filled</span>
+                                  </div>
+                                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-coral transition-all duration-500"
+                                      style={{ width: `${(group?.filled_slots / group?.total_slots) * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Status Badge */}
+                              <div className="flex-shrink-0">
+                                {group?.is_locked ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold border border-amber-200">
+                                    <Lock className="w-3 h-3" />
+                                    GROUP LOCKED
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold border border-green-200">
+                                    <CheckCircle className="w-3 h-3" />
+                                    ACTIVE GROUP
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-12 text-center">
+                      <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+                        <Users className="w-6 h-6 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 font-medium italic">You haven't joined any property groups yet.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => router.push('/properties')}
+                      >
+                        Explore Properties
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
