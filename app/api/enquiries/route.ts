@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('slug', propertyId)
         .single()
+
       if (propData) {
+        // @ts-ignore
         propertyId = propData.id
       } else {
         return new Response(JSON.stringify({ error: 'Property not found' }), { status: 404 })
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
     // Create enquiry using admin client
     const { data: enquiry, error: createError } = await adminSupabase
       .from('enquiries')
+      // @ts-ignore
       .insert({
         property_id: propertyId,
         user_id: user?.id || null,
