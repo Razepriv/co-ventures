@@ -69,89 +69,47 @@ export function useSubscription() {
   const fetchSubscriptionData = useCallback(async () => {
     try {
       setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        // User not logged in, default to free plan
-        const { data: freePlan } = await supabase
-          .from('subscription_plans')
-          .select('*')
-          .eq('slug', 'free')
-          .single()
-
-        setCurrentPlan(freePlan)
-        setUsage({
-          analyses_used: 0,
-          analyses_limit: 0,
-          properties_in_comparison: 0,
-          properties_limit: 0,
-          can_analyze: false,
-          can_add_property: false
-        })
-        setLoading(false)
-        return
+      // FORCED UNLIMITED ACCESS: Bypass all user/auth checks and provide Enterprise-level access
+      const enterprisePlan: SubscriptionPlan = {
+        id: 'enterprise-bypass',
+        name: 'Enterprise (Free Access)',
+        slug: 'ai_enterprise',
+        description: 'Bypassed for free access',
+        price_monthly: 0,
+        price_yearly: 0,
+        analyses_per_month: 0, // 0 = unlimited
+        max_properties_comparison: 0, // 0 = unlimited
+        agents_access: ['all'],
+        features: ['Unlimited AI analyses', 'Unlimited property comparison', 'All 6 AI agents', 'Custom agent prompts', 'Advanced analytics'],
+        is_active: true,
+        display_order: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
 
-      // Get user's active subscription
-      const { data: userSub, error: subError } = await supabase
-        .from('user_subscriptions')
-        .select(`
-          *,
-          plan:subscription_plans(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle()
-
-      if (subError && subError.code !== 'PGRST116') {
-        throw subError
-      }
-
-      // @ts-ignore
-      if (userSub && userSub.plan) {
-        setSubscription(userSub)
-        // @ts-ignore
-        setCurrentPlan(userSub.plan as SubscriptionPlan)
-
-        // Calculate usage
-        // @ts-ignore
-        const usageData = await calculateUsage(user.id, userSub.plan as SubscriptionPlan)
-        setUsage(usageData)
-      } else {
-        // No active subscription, use free plan
-        const { data: freePlan } = await supabase
-          .from('subscription_plans')
-          .select('*')
-          .eq('slug', 'free')
-          .single()
-
-        setCurrentPlan(freePlan)
-        // @ts-ignore
-        const usageData = await calculateUsage(user.id, freePlan)
-        setUsage(usageData)
-      }
-
+      setCurrentPlan(enterprisePlan)
+      setUsage({
+        analyses_used: 0,
+        analyses_limit: 0,
+        properties_in_comparison: 0,
+        properties_limit: 0,
+        can_analyze: true,
+        can_add_property: true
+      })
       setLoading(false)
     } catch (err) {
       console.error('Error fetching subscription:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load subscription')
       setLoading(false)
     }
-  }, [supabase, calculateUsage])
+  }, [])
 
   useEffect(() => {
     fetchSubscriptionData()
   }, [fetchSubscriptionData])
 
   async function canAccessAgent(agentSlug: string): Promise<boolean> {
-    if (!currentPlan) return false
-
-    // Free plan has no agent access
-    if (currentPlan.slug === 'free') return false
-
-    // Check if agent is in allowed list
-    if (currentPlan.agents_access.includes('all')) return true
-    return currentPlan.agents_access.includes(agentSlug)
+    // FORCED UNLIMITED ACCESS
+    return true
   }
 
   async function trackUsage(

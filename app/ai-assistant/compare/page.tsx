@@ -174,17 +174,10 @@ export default function AgentComparisonPage() {
   }
 
   async function handleAnalyzeProperty(propertyId: string) {
-    if (!currentPlan || !usage?.can_analyze) {
-      alert('You have reached your analysis limit. Please upgrade your plan.')
-      return
-    }
-
     try {
       setAnalyzing(propertyId)
 
-      const agentSlugs = currentPlan.slug === 'ai_basic'
-        ? ['market_pulse', 'deal_underwriter']
-        : ['market_pulse', 'deal_underwriter', 'developer_verification', 'legal_regulatory', 'exit_optimizer', 'committee_synthesizer']
+      const agentSlugs = ['market_pulse', 'deal_underwriter', 'developer_verification', 'legal_regulatory', 'exit_optimizer', 'committee_synthesizer']
 
       const response = await fetch('/api/ai/analyze-property', {
         method: 'POST',

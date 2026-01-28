@@ -317,12 +317,6 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       return
     }
 
-    if (!currentPlan || currentPlan.slug === 'free') {
-      setShowSubscriptionModal(true)
-      toast.error('AI Assistant is available for premium subscribers only')
-      return
-    }
-
     setShowAIAssistant(true)
     if (aiMessages.length === 0) {
       // Add welcome message
@@ -977,12 +971,6 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Chat with AI
-                      {(!currentPlan || currentPlan.slug === 'free') && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-5 w-5 bg-purple-500 items-center justify-center text-[9px] text-white font-bold">PRO</span>
-                        </span>
-                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -1161,17 +1149,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
         propertyTitle={property?.title || ''}
       />
 
-      {/* Subscription Modal */}
-      {showSubscriptionModal && (
-        <SubscriptionPlansModal
-          isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-          onSelectPlan={() => {
-            setShowSubscriptionModal(false)
-            toast.success('Subscription upgraded! You can now use AI Assistant.')
-          }}
-        />
-      )}
+      {/* Subscription Modal Removed */}
 
       {/* Full Gallery Modal */}
       <AnimatePresence>
