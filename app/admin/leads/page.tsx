@@ -36,15 +36,15 @@ interface PropertyLead {
     message?: string
 }
 
-const statusConfig = {
-    new: { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Clock, label: 'New' },
-    contacted: { color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Phone, label: 'Contacted' },
-    in_progress: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, label: 'In Progress' },
-    qualified: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: UserCheck, label: 'Qualified' },
-    converted: { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Converted' },
-    resolved: { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Resolved' },
-    closed: { color: 'bg-gray-100 text-gray-800 border-gray-200', icon: CheckCircle2, label: 'Closed' },
-    lost: { color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, label: 'Lost' },
+const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
+    'new': { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Clock, label: 'New' },
+    'contacted': { color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Phone, label: 'Contacted' },
+    'in_progress': { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock, label: 'In Progress' },
+    'qualified': { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: UserCheck, label: 'Qualified' },
+    'converted': { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Converted' },
+    'resolved': { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2, label: 'Resolved' },
+    'closed': { color: 'bg-gray-100 text-gray-800 border-gray-200', icon: CheckCircle2, label: 'Closed' },
+    'lost': { color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle, label: 'Lost' },
 }
 
 export default function LeadsPage() {
@@ -339,8 +339,8 @@ export default function LeadsPage() {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
-                const status = row.original.status as keyof typeof statusConfig
-                const config = statusConfig[status] || statusConfig.new
+                const status = row.original.status || 'new'
+                const config = statusConfig[status] || statusConfig['new']
                 const Icon = config.icon
                 return (
                     <Badge variant="outline" className={config.color}>
