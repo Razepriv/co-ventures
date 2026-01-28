@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
+        // @ts-ignore
         if (userError || !['admin', 'super_admin'].includes(userData?.role)) {
             return NextResponse.json(
                 { error: 'Admin access required' },
@@ -143,6 +144,7 @@ export async function PUT(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
+        // @ts-ignore
         if (userError || !['admin', 'super_admin'].includes(userData?.role)) {
             return NextResponse.json(
                 { error: 'Admin access required' },
