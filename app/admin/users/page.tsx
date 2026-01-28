@@ -129,9 +129,17 @@ export default function UsersPage() {
       header: 'User',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-coral-400 to-coral-600 flex items-center justify-center text-white font-semibold">
-            {row.original.full_name?.charAt(0).toUpperCase() || 'U'}
-          </div>
+          {row.original.avatar_url ? (
+            <img
+              src={row.original.avatar_url}
+              alt={row.original.full_name}
+              className="h-10 w-10 rounded-full object-cover shadow-sm"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-coral-400 to-coral-600 flex items-center justify-center text-white font-semibold shadow-sm">
+              {row.original.full_name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+          )}
           <div>
             <p className="font-medium text-gray-900">{row.original.full_name || 'No name'}</p>
             <p className="text-sm text-gray-500">{row.original.email}</p>

@@ -57,7 +57,7 @@ export default function NewTestimonialPage() {
     try {
       setUploadingImage(true)
       const supabase = getSupabaseClient()
-      
+
       // Create unique filename
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
@@ -246,11 +246,10 @@ export default function NewTestimonialPage() {
                       className="focus:outline-none"
                     >
                       <Star
-                        className={`h-8 w-8 ${
-                          star <= formData.rating
+                        className={`h-8 w-8 ${star <= formData.rating
                             ? 'fill-amber-400 text-amber-400'
                             : 'text-gray-300'
-                        }`}
+                          }`}
                       />
                     </button>
                   ))}
@@ -303,27 +302,25 @@ export default function NewTestimonialPage() {
                     id="avatar-upload"
                     disabled={uploadingImage}
                   />
-                  <label htmlFor="avatar-upload">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={uploadingImage}
-                      onClick={() => document.getElementById('avatar-upload')?.click()}
-                    >
-                      {uploadingImage ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Choose Image
-                        </>
-                      )}
-                    </Button>
-                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingImage}
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose Image
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
               <p className="text-xs text-gray-500">Recommended: Square image, Max 2MB</p>
@@ -405,11 +402,10 @@ export default function NewTestimonialPage() {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
                       key={star}
-                      className={`h-4 w-4 ${
-                        star <= formData.rating
+                      className={`h-4 w-4 ${star <= formData.rating
                           ? 'fill-amber-400 text-amber-400'
                           : 'text-gray-300'
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
