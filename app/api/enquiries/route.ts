@@ -13,41 +13,45 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const ip = getClientIp(request)
-    const rateLimitResult = rateLimit(ip, 5, 60000) // 5 requests per minute
+    const rateLimitResult = rateLimit(ip, 10, 60000)
     if (!rateLimitResult.success) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Too many requests. Please try again later.',
-        }),
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
-          },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 })
     }
 
-    // Validate request body
     const { data, error } = await validateRequest(request, createEnquirySchema)
-    if (error) return error
+    if (error) {
+      console.log('Enquiry: Validation failed', error)
+      return error
+    }
 
-    // Use admin client to bypass RLS for inserting public enquiries
-    const supabase = await createAdminClient()
+    const adminSupabase = await createAdminClient()
+    const supabase = await createClient()
+
+    // Resolve propertyId if it's a slug
+    let propertyId = data.propertyId
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId)
+
+    if (!isUUID) {
+      const { data: propData } = await adminSupabase
+        .from('properties')
+        .select('id')
+        .eq('slug', propertyId)
+        .single()
+      if (propData) {
+        propertyId = propData.id
+      } else {
+        return new Response(JSON.stringify({ error: 'Property not found' }), { status: 404 })
+      }
+    }
 
     // Get current user if authenticated
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    // Create enquiry
-    const { data: enquiry, error: createError } = await supabase
+    // Create enquiry using admin client
+    const { data: enquiry, error: createError } = await adminSupabase
       .from('enquiries')
-      // @ts-ignore
       .insert({
-        property_id: data.propertyId,
+        property_id: propertyId,
         user_id: user?.id || null,
         full_name: data.name,
         email: data.email,
@@ -58,19 +62,17 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (createError) throw createError
+    if (createError) {
+      console.error('Enquiry: Database creation failed:', createError)
+      throw createError
+    }
 
-    // TODO: Send email notification to property owner
-    // TODO: Send confirmation email to enquirer
-
-    return successResponse(
-      {
-        enquiry,
-        message: 'Enquiry submitted successfully. We will contact you soon.',
-      },
-      201
-    )
-  } catch (error) {
+    return successResponse({
+      enquiry,
+      message: 'Enquiry submitted successfully.',
+    }, 201)
+  } catch (error: any) {
+    console.error('Enquiry: Internal Error:', error)
     return handleApiError(error)
   }
 }

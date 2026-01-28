@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseClient } from '@/lib/supabase/client'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
+    const supabase = await createClient()
+
+    // Resolve property ID if it's a slug
+    let propertyId = params.id
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id)
+
+    if (!isUUID) {
+      const { data: propData } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('slug', params.id)
+        .single()
+      if (propData) {
+        propertyId = propData.id
       }
-    )
+    }
 
     // Get group info
     const { data: group, error } = await supabase
@@ -34,12 +36,10 @@ export async function GET(
           joined_at
         )
       `)
-      .eq('property_id', params.id)
-      .single()
+      .eq('property_id', propertyId)
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      throw error
-    }
+    if (error) throw error
 
     return NextResponse.json({
       group: group || { total_slots: 5, filled_slots: 0, is_locked: false, group_members: [] },
@@ -58,18 +58,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
+    const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -83,19 +73,35 @@ export async function POST(
     const body = await request.json()
     const { full_name, email, phone } = body
 
-    // Get or create property group
-    let { data: group, error: groupError } = await supabase
+    // Resolve property ID if it's a slug
+    let propertyId = params.id
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id)
+
+    if (!isUUID) {
+      const { data: propData } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('slug', params.id)
+        .single()
+      if (!propData) {
+        return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+      }
+      propertyId = propData.id
+    }
+
+    // Get or create property group using admin client to bypass RLS
+    let { data: group, error: groupError } = await adminSupabase
       .from('property_groups')
       .select('*')
-      .eq('property_id', params.id)
-      .single()
+      .eq('property_id', propertyId)
+      .maybeSingle()
 
-    if (groupError && groupError.code === 'PGRST116') {
-      // Create group if doesn't exist
-      const { data: newGroup, error: createError } = await supabase
+    if (!group) {
+      // Create group if doesn't exist (using admin client)
+      const { data: newGroup, error: createError } = await adminSupabase
         .from('property_groups')
         .insert({
-          property_id: params.id,
+          property_id: propertyId,
           total_slots: 5,
           filled_slots: 0,
         })
@@ -124,8 +130,8 @@ export async function POST(
       )
     }
 
-    // Add member to group
-    const { data: member, error: memberError } = await supabase
+    // Add member to group (using admin client)
+    const { data: member, error: memberError } = await adminSupabase
       .from('group_members')
       .insert({
         group_id: group.id,
@@ -147,9 +153,9 @@ export async function POST(
       throw memberError
     }
 
-    // Create lead
-    await supabase.from('property_leads').insert({
-      property_id: params.id,
+    // Create lead (using admin client)
+    await adminSupabase.from('property_leads').insert({
+      property_id: propertyId,
       user_id: user.id,
       lead_type: 'join_group',
       full_name,

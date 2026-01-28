@@ -210,35 +210,36 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   }, [params.id])
 
   const fetchPropertyContent = useCallback(async () => {
-    if (contentLoaded) return // Prevent re-fetching
+    if (!property?.id || contentLoaded) return
 
     try {
       const supabase = getSupabaseClient()
+      const propertyId = property.id
 
       // Fetch each table separately to handle missing tables gracefully
       try {
-        const { data } = await supabase.from('property_highlights').select('*').eq('property_id', params.id).order('display_order')
+        const { data } = await supabase.from('property_highlights').select('*').eq('property_id', propertyId).order('display_order')
         setHighlights(data || [])
       } catch (e) { /* Table may not exist */ }
 
       try {
-        const { data } = await supabase.from('property_amenities').select('*').eq('property_id', params.id).order('display_order')
+        const { data } = await supabase.from('property_amenities').select('*').eq('property_id', propertyId).order('display_order')
         setAmenities(data || [])
       } catch (e) { /* Table may not exist */ }
 
       try {
-        const { data } = await supabase.from('property_specifications').select('*').eq('property_id', params.id).order('category, display_order')
+        const { data } = await supabase.from('property_specifications').select('*').eq('property_id', propertyId).order('category, display_order')
         setSpecifications(data || [])
       } catch (e) { /* Table may not exist */ }
 
       try {
-        const { data } = await supabase.from('nearby_places').select('*').eq('property_id', params.id)
+        const { data } = await supabase.from('nearby_places').select('*').eq('property_id', propertyId)
         setNearbyPlaces(data || [])
       } catch (e) { /* Table may not exist */ }
 
       // Use .maybeSingle() instead of .single() to avoid 406 on no match
       try {
-        const { data } = await supabase.from('property_rera_info').select('*').eq('property_id', params.id).maybeSingle()
+        const { data } = await supabase.from('property_rera_info').select('*').eq('property_id', propertyId).maybeSingle()
         setReraInfo(data)
       } catch (e) { /* Table may not exist */ }
 
@@ -259,15 +260,16 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       setContentLoaded(true)
     } catch (error) {
       console.error('Error fetching property content:', error)
-      setContentLoaded(true) // Mark as loaded even on error to prevent infinite retry
+      setContentLoaded(true)
     }
-  }, [params.id, property, contentLoaded])
+  }, [property, contentLoaded])
 
   const fetchGroup = useCallback(async () => {
+    if (!property?.id) return
     try {
-      const response = await fetch(`/api/properties/${params.id}/group`)
+      const response = await fetch(`/api/properties/${property.id}/group`)
       if (!response.ok) {
-        console.log('Group API not available - run migration first')
+        console.log('Group API returned error:', response.status)
         return
       }
       const data = await response.json()
@@ -275,15 +277,20 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
         setPropertyGroup(data.group)
       }
     } catch (error) {
-      console.log('Error fetching group - tables may not exist yet')
+      console.log('Error fetching group:', error)
     }
-  }, [params.id])
+  }, [property?.id])
 
   useEffect(() => {
     fetchProperty()
-    fetchPropertyContent()
-    fetchGroup()
-  }, [fetchProperty, fetchPropertyContent, fetchGroup])
+  }, [fetchProperty])
+
+  useEffect(() => {
+    if (property?.id) {
+      fetchPropertyContent()
+      fetchGroup()
+    }
+  }, [property?.id, fetchPropertyContent, fetchGroup])
 
   const handleAIChat = () => {
     if (!user) {
