@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import { ArrowLeft, Upload, X, Save } from 'lucide-react'
+import { ArrowLeft, Upload, X, Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -36,6 +36,10 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     const [existingImages, setExistingImages] = useState<any[]>([])
     const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null)
     const [featuredImagePreview, setFeaturedImagePreview] = useState<string | null>(null)
+    const [availableCities, setAvailableCities] = useState<any[]>([])
+    const [states, setStates] = useState<string[]>([])
+    const [filteredCities, setFilteredCities] = useState<string[]>([])
+    const [isLookingUpPincode, setIsLookingUpPincode] = useState(false)
 
     // Document upload states
     const [uploadingDocs, setUploadingDocs] = useState({
@@ -143,6 +147,54 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
         }
     }, [])
 
+    const fetchCities = useCallback(async () => {
+        try {
+            const supabase = getSupabaseClient()
+            const { data, error } = await supabase
+                .from('cities')
+                .select('name, state')
+                .eq('is_active', true)
+                .order('name')
+
+            if (error) throw error
+            if (data) {
+                setAvailableCities(data)
+                const uniqueStates = [...new Set(data.map((item: any) => item.state))].sort()
+                setStates(uniqueStates as string[])
+            }
+        } catch (error) {
+            console.error('Error fetching cities:', error)
+        }
+    }, [])
+
+    const lookupPincode = useCallback(async (pincode: string) => {
+        if (pincode.length !== 6) return
+
+        setIsLookingUpPincode(true)
+        try {
+            const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+            const data = await response.json()
+
+            if (data[0].Status === 'Success') {
+                const postOffice = data[0].PostOffice[0]
+                const city = postOffice.District
+                const state = postOffice.State
+
+                handleInputChange('state', state)
+                // Set city after a small delay to ensure state update has triggered filteredCities update
+                setTimeout(() => {
+                    handleInputChange('city', city)
+                }, 100)
+
+                toast.success(`Found location: ${city}, ${state}`)
+            }
+        } catch (error) {
+            console.error('Pincode lookup error:', error)
+        } finally {
+            setIsLookingUpPincode(false)
+        }
+    }, [])
+
     const fetchProperty = useCallback(async () => {
         try {
             setLoading(true)
@@ -244,7 +296,20 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
         fetchCategories()
         fetchDevelopers()
         fetchProperty()
-    }, [fetchCategories, fetchDevelopers, fetchProperty])
+        fetchCities()
+    }, [fetchCategories, fetchDevelopers, fetchProperty, fetchCities])
+
+    // Update filtered cities when state changes
+    useEffect(() => {
+        if (formData.state) {
+            const filtered = availableCities
+                .filter(c => c.state === formData.state)
+                .map(c => c.name)
+            setFilteredCities(filtered)
+        } else {
+            setFilteredCities([])
+        }
+    }, [formData.state, availableCities])
 
     function handleDeveloperSelect(developerId: string) {
         const developer = developers.find(d => d.id === developerId)
@@ -828,12 +893,52 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <Label htmlFor="pincode">Pincode</Label>
+                                        <div className="relative">
+                                            <Input
+                                                id="pincode"
+                                                value={formData.pincode}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                                                    handleInputChange('pincode', val)
+                                                    if (val.length === 6) lookupPincode(val)
+                                                }}
+                                                placeholder="e.g., 560001"
+                                            />
+                                            {isLookingUpPincode && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="state">State</Label>
+                                        <Select value={formData.state} onValueChange={(value) => handleInputChange('state', value)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select state" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {states.map(state => (
+                                                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <Label htmlFor="city">City</Label>
-                                        <Input
-                                            id="city"
-                                            value={formData.city}
-                                            onChange={(e) => handleInputChange('city', e.target.value)}
-                                        />
+                                        <Select value={formData.city} onValueChange={(value) => handleInputChange('city', value)} disabled={!formData.state}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select city" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {filteredCities.map(city => (
+                                                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                             </CardContent>

@@ -34,6 +34,7 @@ interface PropertyLead {
     }
     created_at: string
     message?: string
+    table: 'property_leads' | 'enquiries' | 'contact_messages'
 }
 
 const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
@@ -111,7 +112,8 @@ export default function LeadsPage() {
                     source: lead.lead_type === 'join_group' ? 'Group Buying' :
                         lead.lead_type === 'callback_request' ? 'Callback' :
                             lead.lead_type === 'live_tour' ? 'Live Tour' :
-                                lead.lead_type === 'book_visit' ? 'Site Visit' : 'Lead'
+                                lead.lead_type === 'book_visit' ? 'Site Visit' : 'Lead',
+                    table: 'property_leads'
                 })),
                 ...(enquiriesResult.data as any[] || []).map(enquiry => ({
                     id: enquiry.id,
@@ -125,7 +127,8 @@ export default function LeadsPage() {
                     assigned_to: enquiry.assigned_to,
                     users: enquiry.users,
                     created_at: enquiry.created_at,
-                    message: enquiry.message
+                    message: enquiry.message,
+                    table: 'enquiries'
                 })),
                 ...(contactsResult.data as any[] || []).map(contact => ({
                     id: contact.id,
@@ -135,7 +138,8 @@ export default function LeadsPage() {
                     source: 'Contact Form',
                     status: contact.status === 'resolved' ? 'converted' : contact.status,
                     created_at: contact.created_at,
-                    message: contact.message
+                    message: contact.message,
+                    table: 'contact_messages'
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
@@ -195,57 +199,98 @@ export default function LeadsPage() {
     }, [fetchLeads, fetchTeamMembers])
 
     async function updateStatus(id: string, status: string) {
+        const lead = leads.find(l => l.id === id)
+        if (!lead) return
+
+        const originalLeads = [...leads]
+
+        // Optimistic update
+        setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
+
         try {
             const supabase = getSupabaseClient()
+            const tableName = lead.table || 'property_leads'
+
+            let statusToUpdate = status
+            if (tableName === 'contact_messages' && status === 'converted') {
+                statusToUpdate = 'resolved'
+            }
+
             const { error } = await supabase
-                .from('property_leads')
+                .from(tableName)
                 // @ts-ignore
-                .update({ status })
+                .update({ status: statusToUpdate })
                 .eq('id', id)
 
             if (error) throw error
 
-            toast.success('Lead status updated')
-            fetchLeads()
+            toast.success('Status updated')
         } catch (error) {
+            setLeads(originalLeads)
             console.error('Error updating status:', error)
             toast.error('Failed to update status')
         }
     }
 
     async function assignLead(id: string, userId: string) {
+        const lead = leads.find(l => l.id === id)
+        if (!lead) return
+
+        if (lead.table === 'contact_messages') {
+            toast.error('Cannot assign contact messages')
+            return
+        }
+
+        const originalLeads = [...leads]
+        const assignedMember = teamMembers.find(m => m.id === userId)
+
+        // Optimistic update
+        setLeads(prev => prev.map(l => l.id === id ? {
+            ...l,
+            assigned_to: userId || null,
+            users: assignedMember ? { full_name: assignedMember.full_name } : undefined
+        } : l))
+
         try {
             const supabase = getSupabaseClient()
             const { error } = await supabase
-                .from('property_leads')
+                .from(lead.table)
                 // @ts-ignore
-                .update({ assigned_to: userId })
+                .update({ assigned_to: userId || null })
                 .eq('id', id)
 
             if (error) throw error
 
             toast.success('Lead assigned successfully')
-            fetchLeads()
         } catch (error) {
+            setLeads(originalLeads)
             console.error('Error assigning lead:', error)
             toast.error('Failed to assign lead')
         }
     }
 
     async function deleteLead(id: string) {
+        const lead = leads.find(l => l.id === id)
+        if (!lead) return
+
         if (!confirm('Are you sure you want to delete this lead?')) return
+
+        const originalLeads = [...leads]
+
+        // Optimistic update
+        setLeads(prev => prev.filter(l => l.id !== id))
 
         try {
             const supabase = getSupabaseClient()
-            const { error } = await supabase.from('property_leads').delete().eq('id', id)
+            const { error } = await supabase.from(lead.table).delete().eq('id', id)
 
             if (error) throw error
 
-            toast.success('Lead deleted successfully')
-            fetchLeads()
+            toast.success('Deleted successfully')
         } catch (error) {
-            console.error('Error deleting lead:', error)
-            toast.error('Failed to delete lead')
+            setLeads(originalLeads)
+            console.error('Error deleting:', error)
+            toast.error('Failed to delete')
         }
     }
 

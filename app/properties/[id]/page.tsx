@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Button } from '@/components/ui/Button'
@@ -14,7 +14,7 @@ import {
   MapPin, Bed, Bath, Square, Calendar, ParkingCircle, Check, Mail, Phone, User,
   ChevronLeft, ChevronRight, Share2, Heart, Download, TrendingUp, DollarSign,
   Building2, Users, Shield, FileText, Video, ExternalLink, Star, Clock,
-  MessageSquare, Sparkles, BarChart3, PieChart, Home, Maximize, X
+  MessageSquare, Sparkles, BarChart3, PieChart, Home, Maximize, X, Plus
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatDistanceToNow } from 'date-fns'
@@ -115,6 +115,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [showAIAssistant, setShowAIAssistant] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showAllImages, setShowAllImages] = useState(false)
   const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([])
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -390,9 +391,23 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     )
   }
 
-  const images = property.property_images?.length > 0
-    ? property.property_images
-    : [{ image_url: property.featured_image, is_primary: true, display_order: 0 }]
+  // Combine featured image with property images, ensuring no duplicates
+  const images = useMemo(() => {
+    if (!property) return []
+    const gallery = property.property_images || []
+    const hasFeatured = gallery.some(img => img.image_url === property.featured_image)
+
+    let combined = [...gallery]
+    if (!hasFeatured && property.featured_image) {
+      combined = [{
+        image_url: property.featured_image,
+        is_primary: true,
+        display_order: -1
+      }, ...combined]
+    }
+
+    return combined.sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+  }, [property])
 
   const investmentPercentage = property.investment_slots
     ? ((property.filled_slots || 0) / property.investment_slots) * 100
@@ -415,43 +430,87 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
 
         {/* Image Gallery */}
         <div className="bg-white">
-          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px] py-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="container mx-auto px-4 md:px-10 lg:px-20 max-w-[1440px] py-4 md:py-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {/* Main Image */}
-              <div className="relative h-[400px] md:h-[500px] rounded-xl overflow-hidden">
+              <div className="relative h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl group">
                 <Image
                   src={images[selectedImage]?.image_url || property.featured_image}
                   alt={property.title}
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  priority
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
                 {property.is_featured && (
-                  <Badge className="absolute top-4 left-4 bg-amber-500 text-white">Featured</Badge>
+                  <Badge className="absolute top-4 left-4 bg-amber-500/90 backdrop-blur-md text-white border-none px-3 py-1 font-bold">
+                    <Sparkles className="w-3 h-3 mr-1" /> Featured
+                  </Badge>
                 )}
+
+                {/* Mobile Image Counter indicator */}
+                <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold md:hidden">
+                  {selectedImage + 1} / {images.length}
+                </div>
               </div>
 
-              {/* Thumbnail Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Thumbnail Grid - Hidden on small mobile in favor of slider behavior maybe? No, let's keep it but improve it. */}
+              <div className="hidden md:grid grid-cols-2 gap-4">
                 {images.slice(0, 4).map((img, idx) => (
                   <div
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`relative h-[190px] md:h-[240px] rounded-xl overflow-hidden cursor-pointer ${selectedImage === idx ? 'ring-2 ring-coral' : ''
+                    className={`relative h-[240px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${selectedImage === idx ? 'ring-4 ring-coral ring-offset-2' : 'hover:opacity-90'
                       }`}
                   >
                     <Image
                       src={img.image_url}
                       alt={`${property.title} - ${idx + 1}`}
                       fill
-                      className="object-cover hover:scale-110 transition-transform duration-300"
+                      className="object-cover transition-transform duration-500 hover:scale-110"
                     />
                     {idx === 3 && images.length > 4 && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-semibold">
-                        +{images.length - 4} more
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowAllImages(true)
+                        }}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center text-white font-bold hover:bg-black/70 transition-all border-2 border-dashed border-white/30 rounded-2xl"
+                      >
+                        <span className="text-2xl">+{images.length - 4}</span>
+                        <span className="text-xs uppercase tracking-widest">More Photos</span>
                       </div>
                     )}
                   </div>
                 ))}
+              </div>
+
+              {/* Mobile Thumbnails Scroll */}
+              <div className="flex md:hidden gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+                {images.map((img, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden transition-all ${selectedImage === idx ? 'ring-2 ring-coral' : 'opacity-60'
+                      }`}
+                  >
+                    <Image
+                      src={img.image_url}
+                      alt={`${property.title} thumbnail`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
+                {images.length > 5 && (
+                  <button
+                    onClick={() => setShowAllImages(true)}
+                    className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center text-coral"
+                  >
+                    <Plus className="w-6 h-6" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -578,223 +637,227 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
               )}
 
               {/* Tabs */}
-              <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="highlights">Highlights</TabsTrigger>
-                  <TabsTrigger value="amenities">Amenities</TabsTrigger>
-                  <TabsTrigger value="specifications">Specs</TabsTrigger>
-                  <TabsTrigger value="location">Location</TabsTrigger>
-                  <TabsTrigger value="documents">Documents</TabsTrigger>
-                </TabsList>
+              <div className="relative">
+                <Tabs defaultValue="overview" className="w-full">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-1 mb-6 sticky top-20 z-20 overflow-x-auto no-scrollbar">
+                    <TabsList className="bg-transparent h-auto p-0 flex lg:grid lg:grid-cols-6 min-w-max lg:min-w-0">
+                      <TabsTrigger value="overview" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Overview</TabsTrigger>
+                      <TabsTrigger value="highlights" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Highlights</TabsTrigger>
+                      <TabsTrigger value="amenities" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Amenities</TabsTrigger>
+                      <TabsTrigger value="specifications" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Specs</TabsTrigger>
+                      <TabsTrigger value="location" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Location</TabsTrigger>
+                      <TabsTrigger value="documents" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Docs</TabsTrigger>
+                    </TabsList>
+                  </div>
 
-                <TabsContent value="overview" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Property Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        <div className="flex items-start gap-3">
-                          <Home className="w-5 h-5 text-coral mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-600">Property Type</p>
-                            <p className="font-semibold text-gray-900">{property.property_type}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <Bed className="w-5 h-5 text-coral mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-600">Bedrooms</p>
-                            <p className="font-semibold text-gray-900">{property.bedrooms}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <Bath className="w-5 h-5 text-coral mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-600">Bathrooms</p>
-                            <p className="font-semibold text-gray-900">{property.bathrooms}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <Square className="w-5 h-5 text-coral mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-600">Built-up Area</p>
-                            <p className="font-semibold text-gray-900">{property.area_sqft} sq ft</p>
-                          </div>
-                        </div>
-                        {property.carpet_area_sqft && (
-                          <div className="flex items-start gap-3">
-                            <Maximize className="w-5 h-5 text-coral mt-1" />
-                            <div>
-                              <p className="text-sm text-gray-600">Carpet Area</p>
-                              <p className="font-semibold text-gray-900">{property.carpet_area_sqft} sq ft</p>
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-start gap-3">
-                          <ParkingCircle className="w-5 h-5 text-coral mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-600">Parking</p>
-                            <p className="font-semibold text-gray-900">{property.parking_spaces || 0} Cars</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 pt-6 border-t">
-                        <h4 className="font-semibold text-gray-900 mb-3">Description</h4>
-                        <p className="text-gray-600 leading-relaxed">{property.description}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="highlights">
-                  {highlights.length > 0 ? (
-                    <PropertyHighlights highlights={highlights} />
-                  ) : (
-                    <Card>
-                      <CardContent className="pt-6">
-                        <p className="text-center text-gray-500">No highlights available for this property.</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="amenities">
-                  {amenities.length > 0 ? (
-                    <AmenitiesGrid amenities={amenities} />
-                  ) : (
+                  <TabsContent value="overview" className="space-y-6">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Amenities & Features</CardTitle>
+                        <CardTitle>Property Details</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {property.amenities?.map((amenity, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
-                              <Check className="w-5 h-5 text-coral" />
-                              <span className="text-gray-700">{amenity}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="specifications">
-                  {specifications.length > 0 ? (
-                    <SpecificationsPanel specifications={specifications} />
-                  ) : (
-                    <Card>
-                      <CardContent className="pt-6">
-                        <p className="text-center text-gray-500">No specifications available for this property.</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="location">
-                  {nearbyPlaces.length > 0 ? (
-                    <NearbyPlacesMap
-                      nearbyPlaces={nearbyPlaces}
-                      propertyLocation={property.location}
-                      propertyCity={property.city}
-                      latitude={property.latitude}
-                      longitude={property.longitude}
-                    />
-                  ) : (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Location</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                          <iframe
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            loading="lazy"
-                            allowFullScreen
-                            referrerPolicy="no-referrer-when-downgrade"
-                            src={
-                              property.latitude && property.longitude
-                                ? `https://maps.google.com/maps?q=${property.latitude},${property.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-                                : `https://maps.google.com/maps?q=${encodeURIComponent(`${property.location}, ${property.city}, ${property.state}, India`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-                            }
-                          />
-                        </div>
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                          <p className="font-semibold text-gray-900 mb-2">Address</p>
-                          <p className="text-gray-700">{property.location}, {property.city}, {property.state}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="documents">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Documents & Resources</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {property.brochure_url && (
-                          <a href={property.brochure_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
-                            <div className="flex items-center gap-3">
-                              <Download className="w-5 h-5 text-coral" />
-                              <span className="font-medium">Download Brochure</span>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-gray-400" />
-                          </a>
-                        )}
-                        {property.floor_plan_url && (
-                          <a href={property.floor_plan_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
-                            <div className="flex items-center gap-3">
-                              <FileText className="w-5 h-5 text-coral" />
-                              <span className="font-medium">Floor Plan</span>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-gray-400" />
-                          </a>
-                        )}
-                        {property.layout_plan_url && (
-                          <a href={property.layout_plan_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
-                            <div className="flex items-center gap-3">
-                              <FileText className="w-5 h-5 text-coral" />
-                              <span className="font-medium">Layout Plan</span>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-gray-400" />
-                          </a>
-                        )}
-                        {property.video_tour_url && (
-                          <a href={property.video_tour_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
-                            <div className="flex items-center gap-3">
-                              <Video className="w-5 h-5 text-coral" />
-                              <span className="font-medium">Video Tour</span>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-gray-400" />
-                          </a>
-                        )}
-                      </div>
-
-                      {property.rera_number && (
-                        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                           <div className="flex items-start gap-3">
-                            <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+                            <Home className="w-5 h-5 text-coral mt-1" />
                             <div>
-                              <p className="font-semibold text-gray-900 mb-1">RERA Registered</p>
-                              <p className="text-sm text-gray-700">Registration No: {property.rera_number}</p>
-                              <p className="text-xs text-gray-600 mt-1">Status: {property.legal_status}</p>
+                              <p className="text-sm text-gray-600">Property Type</p>
+                              <p className="font-semibold text-gray-900">{property.property_type}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <Bed className="w-5 h-5 text-coral mt-1" />
+                            <div>
+                              <p className="text-sm text-gray-600">Bedrooms</p>
+                              <p className="font-semibold text-gray-900">{property.bedrooms}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <Bath className="w-5 h-5 text-coral mt-1" />
+                            <div>
+                              <p className="text-sm text-gray-600">Bathrooms</p>
+                              <p className="font-semibold text-gray-900">{property.bathrooms}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <Square className="w-5 h-5 text-coral mt-1" />
+                            <div>
+                              <p className="text-sm text-gray-600">Built-up Area</p>
+                              <p className="font-semibold text-gray-900">{property.area_sqft} sq ft</p>
+                            </div>
+                          </div>
+                          {property.carpet_area_sqft && (
+                            <div className="flex items-start gap-3">
+                              <Maximize className="w-5 h-5 text-coral mt-1" />
+                              <div>
+                                <p className="text-sm text-gray-600">Carpet Area</p>
+                                <p className="font-semibold text-gray-900">{property.carpet_area_sqft} sq ft</p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-start gap-3">
+                            <ParkingCircle className="w-5 h-5 text-coral mt-1" />
+                            <div>
+                              <p className="text-sm text-gray-600">Parking</p>
+                              <p className="font-semibold text-gray-900">{property.parking_spaces || 0} Cars</p>
                             </div>
                           </div>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+
+                        <div className="mt-6 pt-6 border-t">
+                          <h4 className="font-semibold text-gray-900 mb-3">Description</h4>
+                          <p className="text-gray-600 leading-relaxed">{property.description}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="highlights">
+                    {highlights.length > 0 ? (
+                      <PropertyHighlights highlights={highlights} />
+                    ) : (
+                      <Card>
+                        <CardContent className="pt-6">
+                          <p className="text-center text-gray-500">No highlights available for this property.</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="amenities">
+                    {amenities.length > 0 ? (
+                      <AmenitiesGrid amenities={amenities} />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Amenities & Features</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {property.amenities?.map((amenity, idx) => (
+                              <div key={idx} className="flex items-center gap-3">
+                                <Check className="w-5 h-5 text-coral" />
+                                <span className="text-gray-700">{amenity}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="specifications">
+                    {specifications.length > 0 ? (
+                      <SpecificationsPanel specifications={specifications} />
+                    ) : (
+                      <Card>
+                        <CardContent className="pt-6">
+                          <p className="text-center text-gray-500">No specifications available for this property.</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="location">
+                    {nearbyPlaces.length > 0 ? (
+                      <NearbyPlacesMap
+                        nearbyPlaces={nearbyPlaces}
+                        propertyLocation={property.location}
+                        propertyCity={property.city}
+                        latitude={property.latitude}
+                        longitude={property.longitude}
+                      />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Location</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              style={{ border: 0 }}
+                              loading="lazy"
+                              allowFullScreen
+                              referrerPolicy="no-referrer-when-downgrade"
+                              src={
+                                property.latitude && property.longitude
+                                  ? `https://maps.google.com/maps?q=${property.latitude},${property.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+                                  : `https://maps.google.com/maps?q=${encodeURIComponent(`${property.location}, ${property.city}, ${property.state}, India`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+                              }
+                            />
+                          </div>
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                            <p className="font-semibold text-gray-900 mb-2">Address</p>
+                            <p className="text-gray-700">{property.location}, {property.city}, {property.state}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="documents">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Documents & Resources</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {property.brochure_url && (
+                            <a href={property.brochure_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
+                              <div className="flex items-center gap-3">
+                                <Download className="w-5 h-5 text-coral" />
+                                <span className="font-medium">Download Brochure</span>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-gray-400" />
+                            </a>
+                          )}
+                          {property.floor_plan_url && (
+                            <a href={property.floor_plan_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-coral" />
+                                <span className="font-medium">Floor Plan</span>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-gray-400" />
+                            </a>
+                          )}
+                          {property.layout_plan_url && (
+                            <a href={property.layout_plan_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-coral" />
+                                <span className="font-medium">Layout Plan</span>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-gray-400" />
+                            </a>
+                          )}
+                          {property.video_tour_url && (
+                            <a href={property.video_tour_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 border rounded-lg hover:border-coral transition-colors">
+                              <div className="flex items-center gap-3">
+                                <Video className="w-5 h-5 text-coral" />
+                                <span className="font-medium">Video Tour</span>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-gray-400" />
+                            </a>
+                          )}
+                        </div>
+
+                        {property.rera_number && (
+                          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+                              <div>
+                                <p className="font-semibold text-gray-900 mb-1">RERA Registered</p>
+                                <p className="text-sm text-gray-700">Registration No: {property.rera_number}</p>
+                                <p className="text-xs text-gray-600 mt-1">Status: {property.legal_status}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
 
               {/* RERA Section */}
               <RERASection reraInfo={reraInfo} reraNumber={property.rera_number} />
@@ -1108,6 +1171,84 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
           }}
         />
       )}
+
+      {/* Full Gallery Modal */}
+      <AnimatePresence>
+        {showAllImages && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 flex flex-col pt-20 md:pt-4"
+          >
+            <div className="flex items-center justify-between p-4 md:p-6 text-white border-b border-white/10">
+              <div className="flex flex-col">
+                <span className="font-bold text-lg md:text-xl">{property?.title}</span>
+                <span className="text-sm text-gray-400">{images.length} Photos</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAllImages(false)}
+                className="text-white hover:bg-white/10 h-10 w-10 p-0 rounded-full"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 md:p-8">
+              <div className="container mx-auto max-w-7xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {images.map((img, idx) => (
+                    <div
+                      key={idx}
+                      className={`relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group hover:ring-2 hover:ring-coral transition-all duration-300 ${selectedImage === idx ? 'ring-2 ring-coral' : ''
+                        }`}
+                      onClick={() => {
+                        setSelectedImage(idx)
+                        setShowAllImages(false)
+                      }}
+                    >
+                      <Image
+                        src={img.image_url}
+                        alt={`${property?.title} - ${idx + 1}`}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        View Photo
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sticky Bottom Actions for Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-[40] md:hidden">
+        <div className="bg-white border-t border-gray-100 p-4 flex items-center gap-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
+          <div className="flex-1">
+            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest leading-none mb-1">Total Price</p>
+            <p className="text-xl font-black text-charcoal">{formatPrice(property.price)}</p>
+          </div>
+          <Button
+            className="flex-1 h-12 bg-coral hover:bg-coral-dark text-white rounded-xl font-bold shadow-lg shadow-coral/20"
+            onClick={() => setShowInvestModal(true)}
+          >
+            Invest Now
+          </Button>
+          <Button
+            variant="outline"
+            className="w-12 h-12 p-0 flex items-center justify-center rounded-xl border-gray-200"
+            onClick={() => setShowScheduleModal(true)}
+          >
+            <Video className="w-5 h-5 text-gray-600" />
+          </Button>
+        </div>
+      </div>
     </>
   )
 }

@@ -76,7 +76,7 @@ export default function ContactPage() {
     {
       icon: MapPin,
       title: 'Visit Us',
-      details: ['123 Co-Housing Avenue', 'Bangalore, Karnataka 560001', 'India'],
+      details: ['Cohousy, Grand Road', 'Eon Free Zone, Kharadi Gaon', 'Pune 411014, India'],
       color: 'bg-blue-100 text-blue-600'
     },
     {
@@ -272,7 +272,7 @@ export default function ContactPage() {
                   <h2 className="text-3xl font-bold text-charcoal mb-6">Visit Our Office</h2>
                   <div className="relative h-[500px] rounded-xl overflow-hidden bg-gray-200">
                     <iframe
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d248849.90089943372!2d77.46612594999999!3d12.9539974!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670c9b44e6d%3A0xf8dfc3e8517e4fe0!2sBengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1234567890"
+                      src="https://www.google.com/maps?q=Cohousy,%20Grand%20Road,%20Eon%20Free%20Zone,%20Kharadi%20Gaon,%20Pune%20411014&output=embed"
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}

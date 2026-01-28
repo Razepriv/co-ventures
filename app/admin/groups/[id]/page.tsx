@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/Badge'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import { ArrowLeft, Users, DollarSign, Trash2, UserPlus, Mail, Phone } from 'lucide-react'
+import { ArrowLeft, Users, DollarSign, Trash2, UserPlus, Mail, Phone, Search, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
@@ -53,11 +53,50 @@ export default function GroupDetailPage() {
     const [loading, setLoading] = useState(true)
     const [showAddMember, setShowAddMember] = useState(false)
     const [newMember, setNewMember] = useState({
+        user_id: '',
         full_name: '',
         email: '',
         phone: '',
         investment_amount: ''
     })
+    const [userSuggestions, setUserSuggestions] = useState<any[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+
+    // Handle user search
+    const searchUsers = useCallback(async (query: string) => {
+        if (query.length < 2) {
+            setUserSuggestions([])
+            return
+        }
+        setIsSearching(true)
+        try {
+            const supabase = getSupabaseClient()
+            // @ts-ignore
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, full_name, email, phone')
+                .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+                .limit(5)
+
+            if (error) throw error
+            setUserSuggestions(data || [])
+        } catch (error) {
+            console.error('Error searching users:', error)
+        } finally {
+            setIsSearching(false)
+        }
+    }, [])
+
+    const selectUser = (user: any) => {
+        setNewMember({
+            ...newMember,
+            user_id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+            phone: user.phone || ''
+        })
+        setUserSuggestions([])
+    }
 
 
     const [activeMembers, setActiveMembers] = useState<GroupMember[]>([])
@@ -177,11 +216,34 @@ export default function GroupDetailPage() {
 
         try {
             const supabase = getSupabaseClient()
+
+            // 1. Check if user exists or use provided details
+            // If user_id is provided, we use it. If not, we might want to check if email already has a user.
+            let targetUserId = newMember.user_id
+
+            if (!targetUserId) {
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('email', newMember.email)
+                    .maybeSingle()
+
+                if (userData) {
+                    targetUserId = (userData as any).id
+                }
+            }
+
+            if (!targetUserId) {
+                toast.error('Only registered users can be added to groups. Please search for an existing user.')
+                return
+            }
+
             const { error } = await supabase
                 .from('group_members')
                 // @ts-ignore
                 .insert({
                     group_id: groupId,
+                    user_id: targetUserId,
                     full_name: newMember.full_name,
                     email: newMember.email,
                     phone: newMember.phone || null,
@@ -204,7 +266,7 @@ export default function GroupDetailPage() {
 
             toast.success('Member added successfully')
             setShowAddMember(false)
-            setNewMember({ full_name: '', email: '', phone: '', investment_amount: '' })
+            setNewMember({ user_id: '', full_name: '', email: '', phone: '', investment_amount: '' })
             fetchGroupData()
         } catch (error) {
             console.error('Error adding member:', error)
@@ -414,14 +476,38 @@ export default function GroupDetailPage() {
                         <div className="mb-6 p-4 border rounded-lg bg-gray-50">
                             <h3 className="font-semibold mb-4">Add New Member</h3>
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <Label htmlFor="full_name">Full Name *</Label>
-                                    <Input
-                                        id="full_name"
-                                        value={newMember.full_name}
-                                        onChange={(e) => setNewMember({ ...newMember, full_name: e.target.value })}
-                                        placeholder="John Doe"
-                                    />
+                                <div className="relative">
+                                    <Label htmlFor="user_search">Search User (Name or Email) *</Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="user_search"
+                                            value={newMember.full_name}
+                                            onChange={(e) => {
+                                                setNewMember({ ...newMember, full_name: e.target.value, user_id: '' })
+                                                searchUsers(e.target.value)
+                                            }}
+                                            placeholder="Type to search..."
+                                            className="pl-9"
+                                        />
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin text-gray-400" /> : <Search className="h-4 w-4 text-gray-400" />}
+                                        </div>
+                                    </div>
+
+                                    {userSuggestions.length > 0 && (
+                                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg">
+                                            {userSuggestions.map((user) => (
+                                                <button
+                                                    key={user.id}
+                                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg border-b last:border-b-0"
+                                                    onClick={() => selectUser(user)}
+                                                >
+                                                    <p className="font-medium text-gray-900">{user.full_name}</p>
+                                                    <p className="text-xs text-gray-500">{user.email}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <Label htmlFor="email">Email *</Label>
@@ -431,6 +517,8 @@ export default function GroupDetailPage() {
                                         value={newMember.email}
                                         onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
                                         placeholder="john@example.com"
+                                        readOnly={!!newMember.user_id}
+                                        className={newMember.user_id ? "bg-gray-50" : ""}
                                     />
                                 </div>
                                 <div>

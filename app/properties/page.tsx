@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Search, MapPin, Bed, Bath, Square, Heart, IndianRupee, Filter, X } from 'lucide-react'
+import { Search, MapPin, Bed, Bath, Square, Heart, IndianRupee, Filter, X, Sparkles, Building2, ChevronRight } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import { useRealtimeSubscription } from '@/lib/hooks/useRealtimeSubscription'
@@ -107,19 +107,19 @@ function PropertiesContent() {
     table: 'properties',
     event: '*',
     onInsert: (newProperty) => {
-      setProperties(prev => [newProperty, ...prev])
+      fetchProperties()
       toast.success('New property added!', {
         description: newProperty.title
       })
     },
     onUpdate: ({ old: oldProperty, new: newProperty }) => {
-      setProperties(prev => prev.map(p => p.id === newProperty.id ? newProperty : p))
+      fetchProperties()
       toast.info('Property updated', {
         description: newProperty.title
       })
     },
     onDelete: (deletedProperty) => {
-      setProperties(prev => prev.filter(p => p.id !== deletedProperty.id))
+      fetchProperties()
       toast.error('Property removed', {
         description: deletedProperty.title
       })
@@ -136,7 +136,10 @@ function PropertiesContent() {
         .select(`
           *,
           property_images(image_url, is_primary),
-          categories(name)
+          categories(name),
+          cities(name),
+          city_locations(name),
+          property_configurations(name)
         `)
         .order('created_at', { ascending: false })
 
@@ -299,18 +302,20 @@ function PropertiesContent() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-black/70 to-black/50" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-black/40" />
           </div>
 
-          <div className="container mx-auto px-6 md:px-10 lg:px-20 max-w-[1440px] relative z-10">
+          <div className="container mx-auto px-4 md:px-10 lg:px-20 max-w-[1440px] relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-8"
+              className="text-center mb-8 max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-2xl">Find Your Dream Property</h1>
-              <p className="text-xl text-white/90 max-w-2xl mx-auto">
-                Browse our curated collection of premium properties available for co-housing
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 text-white drop-shadow-2xl leading-tight">
+                Discover Premium <span className="text-coral">Co-Housing</span> Properties
+              </h1>
+              <p className="text-lg md:text-xl text-white/90 font-medium">
+                Browse our handpicked selection of investment-ready homes and community living spaces.
               </p>
             </motion.div>
 
@@ -545,12 +550,12 @@ function PropertiesContent() {
                     key={property.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: index * 0.05 }}
                   >
                     <Link href={`/properties/${property.id}`}>
-                      <div className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300">
-                        {/* Image */}
-                        <div className="relative h-64 overflow-hidden">
+                      <div className="group bg-white rounded-2xl overflow-hidden shadow-[0_4px_25px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] transition-all duration-500 border border-gray-100 flex flex-col h-full">
+                        {/* Image Container */}
+                        <div className="relative aspect-[4/3] sm:aspect-video md:aspect-[4/3] overflow-hidden">
                           <Image
                             src={
                               (property.featured_image && property.featured_image.startsWith('http') ? property.featured_image : null) ||
@@ -560,61 +565,87 @@ function PropertiesContent() {
                             }
                             alt={property.title}
                             fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="object-cover group-hover:scale-110 transition-transform duration-700"
                           />
-                          {property.is_featured && (
-                            <div className="absolute top-4 left-4">
-                              <Badge className="bg-amber-500 text-white">Featured</Badge>
+
+                          {/* Badges Overlay */}
+                          <div className="absolute top-4 inset-x-4 flex justify-between items-start">
+                            <div className="flex flex-col gap-2">
+                              {property.is_featured && (
+                                <Badge className="bg-amber-500/90 backdrop-blur-md text-white border-none px-3 py-1 text-xs font-bold shadow-lg">
+                                  <Sparkles className="w-3 h-3 mr-1" /> Featured
+                                </Badge>
+                              )}
+                              <Badge className={`${property.status === 'available' ? 'bg-emerald-500/90' :
+                                  property.status === 'sold' ? 'bg-rose-500/90' : 'bg-blue-500/90'
+                                } backdrop-blur-md text-white border-none px-3 py-1 text-xs font-bold shadow-lg uppercase tracking-wider`}>
+                                {property.status}
+                              </Badge>
                             </div>
-                          )}
+                            <button className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white hover:text-coral transition-all">
+                              <Heart className="w-5 h-5" />
+                            </button>
+                          </div>
+
                           <div className="absolute bottom-4 left-4">
-                            <Badge className={
-                              property.status === 'available' ? 'bg-green-500' :
-                                property.status === 'sold' ? 'bg-red-500' : 'bg-blue-500'
-                            }>
-                              {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
-                            </Badge>
+                            <div className="bg-charcoal/80 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 shadow-xl">
+                              <Building2 className="w-4 h-4 text-coral" />
+                              {property.categories?.name || 'Property'}
+                            </div>
                           </div>
                         </div>
 
                         {/* Content */}
-                        <div className="p-6">
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="text-xl font-bold text-charcoal group-hover:text-coral transition-colors line-clamp-1">
+                        <div className="p-5 md:p-6 flex flex-col flex-1">
+                          <div className="mb-4">
+                            <h3 className="text-xl font-bold text-gray-900 group-hover:text-coral transition-colors line-clamp-2 leading-tight mb-2">
                               {property.title}
                             </h3>
-                          </div>
-
-                          <div className="flex items-center text-gray-600 mb-3">
-                            <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                            <span className="text-sm line-clamp-1">{property.location}, {property.city}</span>
-                          </div>
-
-                          <div className="flex items-center gap-4 mb-4 text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Bed className="w-4 h-4" />
-                              <span className="text-sm">{property.bedrooms}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Bath className="w-4 h-4" />
-                              <span className="text-sm">{property.bathrooms}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Square className="w-4 h-4" />
-                              <span className="text-sm">{property.size_sqft} sqft</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-4 border-t">
-                            <div>
-                              <p className="text-sm text-gray-500">Starting from</p>
-                              <span className="text-2xl font-bold text-charcoal">
-                                {formatPrice(property.price)}
+                            <div className="flex items-center text-gray-500">
+                              <MapPin className="w-4 h-4 mr-1.5 text-coral/70 flex-shrink-0" />
+                              <span className="text-sm font-medium truncate">
+                                {/* @ts-ignore */}
+                                {property.city_locations?.name || property.location}, {/* @ts-ignore */}
+                                {property.cities?.name || property.city}
                               </span>
                             </div>
-                            <Button size="sm" className="group-hover:bg-coral-dark transition-colors">
-                              View Details
-                            </Button>
+                          </div>
+
+                          {/* Stats Grid */}
+                          <div className="grid grid-cols-3 gap-2 px-4 py-3 bg-gray-50 rounded-xl mb-6">
+                            <div className="flex flex-col items-center justify-center border-r border-gray-200">
+                              <div className="flex items-center gap-1.5 text-gray-900 font-bold">
+                                <Bed className="w-4 h-4 text-coral" />
+                                <span>{property.bedrooms}</span>
+                              </div>
+                              <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest mt-0.5">Beds</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center border-r border-gray-200">
+                              <div className="flex items-center gap-1.5 text-gray-900 font-bold">
+                                <Bath className="w-4 h-4 text-coral" />
+                                <span>{property.bathrooms}</span>
+                              </div>
+                              <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest mt-0.5">Baths</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center">
+                              <div className="flex items-center gap-1.5 text-gray-900 font-bold">
+                                <Square className="w-4 h-4 text-coral" />
+                                <span>{property.size_sqft}</span>
+                              </div>
+                              <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest mt-0.5">Sq Ft</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-0.5">Starting Price</p>
+                              <p className="text-2xl font-black text-charcoal">
+                                {formatPrice(property.price)}
+                              </p>
+                            </div>
+                            <div className="w-12 h-12 bg-coral/10 group-hover:bg-coral text-coral group-hover:text-white rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm">
+                              <ChevronRight className="w-6 h-6" />
+                            </div>
                           </div>
                         </div>
                       </div>
