@@ -119,14 +119,22 @@ export default function NewPropertyPage() {
   // Update filtered cities when state changes
   useEffect(() => {
     if (formData.state) {
-      const filtered = availableCities
+      let filtered = availableCities
         .filter(c => c.state === formData.state)
         .map(c => c.name)
+
+      // Ensure the currently selected city (e.g. from Pincode lookup) is in the list
+      // even if it's not in our database yet
+      if (formData.city && !filtered.includes(formData.city)) {
+        filtered.push(formData.city)
+        filtered.sort()
+      }
+
       setFilteredCities(filtered)
     } else {
       setFilteredCities([])
     }
-  }, [formData.state, availableCities])
+  }, [formData.state, availableCities, formData.city])
 
   // Auto-generate slug from title with uniqueness
   useEffect(() => {
