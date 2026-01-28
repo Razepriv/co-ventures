@@ -101,7 +101,7 @@ export function useSubscription() {
         `)
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single()
+        .maybeSingle()
 
       if (subError && subError.code !== 'PGRST116') {
         throw subError
