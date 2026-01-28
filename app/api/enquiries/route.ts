@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
         email: data.email,
         phone: data.phone,
         message: data.message,
+        investment_amount: data.investmentAmount ? parseFloat(String(data.investmentAmount)) : null,
         status: 'new',
       })
       .select()

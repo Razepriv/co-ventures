@@ -67,6 +67,7 @@ export const createEnquirySchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   message: z.string().optional(),
+  investmentAmount: z.union([z.string(), z.number()]).optional(),
 })
 
 export const updateEnquiryStatusSchema = z.object({

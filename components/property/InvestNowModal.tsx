@@ -34,55 +34,78 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
     setLoading(true)
 
     try {
-      const supabase = getSupabaseClient()
-
-      // Check if there is a group for this property
-      const { data: group } = await supabase
-        .from('property_groups')
-        .select('id')
-        .eq('property_id', propertyId)
-        .single()
-
-      if (group && user?.id) {
-        // Logged in user + Group exists -> Create Group Join Request
-        const { error: memberError } = await supabase
-          .from('group_members')
-          // @ts-ignore
-          .insert({
-            group_id: group.id,
-            user_id: user.id,
+      // For logged in users, try to join the group
+      if (user) {
+        // Try to join group via API
+        const response = await fetch(`/api/properties/${propertyId}/group`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             full_name: formData.full_name,
             email: formData.email,
             phone: formData.phone,
-            investment_amount: parseFloat(formData.investment_amount),
-            status: 'pending'
+            investment_amount: parseFloat(formData.investment_amount)
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          // If 404/400, handle gracefully. 
+          // If group doesn't exist/full/locked, the API might return specific errors.
+          // BUT, if the user just wants to "Invest", maybe we should always fallback to enquiry 
+          // if group join fails or isn't appropriate?
+          // The API creates the group if it doesn't exist.
+          // So failure here is real failure (auth, full, locked).
+          // If it's "full" or "locked", we should probably offer to submit as general enquiry.
+          // For now, let's just create enquiry if join fails to ensure we capture the lead.
+
+          console.warn('Group join failed, falling back to enquiry:', data.error)
+
+          // Fallback to enquiry
+          const enquiryResponse = await fetch('/api/enquiries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              propertyId,
+              name: formData.full_name,
+              email: formData.email,
+              phone: formData.phone,
+              message: `[Investment Enquiry - Group Join Failed: ${data.error}] Amount: ₹${parseInt(formData.investment_amount).toLocaleString('en-IN')}\n\n${formData.message}`,
+              investmentAmount: formData.investment_amount
+            })
           })
 
-        if (memberError) {
-          // If duplicate or other error, fall back to enquiry or show error
-          if (memberError.code === '23505') { // Unique violation
-            toast.error('You have already requested to join this group.')
-            return
+          if (!enquiryResponse.ok) {
+            const errorData = await enquiryResponse.json()
+            throw new Error(errorData.error || 'Failed to submit enquiry')
           }
-          throw memberError
-        }
 
-        toast.success('Request to join group submitted! Admin will review your request.')
+          toast.success('Investment enquiry submitted! Our team will contact you.')
+        } else {
+          toast.success('Request to join group submitted! Admin will review your request.')
+        }
       } else {
-        // Fallback: Save investment enquiry (Guest or No Group)
-        const { error } = await supabase
-          .from('enquiries')
-          .insert({
-            property_id: propertyId,
-            user_id: user?.id || null,
-            full_name: formData.full_name,
+        // Guest user - Submit as enquiry
+        const response = await fetch('/api/enquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId,
+            name: formData.full_name,
             email: formData.email,
             phone: formData.phone,
             message: `[Investment Enquiry] Amount: ₹${parseInt(formData.investment_amount).toLocaleString('en-IN')}\n\n${formData.message}`,
-            status: 'new'
+            investmentAmount: formData.investment_amount
           })
+        })
 
-        if (error) throw error
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to submit enquiry')
+        }
+
         toast.success('Investment enquiry submitted successfully! Our team will contact you soon.')
       }
 
@@ -96,7 +119,7 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
       })
     } catch (error: any) {
       console.error('Error submitting enquiry:', error)
-      toast.error('Failed to submit request. Please try again.')
+      toast.error(error.message || 'Failed to submit request. Please try again.')
     } finally {
       setLoading(false)
     }
