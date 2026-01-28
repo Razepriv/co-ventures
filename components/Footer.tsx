@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
 const quickLinks = [
@@ -29,13 +30,15 @@ export const Footer: React.FC = () => {
           {/* Brand Column */}
           <div>
             <Link href="/" className="flex items-center mb-6">
-              <img 
-                src="/logo.svg" 
-                alt="Co-ventures" 
+              <Image
+                src="/logo.svg"
+                alt="Co-ventures"
                 className="h-10 w-auto"
+                width={120}
+                height={40}
               />
             </Link>
-            
+
             <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-[280px]">
               Making premium real estate accessible through collaborative co-ownership
             </p>

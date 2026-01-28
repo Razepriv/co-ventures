@@ -1,0 +1,8 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange house roof -->
+  <polygon points="32,16 48,28 16,28" fill="#FF8C42"/>
+  <!-- Orange triangle inside -->
+  <polygon points="32,24 38,30 26,30" fill="#FF6B4A"/>
+  <!-- Text representation: h -->
+  <text x="12" y="50" font-family="Arial Black, sans-serif" font-size="24" font-weight="900" fill="#000000">h</text>
+</svg>

@@ -14,6 +14,7 @@ import { Plus, MoreHorizontal, Pencil, Trash2, Shield, User, Crown } from 'lucid
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
+import Image from 'next/image'
 
 interface User {
   id: string
@@ -130,9 +131,11 @@ export default function UsersPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           {row.original.avatar_url ? (
-            <img
+            <Image
               src={row.original.avatar_url}
               alt={row.original.full_name}
+              width={40}
+              height={40}
               className="h-10 w-10 rounded-full object-cover shadow-sm"
             />
           ) : (

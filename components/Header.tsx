@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Bell, User, LogOut } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -173,17 +174,18 @@ export const Header: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="flex items-center space-x-2 z-10 flex-shrink-0"
               aria-label="Co Housing Ventures Home"
             >
-              <img 
-                src="/logo.svg" 
-                alt="Co Housing Ventures" 
+              <Image
+                src="/logo.svg"
+                alt="Co Housing Ventures"
                 className="h-12 md:h-14 lg:h-16 w-auto"
                 width={150}
                 height={64}
+                priority
               />
             </Link>
 
@@ -254,7 +256,7 @@ export const Header: React.FC = () => {
                       {profile?.full_name || 'User'}
                     </span>
                   </button>
-                  
+
                   {/* User Dropdown Menu */}
                   {showUserMenu && (
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50">
@@ -320,7 +322,7 @@ export const Header: React.FC = () => {
         )}
       >
         {/* Backdrop */}
-        <div 
+        <div
           className={cn(
             "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
             isMobileMenuOpen ? "opacity-100" : "opacity-0"
@@ -368,7 +370,7 @@ export const Header: React.FC = () => {
                 <option value="EUR">€ EUR</option>
                 <option value="GBP">£ GBP</option>
               </select>
-              
+
               {user ? (
                 <>
                   <Link href="/profile" onClick={toggleMobileMenu}>
@@ -423,9 +425,9 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Notification Popup */}
-      <NotificationPopup 
-        isOpen={showNotifications} 
-        onClose={() => setShowNotifications(false)} 
+      <NotificationPopup
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
       />
     </>
   );

@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Upload, X, Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Category {
     id: string
@@ -1059,7 +1060,9 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                             <Label htmlFor="featured-image" className="cursor-pointer block">
                                                 <div className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-lg transition-colors ${featuredImagePreview ? 'border-coral-400 bg-gray-50' : 'border-gray-300 hover:border-coral-400'}`}>
                                                     {featuredImagePreview ? (
-                                                        <img src={featuredImagePreview} alt="Featured" className="w-full h-full object-cover rounded" />
+                                                        <div className="relative w-full h-full">
+                                                            <Image src={featuredImagePreview} alt="Featured" fill className="object-cover rounded" />
+                                                        </div>
                                                     ) : (
                                                         <div className="text-center p-4">
                                                             <Upload className="mx-auto h-8 w-8 text-gray-400" />
@@ -1094,7 +1097,9 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                             {existingImages.map((img) => (
                                                 <div key={img.id} className="relative group">
-                                                    <img src={img.image_url} alt="Gallery" className="w-full h-32 object-cover rounded-lg" />
+                                                    <div className="relative w-full h-32">
+                                                        <Image src={img.image_url} alt="Gallery" fill className="object-cover rounded-lg" />
+                                                    </div>
                                                     <Button
                                                         type="button"
                                                         variant="destructive"
@@ -1134,11 +1139,14 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                             {imagePreviews.map((preview, index) => (
                                                 <div key={index} className="relative group">
-                                                    <img
-                                                        src={preview}
-                                                        alt={`Preview ${index + 1}`}
-                                                        className="w-full h-32 object-cover rounded-lg"
-                                                    />
+                                                    <div className="relative w-full h-32">
+                                                        <Image
+                                                            src={preview}
+                                                            alt={`Preview ${index + 1}`}
+                                                            fill
+                                                            className="object-cover rounded-lg"
+                                                        />
+                                                    </div>
                                                     <Button
                                                         type="button"
                                                         variant="outline"

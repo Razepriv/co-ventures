@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
@@ -292,10 +293,11 @@ export default function AgentComparisonPage() {
               >
                 {property.property_images?.[0] && (
                   <div className="absolute inset-0 opacity-30">
-                    <img
+                    <Image
                       src={property.property_images[0].image_url}
                       alt={property.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   </div>
                 )}
@@ -350,8 +352,8 @@ export default function AgentComparisonPage() {
                 key={tab.id}
                 onClick={() => setSelectedTab(tab.id as TabType)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all ${selectedTab === tab.id
-                    ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-500/30'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                  ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-500/30'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
                   }`}
               >
                 <tab.icon className="h-4 w-4" />
@@ -455,9 +457,9 @@ function OverviewTab({ properties, analyses, formatPrice }: any) {
                 </div>
 
                 <Badge className={`w-full justify-center py-2 ${analysis.recommendation === 'STRONG_BUY' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                    analysis.recommendation === 'BUY' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                      analysis.recommendation === 'HOLD' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                        'bg-red-500/20 text-red-400 border-red-500/30'
+                  analysis.recommendation === 'BUY' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                    analysis.recommendation === 'HOLD' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                      'bg-red-500/20 text-red-400 border-red-500/30'
                   }`}>
                   {analysis.recommendation}
                 </Badge>
@@ -635,8 +637,8 @@ function AIInsightsTab({ properties, analyses, chatHistory, setChatHistory, chat
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`max-w-[80%] rounded-2xl p-4 ${message.role === 'user'
-                    ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white'
-                    : 'bg-white/10 text-gray-300'
+                  ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white'
+                  : 'bg-white/10 text-gray-300'
                   }`}>
                   {message.content}
                 </div>

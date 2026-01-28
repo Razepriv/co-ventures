@@ -11,6 +11,7 @@ import { Plus, MoreHorizontal, Pencil, Trash2, Eye, Star, Image as ImageIcon, Ch
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Checkbox } from '@/components/ui/checkbox'
 import { exportToCSV, formatPropertiesForExport } from '@/lib/utils/export'
 
@@ -216,10 +217,11 @@ export default function PropertiesPage() {
         return (
           <div className="relative h-16 w-24 rounded-lg overflow-hidden bg-gray-100">
             {imageUrl ? (
-              <img
+              <Image
                 src={imageUrl}
                 alt={row.original.title}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               <div className="h-full w-full flex items-center justify-center">

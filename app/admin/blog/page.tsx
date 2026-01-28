@@ -11,6 +11,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BlogPost {
   id: string
@@ -72,7 +73,7 @@ export default function BlogPage() {
       if (error) throw error
 
       setPosts(data || [])
-      
+
       const total = data?.length || 0
       // @ts-ignore
       const published = data?.filter(p => p.status === 'published').length || 0
@@ -108,11 +109,11 @@ export default function BlogPage() {
 
   async function toggleStatus(id: string, currentStatus: string) {
     const newStatus = currentStatus === 'published' ? 'draft' : 'published'
-    
+
     try {
       const supabase = getSupabaseClient()
       const updateData: any = { status: newStatus }
-      
+
       if (newStatus === 'published' && !posts.find(p => p.id === id)?.published_at) {
         updateData.published_at = new Date().toISOString()
       }
@@ -140,10 +141,11 @@ export default function BlogPage() {
       cell: ({ row }) => (
         <div className="relative h-16 w-24 rounded-lg overflow-hidden bg-gray-100">
           {row.original.featured_image ? (
-            <img
+            <Image
               src={row.original.featured_image}
               alt={row.original.title}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center">
@@ -197,7 +199,7 @@ export default function BlogPage() {
       header: 'Published',
       cell: ({ row }) => (
         <p className="text-sm text-gray-600">
-          {row.original.published_at 
+          {row.original.published_at
             ? formatDistanceToNow(new Date(row.original.published_at), { addSuffix: true })
             : '—'}
         </p>
@@ -223,7 +225,7 @@ export default function BlogPage() {
               {row.original.status === 'published' ? 'Unpublish' : 'Publish'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-red-600"
               onClick={() => handleDelete(row.original.id)}
             >

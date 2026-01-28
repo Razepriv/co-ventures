@@ -82,7 +82,10 @@ export default function LeadsPage() {
             // Fetch contact messages
             let contactsQuery = supabase
                 .from('contact_messages')
-                .select('*')
+                .select(`
+                  *,
+                  users:assigned_to (full_name)
+                `)
                 .order('created_at', { ascending: false })
 
             // Apply date range filter to both
@@ -137,6 +140,8 @@ export default function LeadsPage() {
                     phone: contact.phone || '',
                     source: 'Contact Form',
                     status: contact.status === 'resolved' ? 'converted' : contact.status,
+                    assigned_to: contact.assigned_to,
+                    users: contact.users,
                     created_at: contact.created_at,
                     message: contact.message,
                     table: 'contact_messages'
@@ -236,10 +241,6 @@ export default function LeadsPage() {
         const lead = leads.find(l => l.id === id)
         if (!lead) return
 
-        if (lead.table === 'contact_messages') {
-            toast.error('Cannot assign contact messages')
-            return
-        }
 
         const originalLeads = [...leads]
         const assignedMember = teamMembers.find(m => m.id === userId)
