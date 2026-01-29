@@ -85,7 +85,7 @@ function UserSignupContent() {
       if (existingUser) {
         toast.error('Account already exists. Please login instead.')
         setLoading(false)
-        router.push(`/auth/phone-login?phone=${encodeURIComponent(phoneNumber)}`)
+        router.push(`/auth/user-login?phone=${encodeURIComponent(phoneNumber)}`)
         return
       }
 
@@ -368,7 +368,7 @@ function UserSignupContent() {
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
               Already have an account? {' '}
-              <Link href="/auth/phone-login" className="text-coral font-semibold hover:text-coral-dark">
+              <Link href="/auth/user-login" className="text-coral font-semibold hover:text-coral-dark">
                 Login
               </Link>
             </p>

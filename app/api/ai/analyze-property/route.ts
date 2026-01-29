@@ -1,19 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-})
+import { AIService } from '@/lib/services/ai-service'
 
 export async function POST(request: Request) {
   const startTime = Date.now()
-  
+
   try {
     const supabase = await createClient()
-    
+
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -184,7 +180,7 @@ async function getFreePlan(supabase: any) {
 
 async function checkUsageLimit(supabase: any, userId: string, plan: any): Promise<boolean> {
   const analysesLimit = plan.analyses_per_month
-  
+
   // 0 means unlimited
   if (analysesLimit === 0) return true
 
@@ -224,28 +220,25 @@ Property Details:
 - Amenities: ${property.amenities ? JSON.stringify(property.amenities) : 'N/A'}
 `
 
-  const completion = await openai.chat.completions.create({
-    model: agent.model,
-    messages: [
-      {
-        role: 'system',
-        content: agent.system_prompt
-      },
-      {
-        role: 'user',
-        content: propertyContext
-      }
-    ],
-    temperature: agent.temperature,
-    max_tokens: agent.max_tokens
-  })
+  // Use AIService which now defaults to Gemini
+  const response = await AIService.generate(
+    agent.model || 'gemini-pro',
+    agent.system_prompt,
+    propertyContext,
+    agent.temperature,
+    agent.max_tokens
+  )
 
-  const response = completion.choices[0]?.message?.content || 'No analysis generated'
-  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to generate analysis')
+  }
+
   return {
-    analysis: response,
-    tokensUsed: completion.usage?.total_tokens || 0,
-    model: agent.model,
+    analysis: response.response,
+    // Note: Gemini via standard SDK doesn't always strictly return token usage.
+    // We'll estimate or leave as 0 for now.
+    tokensUsed: 0,
+    model: response.model,
     agentName: agent.display_name
   }
 }
@@ -253,7 +246,7 @@ Property Details:
 function synthesizeResults(results: any, agents: any[]) {
   // Simple scoring based on sentiment analysis
   // In production, you might want more sophisticated scoring
-  
+
   let totalScore = 0
   let validResults = 0
 
@@ -264,7 +257,7 @@ function synthesizeResults(results: any, agents: any[]) {
       const text = result.analysis.toLowerCase()
       const positiveWords = ['excellent', 'good', 'strong', 'positive', 'recommended', 'buy', 'growth', 'potential']
       const negativeWords = ['poor', 'weak', 'negative', 'avoid', 'risk', 'concern', 'delay', 'issue']
-      
+
       let score = 50 // Neutral
       positiveWords.forEach(word => {
         if (text.includes(word)) score += 5
@@ -272,7 +265,7 @@ function synthesizeResults(results: any, agents: any[]) {
       negativeWords.forEach(word => {
         if (text.includes(word)) score -= 5
       })
-      
+
       totalScore += Math.max(0, Math.min(100, score))
       validResults++
     }

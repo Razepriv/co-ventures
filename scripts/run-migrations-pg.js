@@ -2,14 +2,13 @@ const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-// Connection details for Supabase Pooler (IPv4 support)
-// Trying eu-central-1 (Frankfurt)
+// Connection details
 const client = new Client({
-    user: 'postgres.ydmxdokrtjolqigbtqbd',
-    host: 'aws-0-eu-central-1.pooler.supabase.com',
+    user: 'postgres',
+    host: 'db.ydmxdokrtjolqigbtqbd.supabase.co',
     database: 'postgres',
     password: 'Coventures@2026',
-    port: 5432, // Session mode for DDL
+    port: 5432,
     ssl: {
         rejectUnauthorized: false
     }
@@ -67,7 +66,8 @@ async function main() {
 
         const migrations = [
             'supabase/migrations/013_fix_form_rls_policies.sql',
-            'supabase/migrations/014_admin_panel_features.sql'
+            'supabase/migrations/014_admin_panel_features.sql',
+            'supabase/migrations/016_fix_notification_links.sql'
         ];
 
         for (const migration of migrations) {

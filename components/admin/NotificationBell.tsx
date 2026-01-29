@@ -6,37 +6,50 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Bell, Check, Mail, Users, UserPlus, Home, TrendingUp } from 'lucide-react'
+import { Bell, Check, Mail, Users, UserPlus, Home, TrendingUp, FileText, Star, MessageSquare } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 interface Notification {
     id: string
-    type: 'enquiry' | 'lead' | 'contact' | 'group_member' | 'user_registration' | 'property_update'
+    type: string // Allow string to be flexible with DB types
     title: string
     message: string | null
     link: string | null
     is_read: boolean
     created_at: string
+    metadata?: any
 }
 
-const notificationIcons = {
+const notificationIcons: Record<string, any> = {
     enquiry: Mail,
+    new_enquiry: Mail,
+    enquiry_update: MessageSquare,
     lead: TrendingUp,
     contact: Mail,
     group_member: Users,
     user_registration: UserPlus,
+    new_user: UserPlus,
     property_update: Home,
+    new_property: Home,
+    new_blog: FileText,
+    new_testimonial: Star,
 }
 
-const notificationColors = {
+const notificationColors: Record<string, string> = {
     enquiry: 'text-blue-600',
+    new_enquiry: 'text-blue-600',
+    enquiry_update: 'text-blue-500',
     lead: 'text-green-600',
     contact: 'text-purple-600',
     group_member: 'text-amber-600',
     user_registration: 'text-coral',
+    new_user: 'text-coral',
     property_update: 'text-indigo-600',
+    new_property: 'text-indigo-600',
+    new_blog: 'text-pink-600',
+    new_testimonial: 'text-yellow-500',
 }
 
 export function NotificationBell() {
@@ -140,8 +153,19 @@ export function NotificationBell() {
 
     function handleNotificationClick(notification: Notification) {
         markAsRead(notification.id)
-        if (notification.link) {
-            router.push(notification.link)
+
+        let targetLink = notification.link
+
+        // Smart linking using metadata
+        if (notification.metadata) {
+            if ((notification.type === 'enquiry' || notification.type === 'new_enquiry' || notification.type === 'enquiry_update') && notification.metadata.enquiry_id) {
+                targetLink = `/admin/enquiries/${notification.metadata.enquiry_id}`
+            }
+            // Add other smart links as needed
+        }
+
+        if (targetLink) {
+            router.push(targetLink)
             setOpen(false)
         }
     }
@@ -186,8 +210,8 @@ export function NotificationBell() {
                 ) : (
                     <div className="max-h-96 overflow-y-auto">
                         {notifications.map((notification) => {
-                            const Icon = notificationIcons[notification.type]
-                            const iconColor = notificationColors[notification.type]
+                            const Icon = notificationIcons[notification.type] || Mail // Fallback icon
+                            const iconColor = notificationColors[notification.type] || 'text-gray-500'
 
                             return (
                                 <DropdownMenuItem

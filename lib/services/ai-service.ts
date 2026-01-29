@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 interface AIResponse {
   success: boolean
@@ -10,10 +11,11 @@ interface AIResponse {
 
 export class AIService {
   /**
-   * Get API key for a specific provider from database
+   * Get API key for a specific provider from database or env
    */
-  static async getApiKey(provider: 'openai' | 'gemini' | 'anthropic' | 'cohere'): Promise<string | null> {
+  static async getApiKey(provider: 'gemini'): Promise<string | null> {
     try {
+      // First try to get from database (dynamic config)
       const supabase = createClient()
       const { data, error } = await supabase
         .from('ai_api_keys')
@@ -22,69 +24,23 @@ export class AIService {
         .eq('is_active', true)
         .single()
 
-      if (error || !data) {
-        console.error(`No active API key found for ${provider}`)
-        return null
+      if (data && (data as any).api_key) {
+        return (data as any).api_key
       }
 
-      return (data as any).api_key
+      // Fallback to environment variables
+      if (provider === 'gemini') {
+        return process.env.GEMINI_API_KEY || null
+      }
+
+      return null
     } catch (error) {
       console.error('Error fetching API key:', error)
+      // Fallback to environment variables on error
+      if (provider === 'gemini') {
+        return process.env.GEMINI_API_KEY || null
+      }
       return null
-    }
-  }
-
-  /**
-   * Generate content using OpenAI
-   */
-  static async generateWithOpenAI(
-    model: string,
-    systemPrompt: string,
-    userPrompt: string,
-    temperature: number = 0.7,
-    maxTokens: number = 2000
-  ): Promise<AIResponse> {
-    try {
-      const apiKey = await this.getApiKey('openai')
-      if (!apiKey) {
-        return { success: false, error: 'OpenAI API key not configured' }
-      }
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: temperature,
-          max_tokens: maxTokens
-        })
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error?.message || 'OpenAI API request failed')
-      }
-
-      const data = await response.json()
-      return {
-        success: true,
-        response: data.choices[0].message.content,
-        model: model,
-        provider: 'openai'
-      }
-    } catch (error) {
-      console.error('OpenAI generation error:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }
     }
   }
 
@@ -104,48 +60,34 @@ export class AIService {
         return { success: false, error: 'Gemini API key not configured' }
       }
 
-      // Combine system prompt and user prompt for Gemini
-      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`
+      const genAI = new GoogleGenerativeAI(apiKey)
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: combinedPrompt
-              }]
-            }],
-            generationConfig: {
-              temperature: temperature,
-              maxOutputTokens: maxTokens,
-              topP: 0.8,
-              topK: 40
-            }
-          })
+      // Default to gemini-pro if model is not specified or is an invalid one
+      // If user passed a GPT model name, switch to gemini-pro
+      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-pro'
+
+      const genModel = genAI.getGenerativeModel({ model: modelName })
+
+      // Gemini doesn't have a strict "system" role in the same way as OpenAI for chat
+      // but we can prepend it or use systemInstruction if supported by specific models.
+      // safely prepending is the most compatible way.
+      const prompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}`
+
+      const result = await genModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
         }
-      )
+      })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error?.message || 'Gemini API request failed')
-      }
-
-      const data = await response.json()
-      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-      if (!generatedText) {
-        throw new Error('No response generated from Gemini')
-      }
+      const response = result.response
+      const text = response.text()
 
       return {
         success: true,
-        response: generatedText,
-        model: model,
+        response: text,
+        model: modelName,
         provider: 'gemini'
       }
     } catch (error) {
@@ -159,6 +101,7 @@ export class AIService {
 
   /**
    * Generate content using the appropriate provider based on model
+   * Now exclusively uses Gemini
    */
   static async generate(
     model: string,
@@ -167,15 +110,8 @@ export class AIService {
     temperature: number = 0.7,
     maxTokens: number = 2000
   ): Promise<AIResponse> {
-    // Determine provider based on model name
-    if (model.startsWith('gpt-')) {
-      return this.generateWithOpenAI(model, systemPrompt, userPrompt, temperature, maxTokens)
-    } else if (model.startsWith('gemini-')) {
-      return this.generateWithGemini(model, systemPrompt, userPrompt, temperature, maxTokens)
-    } else {
-      // Default to trying Gemini (as it's more flexible with model names)
-      return this.generateWithGemini(model, systemPrompt, userPrompt, temperature, maxTokens)
-    }
+    // Force Gemini for all requests, even if model name is OpenAI-like
+    return this.generateWithGemini(model, systemPrompt, userPrompt, temperature, maxTokens)
   }
 
   /**
@@ -187,7 +123,7 @@ export class AIService {
   ): Promise<AIResponse> {
     try {
       const supabase = createClient()
-      
+
       // Get agent configuration
       const { data: agent, error } = await supabase
         .from('ai_agent_configurations')
@@ -207,7 +143,7 @@ export class AIService {
 
       // Generate response
       return await this.generate(
-        agentData.model,
+        agentData.model || 'gemini-pro',
         agentData.system_prompt,
         userPrompt,
         agentData.temperature || 0.7,
@@ -306,7 +242,7 @@ ${JSON.stringify(context, null, 2)}`
     })
 
     const responses = await Promise.all(promises)
-    
+
     responses.forEach(({ slug, result }) => {
       results[slug] = result
     })
