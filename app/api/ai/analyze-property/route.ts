@@ -39,6 +39,9 @@ export async function POST(request: Request) {
     const plan = subscription?.plan || await getFreePlan(supabase)
 
     // Check usage limits
+    // Check usage limits
+    // STOPPING CHECKS: Subscription Plan checks disabled to allow full access for all users
+    /*
     const canAnalyze = await checkUsageLimit(supabase, user.id, plan)
     if (!canAnalyze) {
       return NextResponse.json(
@@ -46,6 +49,7 @@ export async function POST(request: Request) {
         { status: 403 }
       )
     }
+    */
 
     // Get property details
     const { data: property, error: propertyError } = await supabase
@@ -70,6 +74,8 @@ export async function POST(request: Request) {
     }
 
     // Check if user has access to all requested agents
+    // STOPPING CHECKS: Agent access checks disabled to allow full access for all users
+    /*
     for (const agent of agents) {
       // @ts-ignore
       const hasAccess = checkAgentAccess(plan, agent.agent_slug)
@@ -81,6 +87,7 @@ export async function POST(request: Request) {
         )
       }
     }
+    */
 
     // Run AI analysis with each agent
     const analysisResults: any = {}
