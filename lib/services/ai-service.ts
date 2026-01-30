@@ -238,24 +238,33 @@ export class AIService {
           provider: 'gemini'
         }
       } catch (chatError: any) {
-        // RETRY LOGIC: If the specific model fails (likely 404 Not Found), try the legacy 'gemini-pro' as a last resort
+        // RETRY LOGIC: If the specific model fails (likely 404 Not Found)
         if (chatError.message && (chatError.message.includes('404') || chatError.message.includes('not found'))) {
-          console.warn(`Chat Model ${modelName} failed with 404. Retrying with legacy 'gemini-pro'...`)
+          // Smart Fallback: Don't just try 'gemini-pro' (which is deprecated).
+          // If we failed on an advanced model, try 1.5-flash.
+          // If we failed on 1.5-flash, try 1.0-pro.
+          const fallbackModelName = modelName.includes('1.5-flash') ? 'gemini-1.0-pro' : 'gemini-1.5-flash'
 
-          const legacyModel = genAI.getGenerativeModel({ model: 'gemini-pro' })
+          console.warn(`Chat Model ${modelName} failed with 404. Retrying with fallback '${fallbackModelName}'...`)
+
+          const legacyModel = genAI.getGenerativeModel({ model: fallbackModelName })
           // Re-create the chat session with the fallback model
           const legacyChat = legacyModel.startChat({
             history: history,
             generationConfig: { temperature, maxOutputTokens: 2000 }
           })
 
-          const result = await legacyChat.sendMessage(newMessage)
-
-          return {
-            success: true,
-            response: result.response.text(),
-            model: 'gemini-pro (fallback)',
-            provider: 'gemini'
+          try {
+            const result = await legacyChat.sendMessage(newMessage)
+            return {
+              success: true,
+              response: result.response.text(),
+              model: `${fallbackModelName} (fallback)`,
+              provider: 'gemini'
+            }
+          } catch (retryError) {
+            console.error(`Fallback model ${fallbackModelName} also failed:`, retryError)
+            throw chatError // Throw original error if fallback fails
           }
         }
         throw chatError
