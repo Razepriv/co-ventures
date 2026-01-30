@@ -317,6 +317,12 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       return
     }
 
+    // Subscription check disabled for now - allowing all logged in users
+    // if (!['pro', 'enterprise'].includes(currentPlan)) {
+    //   setShowSubscriptionModal(true)
+    //   return
+    // }
+
     setShowAIAssistant(true)
     if (aiMessages.length === 0) {
       // Add welcome message
