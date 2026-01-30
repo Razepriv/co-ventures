@@ -227,14 +227,38 @@ export class AIService {
       // Note: Gemini API doesn't strictly separate System Prompts in chat history in the Node SDK 
       // the same way OpenAI does, but we can prepend context.
 
-      const result = await chat.sendMessage(newMessage)
-      const response = result.response.text()
+      try {
+        const result = await chat.sendMessage(newMessage)
+        const response = result.response.text()
 
-      return {
-        success: true,
-        response,
-        model: modelName,
-        provider: 'gemini'
+        return {
+          success: true,
+          response,
+          model: modelName,
+          provider: 'gemini'
+        }
+      } catch (chatError: any) {
+        // RETRY LOGIC: If the specific model fails (likely 404 Not Found), try the legacy 'gemini-pro' as a last resort
+        if (chatError.message && (chatError.message.includes('404') || chatError.message.includes('not found'))) {
+          console.warn(`Chat Model ${modelName} failed with 404. Retrying with legacy 'gemini-pro'...`)
+
+          const legacyModel = genAI.getGenerativeModel({ model: 'gemini-pro' })
+          // Re-create the chat session with the fallback model
+          const legacyChat = legacyModel.startChat({
+            history: history,
+            generationConfig: { temperature, maxOutputTokens: 2000 }
+          })
+
+          const result = await legacyChat.sendMessage(newMessage)
+
+          return {
+            success: true,
+            response: result.response.text(),
+            model: 'gemini-pro (fallback)',
+            provider: 'gemini'
+          }
+        }
+        throw chatError
       }
     } catch (error) {
       console.error('Gemini chat error:', error)
