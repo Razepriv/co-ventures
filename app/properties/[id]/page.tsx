@@ -395,7 +395,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
 
       setAiMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.message || 'I apologize, but I encountered an error. Please try again.'
+        content: data.content || 'I apologize, but I encountered an error. Please try again.'
       }])
     } catch (error: any) {
       console.error('AI Chat error:', error)
