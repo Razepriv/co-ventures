@@ -241,14 +241,14 @@ GUIDELINES:
 
       if (previousHistory.length === 0) {
         return await this.chat(
-          'gemini-pro',
+          'gemini-1.5-flash',
           systemPrompt,
           [],
           `SYSTEM_INSTRUCTIONS:\n${systemPrompt}\n\nUSER_QUERY:\n${newMessage}`
         )
       } else {
         return await this.chat(
-          'gemini-pro',
+          'gemini-1.5-flash',
           systemPrompt,
           previousHistory,
           `[SYSTEM_REMINDER: Use property data and agent personas]\n\n${newMessage}`
