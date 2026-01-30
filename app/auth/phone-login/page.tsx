@@ -1,31 +1,29 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/firebase/config'
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  ConfirmationResult
+  ConfirmationResult,
 } from 'firebase/auth'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Phone, Lock, User, Mail, ArrowLeft } from 'lucide-react'
+import { Phone, Lock, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-function UserSignupContent() {
+export default function UserLoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [step, setStep] = useState<'details' | 'otp'>('details')
-  const [phoneNumber, setPhoneNumber] = useState(searchParams.get('phone') || '+91')
+  const [step, setStep] = useState<'phone' | 'details' | 'otp'>('phone')
+  const [phoneNumber, setPhoneNumber] = useState('+91')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null)
 
   const verifierRef = useRef<RecaptchaVerifier | null>(null)
 
@@ -42,7 +40,6 @@ function UserSignupContent() {
         }
       })
       verifierRef.current = verifier
-      setRecaptchaVerifier(verifier)
     }
 
     return () => {
@@ -52,6 +49,36 @@ function UserSignupContent() {
       }
     }
   }, [])
+
+  async function handlePhoneSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (phoneNumber.length < 13) {
+      toast.error('Please enter a valid phone number')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Skip database check - just send OTP directly
+      // User will be verified/created after OTP confirmation
+      await sendOTP()
+      setStep('otp')
+      toast.success('OTP sent successfully!')
+    } catch (error: any) {
+      console.error('Error sending OTP:', error)
+      if (error.code === 'auth/invalid-phone-number') {
+        toast.error('Invalid phone number format')
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Too many attempts. Please try again later.')
+      } else {
+        toast.error('Failed to send OTP. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleDetailsSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -66,58 +93,49 @@ function UserSignupContent() {
       return
     }
 
-    if (phoneNumber.length < 13) {
-      toast.error('Please enter a valid phone number')
-      return
-    }
-
     setLoading(true)
 
     try {
-      // Check if user already exists
-      const supabase = getSupabaseClient()
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('phone', phoneNumber)
-        .single()
-
-      if (existingUser) {
-        toast.error('Account already exists. Please login instead.')
-        setLoading(false)
-        router.push(`/auth/user-login?phone=${encodeURIComponent(phoneNumber)}`)
-        return
-      }
-
-      // Send OTP
       await sendOTP()
       setStep('otp')
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error sending OTP:', error)
     } finally {
       setLoading(false)
     }
   }
 
   async function sendOTP() {
-    if (!recaptchaVerifier) {
+    if (!verifierRef.current) {
       toast.error('reCAPTCHA not initialized. Please refresh the page.')
       return
     }
 
     try {
-      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+      console.log('Attempting to send OTP to:', phoneNumber)
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current)
       setConfirmationResult(confirmation)
       toast.success('OTP sent successfully!')
     } catch (error: any) {
       console.error('Error sending OTP:', error)
+      console.error('Error code:', error.code)
+      console.error('Error message:', error.message)
 
+      // More detailed error messages
       if (error.code === 'auth/invalid-phone-number') {
-        toast.error('Invalid phone number format')
+        toast.error('Invalid phone number format. Use +[country code][number]')
       } else if (error.code === 'auth/too-many-requests') {
         toast.error('Too many requests. Please try again later.')
+      } else if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Phone authentication is not enabled. Please contact support.')
+      } else if (error.code === 'auth/captcha-check-failed') {
+        toast.error('reCAPTCHA verification failed. Please refresh and try again.')
+      } else if (error.code === 'auth/missing-phone-number') {
+        toast.error('Please enter a phone number')
+      } else if (error.message.includes('Firebase')) {
+        toast.error('Firebase error: ' + error.message)
       } else {
-        toast.error('Failed to send OTP')
+        toast.error('Failed to send OTP: ' + (error.message || 'Unknown error'))
       }
 
       throw error
@@ -140,11 +158,73 @@ function UserSignupContent() {
     setLoading(true)
 
     try {
-      // Verify OTP
+      // Verify OTP with Firebase
       const result = await confirmationResult.confirm(otp)
       const firebaseUser = result.user
 
-      // Create user via API
+      // Create or update user in Supabase
+      const supabase = getSupabaseClient()
+
+      // First, try to find user by phone OR firebase_uid
+      let existingUser = null
+
+      // Try by firebase_uid first (most reliable)
+      const { data: byFirebaseUid } = await supabase
+        .from('users')
+        .select('*')
+        .eq('firebase_uid', firebaseUser.uid)
+        .maybeSingle()
+
+      if (byFirebaseUid) {
+        existingUser = byFirebaseUid
+      } else {
+        // Try by phone
+        const { data: byPhone } = await supabase
+          .from('users')
+          .select('*')
+          .eq('phone', phoneNumber)
+          .maybeSingle()
+
+        if (byPhone) {
+          existingUser = byPhone
+        }
+      }
+
+      if (existingUser) {
+        // User exists - update and login
+        await (supabase as any)
+          .from('users')
+          .update({
+            firebase_uid: firebaseUser.uid,
+            phone: phoneNumber,
+            phone_verified: true,
+            last_login_at: new Date().toISOString()
+          })
+          .eq('id', (existingUser as any).id)
+
+        // Sign in to Supabase Auth to establish session (Bridge Login)
+        await supabase.auth.signInWithPassword({
+          email: (existingUser as any).email || `${phoneNumber}@placeholder.com`,
+          password: firebaseUser.uid
+        })
+
+        toast.success('Successfully logged in!')
+        router.push('/')
+        // Refresh page after a short delay to ensure AuthProvider picks up the session
+        setTimeout(() => window.location.reload(), 500)
+        return
+      }
+
+      // User doesn't exist - need to collect details for signup
+      // Check if we already have details from the form
+      if (!fullName || !email) {
+        // Show details step
+        setStep('details')
+        toast.info('Please provide your details to complete signup')
+        return
+      }
+
+      // Create new user via API
       const response = await fetch('/api/auth/user-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,35 +240,32 @@ function UserSignupContent() {
       const data = await response.json()
 
       if (!response.ok) {
+        // Check if user already exists
+        if (response.status === 409 || (data.error && data.error.includes('already'))) {
+          // Attempt login if user creation failed because they exist
+          await supabase.auth.signInWithPassword({
+            email: email,
+            password: firebaseUser.uid
+          })
+          toast.success('Successfully logged in!')
+          router.push('/')
+          setTimeout(() => window.location.reload(), 500)
+          return
+        }
         toast.error(data.error || 'Failed to create account')
-        setLoading(false)
         return
       }
 
-      // Update with Firebase fields
-      const supabase = getSupabaseClient()
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single()
+      // Sign in with the newly created account
+      await supabase.auth.signInWithPassword({
+        email: email,
+        password: firebaseUser.uid
+      })
 
-      const newUser = userData as any
-
-      if (newUser) {
-        await supabase
-          .from('users')
-          // @ts-ignore
-          .update({
-            firebase_uid: firebaseUser.uid,
-            phone_verified: true,
-            last_login_at: new Date().toISOString()
-          })
-          .eq('id', newUser.id)
-      }
-
-      toast.success('Account created successfully!')
+      toast.success('Account created and logged in!')
       router.push('/')
+      // Refresh page after a short delay to ensure AuthProvider picks up the session
+      setTimeout(() => window.location.reload(), 500)
 
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
@@ -232,60 +309,27 @@ function UserSignupContent() {
           Back to Home
         </Link>
 
-        {/* Signup Card */}
+        {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-coral rounded-full mb-4">
               <Phone className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Phone Login</h1>
             <p className="mt-2 text-gray-600">
-              {step === 'details' && 'Enter your details to get started'}
-              {step === 'otp' && 'Verify your phone number'}
+              {step === 'phone' && 'Enter your phone number to continue'}
+              {step === 'details' && 'Complete your profile'}
+              {step === 'otp' && 'Enter the OTP sent to your phone'}
             </p>
           </div>
 
-          {/* Details Step */}
-          {step === 'details' && (
-            <form onSubmit={handleDetailsSubmit} className="space-y-6">
+          {/* Phone Number Step */}
+          {step === 'phone' && (
+            <form onSubmit={handlePhoneSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name *
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john@example.com"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
+                  Phone Number
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -308,7 +352,7 @@ function UserSignupContent() {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? 'Sending OTP...' : 'Continue'}
+                {loading ? 'Processing...' : 'Continue'}
               </Button>
             </form>
           )}
@@ -342,7 +386,7 @@ function UserSignupContent() {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? 'Verifying...' : 'Create Account'}
+                {loading ? 'Verifying...' : 'Verify OTP'}
               </Button>
 
               <button
@@ -353,26 +397,20 @@ function UserSignupContent() {
               >
                 Resend OTP
               </button>
-
-              <button
-                type="button"
-                onClick={() => setStep('details')}
-                className="w-full text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                ← Back to details
-              </button>
             </form>
           )}
 
-          {/* Login Link */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              Already have an account? {' '}
-              <Link href="/auth/user-login" className="text-coral font-semibold hover:text-coral-dark">
-                Login
-              </Link>
-            </p>
-          </div>
+          {/* Sign Up Link */}
+          {step === 'phone' && (
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-center text-sm text-gray-600">
+                Don't have an account? {' '}
+                <Link href="/auth/phone-signup" className="text-coral font-semibold hover:text-coral-dark">
+                  Sign up
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Additional Info */}
@@ -381,17 +419,5 @@ function UserSignupContent() {
         </p>
       </div>
     </div>
-  )
-}
-
-export default function UserSignupPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-coral-light via-white to-blue-50 flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-600"></div>
-      </div>
-    }>
-      <UserSignupContent />
-    </Suspense>
   )
 }

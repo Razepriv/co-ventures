@@ -39,7 +39,7 @@ export default function LoginPage() {
 
       // Wait a bit for the profile to load
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       // Force a hard redirect to admin panel
       window.location.href = '/admin'
     } catch (err) {
@@ -71,7 +71,7 @@ export default function LoginPage() {
                 <span>{error}</span>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 disabled={loading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -99,8 +99,8 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <Link 
-                href="/auth/forgot-password" 
+              <Link
+                href="/auth/forgot-password"
                 className="text-coral-600 hover:text-coral-700 hover:underline"
               >
                 Forgot password?
@@ -108,9 +108,9 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={loading}
             >
               {loading ? (
@@ -133,8 +133,8 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center text-sm">
-              <Link 
-                href="/auth/user-login" 
+              <Link
+                href="/auth/phone-login"
                 className="text-gray-600 hover:text-gray-900 hover:underline"
               >
                 Sign in as User →
