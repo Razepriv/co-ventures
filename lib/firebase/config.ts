@@ -13,13 +13,13 @@ const getEnv = (key: string, defaultVal: string = '') => {
 const firebaseConfig = {
   // Fallback to "mock_key" if env var is missing during build
   // This prevents build crashes when env vars are not yet set in Vercel
-  apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'mock_key'),
-  authDomain: getEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'mock_domain'),
-  projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'mock_project'),
-  storageBucket: getEnv('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET', 'mock_bucket'),
-  messagingSenderId: getEnv('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', '123456789'),
-  appId: getEnv('NEXT_PUBLIC_FIREBASE_APP_ID', '1:123456789:web:mock'),
-  measurementId: getEnv('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID', 'G-MOCK')
+  apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'AIzaSyAjPmODrdEiuNAhDVtnnGEzD-Q_GqtuXJw'),
+  authDomain: getEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'co-ventures-prod.firebaseapp.com'),
+  projectId: getEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'co-ventures-prod'),
+  storageBucket: getEnv('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET', 'co-ventures-prod.firebasestorage.app'),
+  messagingSenderId: getEnv('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', '311486829236'),
+  appId: getEnv('NEXT_PUBLIC_FIREBASE_APP_ID', '1:311486829236:web:c691af0460b3784371fde1'),
+  measurementId: getEnv('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID', 'G-85ZXMHSFXJ')
 }
 
 // Initialize Firebase (singleton pattern to avoid re-initialization)
