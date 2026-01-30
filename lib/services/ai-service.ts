@@ -62,9 +62,9 @@ export class AIService {
 
       const genAI = new GoogleGenerativeAI(apiKey)
 
-      // Default to gemini-pro if model is not specified or is an invalid one
-      // If user passed a GPT model name, switch to gemini-pro
-      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-pro'
+      // Default to gemini-1.5-flash if model is not specified or is an invalid one
+      // If user passed a GPT model name, switch to gemini-1.5-flash
+      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-1.5-flash'
 
       const genModel = genAI.getGenerativeModel({ model: modelName })
 
@@ -131,7 +131,7 @@ export class AIService {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey)
-      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-pro'
+      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-1.5-flash'
       const genModel = genAI.getGenerativeModel({ model: modelName })
 
       const chat = genModel.startChat({
@@ -293,7 +293,7 @@ GUIDELINES:
 
       // Generate response
       return await this.generate(
-        agentData.model || 'gemini-pro',
+        agentData.model || 'gemini-1.5-flash',
         agentData.system_prompt,
         userPrompt,
         agentData.temperature || 0.7,
