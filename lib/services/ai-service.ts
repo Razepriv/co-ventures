@@ -65,18 +65,17 @@ export class AIService {
 
       // Priority list of models to look for
       const priorityModels = [
-        'gemini-3.0-pro-preview',
+        'gemini-3-pro-preview',
+        'gemini-3-flash-preview',
+        'deep-research-pro-preview-12-2025',
         'gemini-2.5-pro',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-exp-1206',
         'gemini-2.0-flash-exp',
-        'gemini-2.0-pro-exp',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-flash-001',
         'gemini-1.5-pro',
-        'gemini-1.5-pro-latest',
-        'gemini-1.5-pro-001',
-        'gemini-pro',
-        'gemini-1.0-pro'
+        'gemini-1.5-flash',
+        'gemini-pro'
       ]
 
       for (const priorityModel of priorityModels) {
