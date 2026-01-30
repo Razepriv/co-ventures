@@ -45,6 +45,55 @@ export class AIService {
   }
 
   /**
+   * Fetch available models from Gemini API and select the best one
+   */
+  private static async getBestAvailableModel(apiKey: string): Promise<string> {
+    try {
+      // Use the REST API to list models because the SDK doesn't always make it easy to list without init
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+
+      if (!response.ok) {
+        console.warn('Failed to fetch models list, defaulting to gemini-1.5-flash')
+        return 'gemini-1.5-flash'
+      }
+
+      const data = await response.json()
+      const models = data.models || []
+
+      // Detailed logging for debugging
+      console.log('Available Gemini Models:', models.map((m: any) => m.name))
+
+      // Priority list of models to look for
+      const priorityModels = [
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash-001',
+        'gemini-1.5-pro',
+        'gemini-1.5-pro-latest',
+        'gemini-1.5-pro-001',
+        'gemini-pro',
+        'gemini-1.0-pro'
+      ]
+
+      for (const priorityModel of priorityModels) {
+        // Check if any available model name ends with the priority model name
+        // The API returns names like "models/gemini-1.5-flash"
+        const found = models.find((m: any) => m.name.endsWith(priorityModel) && m.supportedGenerationMethods?.includes('generateContent'))
+        if (found) {
+          // Return the clean model name (without 'models/' prefix usually, but SDK handles both)
+          return found.name.replace('models/', '')
+        }
+      }
+
+      // If no priority model found, just return a fallback
+      return 'gemini-1.5-flash'
+    } catch (error) {
+      console.error('Error fetching models:', error)
+      return 'gemini-1.5-flash'
+    }
+  }
+
+  /**
    * Generate content using Google Gemini
    */
   static async generateWithGemini(
@@ -62,9 +111,11 @@ export class AIService {
 
       const genAI = new GoogleGenerativeAI(apiKey)
 
-      // Default to gemini-1.5-flash if model is not specified or is an invalid one
-      // If user passed a GPT model name, switch to gemini-1.5-flash
-      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-1.5-flash'
+      // Auto-fetch best model if default is requested or ensure we use a valid one
+      let modelName = model
+      if (!model || model.startsWith('gemini') || model === 'default') {
+        modelName = await this.getBestAvailableModel(apiKey)
+      }
 
       const genModel = genAI.getGenerativeModel({ model: modelName })
 
@@ -131,7 +182,13 @@ export class AIService {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey)
-      const modelName = (model.startsWith('gemini') || model.startsWith('models/')) ? model : 'gemini-1.5-flash'
+
+      // Auto-fetch best model
+      let modelName = model
+      if (!model || model.startsWith('gemini') || model === 'default') {
+        modelName = await this.getBestAvailableModel(apiKey)
+      }
+
       const genModel = genAI.getGenerativeModel({ model: modelName })
 
       const chat = genModel.startChat({
@@ -241,14 +298,14 @@ GUIDELINES:
 
       if (previousHistory.length === 0) {
         return await this.chat(
-          'gemini-1.5-flash',
+          'default', // Use auto-resolution
           systemPrompt,
           [],
           `SYSTEM_INSTRUCTIONS:\n${systemPrompt}\n\nUSER_QUERY:\n${newMessage}`
         )
       } else {
         return await this.chat(
-          'gemini-1.5-flash',
+          'default', // Use auto-resolution
           systemPrompt,
           previousHistory,
           `[SYSTEM_REMINDER: Use property data and agent personas]\n\n${newMessage}`
