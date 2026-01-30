@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createAdminClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 interface AIResponse {
@@ -15,8 +15,8 @@ export class AIService {
    */
   static async getApiKey(provider: 'gemini'): Promise<string | null> {
     try {
-      // First try to get from database (dynamic config)
-      const supabase = createClient()
+      // First try to get from database (dynamic config) using Admin Client to bypass RLS
+      const supabase = await createAdminClient()
       const { data, error } = await supabase
         .from('ai_api_keys')
         .select('api_key')
@@ -57,7 +57,7 @@ export class AIService {
     try {
       const apiKey = await this.getApiKey('gemini')
       if (!apiKey) {
-        return { success: false, error: 'Gemini API key not configured' }
+        return { success: false, error: 'Gemini API key not configured in Admin Panel or Environment' }
       }
 
       const genAI = new GoogleGenerativeAI(apiKey)
@@ -127,7 +127,7 @@ export class AIService {
     try {
       const apiKey = await this.getApiKey('gemini')
       if (!apiKey) {
-        return { success: false, error: 'Gemini API key not configured' }
+        return { success: false, error: 'Gemini API key not configured in Admin Panel or Environment' }
       }
 
       const genAI = new GoogleGenerativeAI(apiKey)
@@ -173,12 +173,28 @@ export class AIService {
     propertyContext: any
   ): Promise<AIResponse> {
     try {
-      // Construct a comprehensive system prompt for the Master Agent
-      const systemPrompt = `You are an expert Real Estate Investment Advisor acting as a "Master Agent" for Co-Housing Ventures.
-Your goal is to assist users by providing comprehensive analysis of the property based on the available data.
-You have access to knowledge across multiple domains: Market Analysis, Financial Underwriting, Developer Verification, Legal/Regulatory Compliance, and Exit Strategies.
+      // 1. Fetch all configured agents from the database
+      const supabase = await createAdminClient()
+      const { data: agents, error } = await supabase
+        .from('ai_agent_configurations')
+        .select('*')
+        .eq('is_enabled', true)
 
-PROPERTY DETAILS:
+      let subAgentContext = ""
+      if (agents && agents.length > 0) {
+        subAgentContext = "\n\nYOU HAVE ACCESS TO THE FOLLOWING SPECIALIZED AGENT PERSONAS (Use these perspectives when answering):\n" +
+          agents.map((agent: any) =>
+            `- ${agent.name} (${agent.agent_slug}): ${agent.description}\n  Key Focus: ${agent.system_prompt.substring(0, 100)}...`
+          ).join("\n")
+      }
+
+      // Construct a comprehensive system prompt for the Master Agent
+      const systemPrompt = `You are the "Master AI Agent" for Co-Housing Ventures, an expert Real Estate Investment Advisor.
+Your goal is to be the single point of truth for the user, synthesizing insights from all available domains.
+
+${subAgentContext}
+
+PROPERTY CONTEXT:
 Title: ${propertyContext.title}
 Price: ${propertyContext.price}
 Location: ${propertyContext.location}
@@ -195,13 +211,11 @@ Amenities: ${propertyContext.amenities?.join(', ') || 'Standard amenities'}
 Highlights: ${propertyContext.investment_highlights?.join('; ') || 'Prime location'}
 
 GUIDELINES:
-1. Answer the user's questions specifically using the property data provided.
-2. If the user asks about ROI, perform a financial analysis.
-3. If the user asks about the location, provide market insights (you can infer general area trends if specific data is missing).
-4. If the user asks about safety/legal, refer to RERA and developer reputation.
-5. Be professional, encouraging, but objective about risks.
-6. If a piece of information is missing (e.g., exact lock-in period), state that it's "To Be Confirmed" rather than guessing.
-7. Keep responses concise and structured (use markdown).`
+1. Orchestrate your response by drawing from the relevant agent perspectives above.
+2. If the user asks about market trends, adopt the 'Market Pulse' persona.
+3. If specific financial data is asked, use the 'Deal Underwriter' logic.
+4. Always ground your answers in the provided Property Context.
+5. Be concise, professional, and helpful. Use markdown formatting.`
 
       // Format history for Gemini
       const formattedHistory = history.map(msg => ({
@@ -217,28 +231,19 @@ GUIDELINES:
       const newMessage = lastMessage?.parts[0]?.text || ''
       const previousHistory = formattedHistory
 
-      // Prepend System Prompt to the chat context implicitly by modifying the first message 
-      // or handling it via instruction if model supports it. 
-      // For simplicity/robustness, we'll verify if history is empty.
-
       if (previousHistory.length === 0) {
-        // First turn: Combine System Prompt + User Message
         return await this.chat(
           'gemini-pro',
           systemPrompt,
           [],
-          `SYSTEM INSTRUCTIONS:\n${systemPrompt}\n\nUSER QUESTION:\n${newMessage}`
+          `SYSTEM_INSTRUCTIONS:\n${systemPrompt}\n\nUSER_QUERY:\n${newMessage}`
         )
       } else {
-        // Subsequent turns: The system prompt context is technically 'lost' in pure history 
-        // unless we re-inject it. A common trick is to use a dummy first turn or just rely on the model 
-        // effectively recalling from context window if we passed it before.
-        // BETTER APPROACH: Just prepend system instructions to the new message again to reinforce behavior.
         return await this.chat(
           'gemini-pro',
           systemPrompt,
           previousHistory,
-          `[SYSTEM REMINDER: Act as the Real Estate Advisor for ${propertyContext.title}]\n\n${newMessage}`
+          `[SYSTEM_REMINDER: Use property data and agent personas]\n\n${newMessage}`
         )
       }
 
@@ -259,7 +264,7 @@ GUIDELINES:
     context: any
   ): Promise<AIResponse> {
     try {
-      const supabase = createClient()
+      const supabase = await createAdminClient()
 
       // Get agent configuration
       const { data: agent, error } = await supabase
