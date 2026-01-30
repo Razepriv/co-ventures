@@ -120,6 +120,33 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
 
+  const [activeAgent, setActiveAgent] = useState('')
+
+  // Sub-agents for simulation
+  const agents = useMemo(() => [
+    { name: 'Market Pulse', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-100' },
+    { name: 'Deal Underwriter', icon: DollarSign, color: 'text-green-500', bg: 'bg-green-100' },
+    { name: 'Developer Verification', icon: Building2, color: 'text-purple-500', bg: 'bg-purple-100' },
+    { name: 'Legal Compliance', icon: Shield, color: 'text-red-500', bg: 'bg-red-100' },
+    { name: 'Exit Optimizer', icon: PieChart, color: 'text-orange-500', bg: 'bg-orange-100' },
+    { name: 'Committee Synthesizer', icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-100' }
+  ], [])
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (aiLoading) {
+      let index = 0
+      setActiveAgent(agents[0].name)
+      interval = setInterval(() => {
+        index = (index + 1) % agents.length
+        setActiveAgent(agents[index].name)
+      }, 1200) // Change agent every 1.2s
+    } else {
+      setActiveAgent('')
+    }
+    return () => clearInterval(interval)
+  }, [aiLoading, agents])
+
   // New state for TogetherBuying features
   const [highlights, setHighlights] = useState<any[]>([])
   const [amenities, setAmenities] = useState<any[]>([])
@@ -1093,15 +1120,36 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                 </div>
               ))}
               {aiLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-white" />
+                <div className="flex flex-col gap-2 animate-pulse">
+                  <div className="flex gap-3 justify-start items-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                    {/* Dynamic Agent Status */}
+                    <div className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 shadow-sm">
+                      {activeAgent && (
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            const agent = agents.find(a => a.name === activeAgent)
+                            if (!agent) return null
+                            const Icon = agent.icon
+                            return (
+                              <div className={`p-1.5 rounded-full ${agent.bg}`}>
+                                <Icon className={`w-4 h-4 ${agent.color}`} />
+                              </div>
+                            )
+                          })()}
+                          <span className="text-sm font-medium text-gray-700">
+                            {activeAgent} is analyzing...
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  {/* Progress Line */}
+                  <div className="pl-12 pr-4">
+                    <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-purple-500 to-blue-500 w-1/3 animate-progress"></div>
                     </div>
                   </div>
                 </div>
