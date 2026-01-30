@@ -31,8 +31,8 @@ export const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Co Housing Ventures',
-  url: 'https://cohousingventures.com',
-  logo: 'https://cohousingventures.com/logo.png',
+  url: 'https://www.coventure.in',
+  logo: 'https://www.coventure.in/logo.png',
   description: 'Making premium real estate accessible through collaborative co-ownership',
   address: {
     '@type': 'PostalAddress',
@@ -45,7 +45,7 @@ export const organizationSchema = {
     '@type': 'ContactPoint',
     telephone: '+91-98765-43210',
     contactType: 'Customer Service',
-    email: 'hello@cohousingventures.com',
+    email: 'info@coventure.in',
     availableLanguage: ['English', 'Hindi'],
   },
   sameAs: [
@@ -60,10 +60,10 @@ export const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Co Housing Ventures',
-  url: 'https://cohousingventures.com',
+  url: 'https://www.coventure.in',
   potentialAction: {
     '@type': 'SearchAction',
-    target: 'https://cohousingventures.com/properties?search={search_term_string}',
+    target: 'https://www.coventure.in/properties?search={search_term_string}',
     'query-input': 'required name=search_term_string',
   },
 };
@@ -76,7 +76,7 @@ export const breadcrumbSchema = {
       '@type': 'ListItem',
       position: 1,
       name: 'Home',
-      item: 'https://cohousingventures.com',
+      item: 'https://www.coventure.in',
     },
   ],
 };

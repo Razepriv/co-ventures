@@ -5,4 +5,4 @@ Disallow: /admin
 Disallow: /api
 Disallow: /my-account
 
-Sitemap: https://cohousingventures.com/sitemap.xml
+Sitemap: https://www.coventure.in/sitemap.xml

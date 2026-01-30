@@ -84,11 +84,11 @@ export const Footer: React.FC = () => {
             <ul className="space-y-4">
               <li>
                 <a
-                  href="mailto:hello@cohousingventures.com"
+                  href="mailto:info@coventure.in"
                   className="text-sm text-gray-400 hover:text-coral transition-colors flex items-start gap-2"
                 >
                   <Mail className="w-4 h-4 text-coral flex-shrink-0 mt-0.5" />
-                  hello@cohousingventures.com
+                  info@coventure.in
                 </a>
               </li>
               <li>

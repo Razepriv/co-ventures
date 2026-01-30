@@ -88,7 +88,7 @@ export default function ContactPage() {
     {
       icon: Mail,
       title: 'Email Us',
-      details: ['info@cohousingventures.com', 'support@cohousingventures.com', 'We reply within 24 hours'],
+      details: ['info@coventure.in', 'support@coventure.in', 'We reply within 24 hours'],
       color: 'bg-coral-light text-coral'
     },
     {
@@ -367,7 +367,7 @@ export default function ContactPage() {
                   className="border-2 border-white text-white hover:bg-white hover:text-coral"
                 >
                   <Mail className="mr-2 w-5 h-5" />
-                  info@cohousingventures.com
+                  info@coventure.in
                 </Button>
               </div>
             </motion.div>

@@ -425,7 +425,7 @@ ON CONFLICT (slug) DO NOTHING;
 INSERT INTO public.site_settings (key, value, description) VALUES
   ('site_name', '"Co Housing Ventures"', 'Website name'),
   ('site_tagline', '"Find Your Perfect Co-Living Space"', 'Website tagline'),
-  ('contact_email', '"info@cohousingventures.com"', 'Primary contact email'),
+  ('contact_email', '"info@coventure.in"', 'Primary contact email'),
   ('contact_phone', '"+91 9876543210"', 'Primary contact phone'),
   ('office_address', '"Bangalore, Karnataka, India"', 'Office address')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();

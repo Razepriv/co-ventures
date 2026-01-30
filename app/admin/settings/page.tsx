@@ -69,7 +69,7 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       const supabase = getSupabaseClient()
-      
+
       // Update each setting
       const updates = Object.entries(settings).map(([key, value]) =>
         supabase
@@ -174,7 +174,7 @@ export default function SettingsPage() {
                   id="site_url"
                   value={settings.site_url || ''}
                   onChange={(e) => updateSetting('site_url', e.target.value)}
-                  placeholder="https://cohousingventures.com"
+                  placeholder="https://www.coventure.in"
                 />
               </div>
             </CardContent>
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                   type="email"
                   value={settings.contact_email || ''}
                   onChange={(e) => updateSetting('contact_email', e.target.value)}
-                  placeholder="contact@cohousingventures.com"
+                  placeholder="info@coventure.in"
                 />
               </div>
 

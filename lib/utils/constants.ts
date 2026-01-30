@@ -4,7 +4,7 @@
 
 export const APP_CONFIG = {
   name: process.env.NEXT_PUBLIC_APP_NAME || 'Co Housing Ventures',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.coventure.in',
   description:
     'Discover your dream co-living space with Co Housing Ventures. Browse premium co-housing properties, shared living spaces, and affordable housing solutions across India.',
   keywords: [
@@ -67,7 +67,7 @@ export const EXTERNAL_SERVICES = {
 
 export const EMAIL_CONFIG = {
   sendgrid: process.env.SENDGRID_API_KEY || '',
-  from: process.env.EMAIL_FROM || 'noreply@cohousingventures.com',
+  from: process.env.EMAIL_FROM || 'noreply@coventure.in',
   fromName: process.env.EMAIL_FROM_NAME || 'Co Housing Ventures',
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
@@ -211,7 +211,7 @@ export const SOCIAL_LINKS = {
 } as const
 
 export const CONTACT_INFO = {
-  email: 'info@cohousingventures.com',
+  email: 'info@coventure.in',
   phone: '+91 98765 43210',
   address: '123, Business Park, Mumbai, Maharashtra 400001, India',
 } as const
