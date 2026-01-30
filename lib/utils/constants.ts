@@ -213,7 +213,7 @@ export const SOCIAL_LINKS = {
 export const CONTACT_INFO = {
   email: 'info@coventure.in',
   phone: '+91 98765 43210',
-  address: '123, Business Park, Mumbai, Maharashtra 400001, India',
+  address: 'Cohousy, Grand Road, Eon Free Zone, Kharadi Gaon, Pune 411014, India',
 } as const
 
 export const SEO_DEFAULTS = {
