@@ -128,22 +128,41 @@ export class AIService {
       // safely prepending is the most compatible way.
       const prompt = `System: ${systemPrompt}\n\nUser: ${userPrompt}`
 
-      const result = await genModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: maxTokens,
+      try {
+        const result = await genModel.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature,
+            maxOutputTokens: maxTokens,
+          }
+        })
+
+        const response = result.response
+        const text = response.text()
+
+        return {
+          success: true,
+          response: text,
+          model: modelName,
+          provider: 'gemini'
         }
-      })
-
-      const response = result.response
-      const text = response.text()
-
-      return {
-        success: true,
-        response: text,
-        model: modelName,
-        provider: 'gemini'
+      } catch (genError: any) {
+        // RETRY LOGIC: If the specific model fails (likely 404 Not Found), try the legacy 'gemini-pro' as a last resort
+        if (genError.message && (genError.message.includes('404') || genError.message.includes('not found'))) {
+          console.warn(`Model ${modelName} failed with 404. Retrying with legacy 'gemini-pro'...`)
+          const legacyModel = genAI.getGenerativeModel({ model: 'gemini-pro' })
+          const result = await legacyModel.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature, maxOutputTokens: maxTokens }
+          })
+          return {
+            success: true,
+            response: result.response.text(),
+            model: 'gemini-pro (fallback)',
+            provider: 'gemini'
+          }
+        }
+        throw genError
       }
     } catch (error) {
       console.error('Gemini generation error:', error)
