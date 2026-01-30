@@ -65,6 +65,10 @@ export class AIService {
 
       // Priority list of models to look for
       const priorityModels = [
+        'gemini-3.0-pro-preview',
+        'gemini-2.5-pro',
+        'gemini-2.0-flash-exp',
+        'gemini-2.0-pro-exp',
         'gemini-1.5-flash',
         'gemini-1.5-flash-latest',
         'gemini-1.5-flash-001',
