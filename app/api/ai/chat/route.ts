@@ -34,10 +34,13 @@ export async function POST(request: NextRequest) {
       content: aiResponse.response
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI Chat Error:', error)
     return NextResponse.json(
-      { error: 'Failed to process AI request' },
+      {
+        error: error.message || 'Failed to process AI request',
+        details: error.toString()
+      },
       { status: 500 }
     )
   }
