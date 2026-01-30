@@ -269,7 +269,7 @@ export default function AdminLayout({
                       notifications.map((notif) => (
                         <Link
                           key={notif.id}
-                          href={notif.link || '#'}
+                          href={`/admin/enquiries/${notif.id}`}
                           onClick={() => setShowNotifications(false)}
                           className={`block px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors ${!notif.is_read ? 'bg-coral/5' : ''
                             }`}
