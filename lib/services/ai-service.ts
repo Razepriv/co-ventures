@@ -231,6 +231,14 @@ GUIDELINES:
       const newMessage = lastMessage?.parts[0]?.text || ''
       const previousHistory = formattedHistory
 
+      // GEMINI FIX: History must start with 'user'. If it starts with 'model', prepend a dummy user message.
+      if (previousHistory.length > 0 && previousHistory[0].role === 'model') {
+        previousHistory.unshift({
+          role: 'user',
+          parts: [{ text: 'Hello, I am interested in this property so I am asking some questions.' }]
+        })
+      }
+
       if (previousHistory.length === 0) {
         return await this.chat(
           'gemini-pro',
