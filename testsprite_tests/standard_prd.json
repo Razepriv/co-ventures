@@ -1,0 +1,258 @@
+{
+  "meta": {
+    "project": "Co-Ventures Real Estate Investment Platform",
+    "date": "2026-01-31",
+    "prepared_by": "Co-Ventures Product Team"
+  },
+  "product_overview": "Co-Ventures is a premium real estate investment platform aimed at democratizing access to institutional-grade real estate investments through co-ownership models. It leverages advanced AI to provide investment insights and a comprehensive suite of features including detailed property listings, subscription plans, an AI investment committee, and an integrated admin panel. The platform targets experienced investors, NRIs, and first-time investors seeking trustworthy, transparent, and intelligent real estate investment opportunities.",
+  "core_goals": [
+    "Establish Co-Ventures as the most trusted platform for real estate investment by providing disciplined underwriting and transparent processes.",
+    "Lower barriers to entry for premium property investment through fractional co-ownership models.",
+    "Deliver AI-powered investment guidance and insights comparable to institutional research.",
+    "Enable complete visibility into investment performance, documentation, and market dynamics.",
+    "Provide a seamless, responsive, and pleasant user experience across all device types.",
+    "Drive growth through subscription monetization and comprehensive property and user management via an intuitive admin panel."
+  ],
+  "key_features": [
+    "Comprehensive 13-section public Home Page including property search, featured listings, AI investment committee, testimonials, blog insights, and CTAs.",
+    "Robust Property Management with searchable listings, filtering, detailed property views including specs, amenities, developer info, and enquiry forms.",
+    "Multi-modal User Authentication supporting email, phone (OTP), and OAuth providers such as Google.",
+    "AI Investment Committee featuring 6 specialized agents providing market pulse, underwriting, verification, compliance, exit optimization and synthesized recommendations.",
+    "4-tier Subscription System integrated with Razorpay for payments, featuring tiered AI access, property saving limits, and export capabilities.",
+    "User Profile and Dashboard with saved properties, investment history, notifications, and subscription status.",
+    "Real-time Notification System with in-app alerts and email preferences.",
+    "Admin Dashboard with analytics, user and property management, inquiry tracking, blog and testimonial CMS, and AI configuration management.",
+    "Highly responsive and accessible UI components styled with Tailwind CSS, enhanced by Framer Motion animations and Radix UI components.",
+    "Content Management for blogs, testimonials, newsletters, FAQs, and static pages including legal and informational content."
+  ],
+  "user_flow_summary": [
+    "Visitors land on a rich Home Page with multiple sections guiding them to explore properties or contact the team.",
+    "Users can search, filter, and browse property listings with options to save favorites (limitations based on subscription).",
+    "Detailed property pages provide immersive media, specs, investment metrics, and an enquiry form contextualized to the property.",
+    "Registered users authenticate via multiple methods and access personalized dashboards for profile management, saved properties, notifications, and AI assistant functionalities.",
+    "Subscribers leverage AI analyses from the 6-agent committee to inform investment decisions; free users have limited or no AI access.",
+    "Users manage subscriptions, upgrade plans, and make payments through Razorpay integration in their dashboard.",
+    "Admins access a comprehensive backend panel to manage properties, users, enquiries, content, and AI configurations with analytics monitoring."
+  ],
+  "validation_criteria": [
+    "All 13 Home Page sections render correctly and responsively across devices with expected animations and CTAs operational.",
+    "Search filters and property listings return correct, paginated results with proper sort and save-to-favorites capability.",
+    "Authentication flows (registration, login, password reset) function securely with Firebase and session management.",
+    "AI Investment Committee agents produce accurate, actionable analysis outputs consistent with input data and subscription tiers.",
+    "Subscription system processes payments successfully and updates user access rights accordingly.",
+    "User profiles display accurate saved properties, notifications are received real-time and can be marked read/unread.",
+    "Admin panel functions for CRUD operations on properties, users, enquiries, and blog content with appropriate role restrictions.",
+    "Performance targets (FCP <1.5s, API p95 <500ms) and 99.9% uptime are met under test conditions.",
+    "Accessibility standards (WCAG 2.1 AA) are met with keyboard navigation and screen reader support.",
+    "Security features including HTTPS, data encryption, rate limiting and compliance requirements are verified through penetration tests and audits."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "Next.js 14",
+      "React 18",
+      "Supabase",
+      "Firebase Authentication",
+      "Tailwind CSS",
+      "Radix UI",
+      "Framer Motion",
+      "React Query",
+      "React Hook Form",
+      "Zod",
+      "Razorpay",
+      "Google Generative AI",
+      "Recharts"
+    ],
+    "features": [
+      {
+        "name": "Home Page",
+        "description": "13-section landing page with Hero, Search, Why Co-Housing, Featured Properties, AI Committee, How It Works, Services, Testimonials, Blog Insights, CTA sections",
+        "files": [
+          "app/page.tsx",
+          "components/home/HeroSection.tsx",
+          "components/home/SearchBarSection.tsx",
+          "components/home/WhyCoHousingSection.tsx",
+          "components/home/FeaturedPropertiesSection.tsx",
+          "components/home/AICommitteeSection.tsx",
+          "components/home/HowItWorksSection.tsx",
+          "components/home/ServicesSection.tsx",
+          "components/home/TestimonialsSection.tsx",
+          "components/home/BlogInsightsSection.tsx",
+          "components/home/CTASection.tsx",
+          "components/home/ByTheNumbersSection.tsx",
+          "components/home/SuccessStoriesSection.tsx"
+        ]
+      },
+      {
+        "name": "Property Listings",
+        "description": "Property search, filtering, listing display with cards, price ranges, locations, and property details",
+        "files": [
+          "app/properties/page.tsx",
+          "components/property/PropertyCard.tsx",
+          "components/search/SearchFilters.tsx",
+          "app/api/properties/route.ts"
+        ]
+      },
+      {
+        "name": "Property Details",
+        "description": "Detailed property view with images, specs, amenities, location, developer info, and enquiry forms",
+        "files": [
+          "app/properties/[id]/page.tsx",
+          "components/property/PropertyDetails.tsx"
+        ]
+      },
+      {
+        "name": "User Authentication",
+        "description": "Firebase authentication with phone/email login, registration, password reset, and profile management",
+        "files": [
+          "app/auth/login/page.tsx",
+          "app/auth/register/page.tsx",
+          "app/auth/forgot-password/page.tsx",
+          "lib/firebase/auth.ts",
+          "lib/contexts/AuthContext.tsx",
+          "app/api/auth/route.ts"
+        ]
+      },
+      {
+        "name": "AI Assistant",
+        "description": "6-agent AI investment committee with Market Pulse, Deal Underwriter, Developer Verifier, Legal Compliance, Exit Optimizer, and Committee Synthesizer",
+        "files": [
+          "app/ai-assistant/page.tsx",
+          "app/api/ai/route.ts",
+          "components/home/AICommitteeSection.tsx"
+        ]
+      },
+      {
+        "name": "Subscription System",
+        "description": "4-tier subscription plans with Razorpay payment integration, plan management, and billing",
+        "files": [
+          "components/subscription/SubscriptionPlans.tsx",
+          "app/api/subscriptions/route.ts",
+          "app/api/razorpay/route.ts"
+        ]
+      },
+      {
+        "name": "User Profile",
+        "description": "User dashboard with profile management, saved properties, investment history, and notifications",
+        "files": [
+          "app/profile/page.tsx",
+          "components/notifications/NotificationCenter.tsx"
+        ]
+      },
+      {
+        "name": "Contact & Enquiries",
+        "description": "Contact forms, property enquiries, lead capture, and newsletter subscription",
+        "files": [
+          "app/contact/page.tsx",
+          "app/api/contact/route.ts",
+          "app/api/enquiries/route.ts",
+          "app/api/leads/route.ts",
+          "app/api/newsletter/route.ts"
+        ]
+      },
+      {
+        "name": "Blog System",
+        "description": "Blog listing, article pages, categories, and content management",
+        "files": [
+          "app/blog/page.tsx",
+          "app/blog/[slug]/page.tsx",
+          "components/home/BlogInsightsSection.tsx"
+        ]
+      },
+      {
+        "name": "Admin Dashboard",
+        "description": "Admin panel with analytics, property management, user management, enquiry tracking, and CMS",
+        "files": [
+          "app/admin/page.tsx",
+          "app/admin/layout.tsx",
+          "app/admin/analytics/page.tsx",
+          "app/admin/properties/page.tsx",
+          "app/admin/users/page.tsx",
+          "app/admin/enquiries/page.tsx",
+          "app/admin/leads/page.tsx",
+          "app/admin/blog/page.tsx",
+          "app/admin/testimonials/page.tsx",
+          "app/admin/settings/page.tsx",
+          "components/admin/AdminSidebar.tsx",
+          "components/admin/AdminHeader.tsx"
+        ]
+      },
+      {
+        "name": "Admin Property Management",
+        "description": "CRUD operations for properties, media upload, developer management",
+        "files": [
+          "app/admin/properties/page.tsx",
+          "app/admin/properties/new/page.tsx",
+          "app/admin/properties/[id]/page.tsx",
+          "app/admin/developers/page.tsx",
+          "app/admin/media/page.tsx",
+          "app/api/admin/properties/route.ts"
+        ]
+      },
+      {
+        "name": "Admin User Management",
+        "description": "User listing, role management, subscription tracking",
+        "files": [
+          "app/admin/users/page.tsx",
+          "app/admin/groups/page.tsx",
+          "app/api/admin/users/route.ts"
+        ]
+      },
+      {
+        "name": "Admin AI Configuration",
+        "description": "AI agent configuration and prompt management",
+        "files": [
+          "app/admin/ai-configuration/page.tsx"
+        ]
+      },
+      {
+        "name": "Static Pages",
+        "description": "About, Services, How It Works, FAQs, Privacy Policy, Terms & Conditions",
+        "files": [
+          "app/about/page.tsx",
+          "app/services/page.tsx",
+          "app/how-it-works/page.tsx",
+          "app/faqs/page.tsx",
+          "app/privacy-policy/page.tsx",
+          "app/terms-and-conditions/page.tsx"
+        ]
+      },
+      {
+        "name": "Header & Navigation",
+        "description": "Main navigation header with responsive menu, user menu, and notifications",
+        "files": [
+          "components/Header.tsx",
+          "components/Footer.tsx"
+        ]
+      },
+      {
+        "name": "UI Components",
+        "description": "Reusable UI components built with Radix UI and Tailwind CSS",
+        "files": [
+          "components/ui/button.tsx",
+          "components/ui/card.tsx",
+          "components/ui/dialog.tsx",
+          "components/ui/input.tsx",
+          "components/ui/select.tsx",
+          "components/ui/tabs.tsx"
+        ]
+      },
+      {
+        "name": "Search & Filters",
+        "description": "Property search with location, price, type, BHK, and status filters",
+        "files": [
+          "components/search/SearchFilters.tsx",
+          "app/api/search/route.ts"
+        ]
+      },
+      {
+        "name": "Notifications System",
+        "description": "Real-time notification center with alerts and updates",
+        "files": [
+          "components/notifications/NotificationCenter.tsx",
+          "app/api/notifications/route.ts"
+        ]
+      }
+    ]
+  }
+}

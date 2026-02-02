@@ -1,0 +1,509 @@
+[
+  {
+    "id": "TC001",
+    "title": "Home Page Sections Rendering and Responsiveness",
+    "description": "Verify all 13 sections on the Home Page render correctly and responsively on desktop, tablet, and mobile devices with expected animations and fully operational CTAs.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Home Page on desktop, tablet, and mobile viewport sizes."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm that all 13 sections (Hero, Search, Why Co-Housing, Featured Properties, AI Committee, How It Works, Services, Testimonials, Blog Insights, CTAs, By The Numbers, Success Stories) are present and visible."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify animations (Framer Motion) trigger correctly and smoothly during scrolling and page load."
+      },
+      {
+        "type": "assertion",
+        "description": "Interact with each CTA button/link; verify proper navigation or function triggers."
+      },
+      {
+        "type": "assertion",
+        "description": "Check layout and text remain readable and UI components do not overlap or break across device sizes."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Property Search and Filtering Functionality",
+    "description": "Verify property search returns correct listings filtered by location, price, type, BHK, and status, with proper pagination and sorting.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Property Listings page."
+      },
+      {
+        "type": "action",
+        "description": "Apply a filter for location (e.g., city), price range, property type, BHK count, and status."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify returned property listings match all selected filter criteria."
+      },
+      {
+        "type": "action",
+        "description": "Test sorting options by price ascending/descending and newest listings."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm listings sort correctly according to the selected option."
+      },
+      {
+        "type": "action",
+        "description": "Paginate through the listings and verify consistent page size and no duplicates."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure performance criteria for API response time (<500ms p95) are met under filtering and pagination."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Property Details View and Enquiry Form",
+    "description": "Validate detailed property pages display all information correctly including images, specs, amenities, developer info, investment metrics, and functional enquiry form.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select a property from the listings and navigate to its detail page."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all images load and carousel functionality works."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm display of property specifications, amenities, developer information, and investment-related metrics."
+      },
+      {
+        "type": "action",
+        "description": "Fill out the enquiry form with valid data and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure form validation works (required fields, correct formats)."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm successful submission triggers acknowledgement message and inquiry is stored/logged."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "User Authentication Flows: Registration, Login, Password Reset",
+    "description": "Verify email and phone (OTP) registration, login, and password reset flows operate securely and properly manage user sessions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the registration page."
+      },
+      {
+        "type": "action",
+        "description": "Register using a valid email with password."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm registration success and redirection to dashboard or appropriate landing."
+      },
+      {
+        "type": "action",
+        "description": "Logout and attempt login with correct email and password."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login success and user session is maintained."
+      },
+      {
+        "type": "action",
+        "description": "Test login failure with incorrect credentials."
+      },
+      {
+        "type": "assertion",
+        "description": "Check error message is shown and access denied."
+      },
+      {
+        "type": "action",
+        "description": "Initiate password reset via registered email and complete the flow."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify password reset email receipt, link functionality, and ability to set a new password."
+      },
+      {
+        "type": "action",
+        "description": "Test phone OTP login flow with valid phone number and OTP input."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm OTP validation and successful login."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "AI Investment Committee Output and Access Control",
+    "description": "Verify the 6 AI agents produce accurate and actionable analyses aligned with input data and respect subscription tier access restrictions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a subscriber with Tier 1 access and request AI committee analysis for a given property."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm all 6 AI agent outputs (Market Pulse, Deal Underwriter, Developer Verifier, Legal Compliance, Exit Optimizer, Synthesizer) are returned with relevant data and suggestions."
+      },
+      {
+        "type": "action",
+        "description": "Login as a free user and attempt to access AI investment committee."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify limited or no access per subscription rules with appropriate messaging."
+      },
+      {
+        "type": "action",
+        "description": "Submit varied input data scenarios (edge cases like incomplete property data) to AI agents."
+      },
+      {
+        "type": "assertion",
+        "description": "Check for graceful error handling and meaningful feedback."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Subscription System: Payment and Access Rights Update",
+    "description": "Test the subscription plans purchasing process through Razorpay integration and verify update of user access rights and limits accordingly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to subscription plans page within user dashboard."
+      },
+      {
+        "type": "action",
+        "description": "Select each subscription tier and attempt purchase using Razorpay sandbox/test payment gateway."
+      },
+      {
+        "type": "assertion",
+        "description": "Validate payment process completes successfully without errors."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm user subscription status updates correctly post-payment."
+      },
+      {
+        "type": "action",
+        "description": "Verify subscription benefits such as AI access tiers, property save limits, and export permissions reflect the current plan."
+      },
+      {
+        "type": "action",
+        "description": "Test cancellation and upgrade flows, ensuring correct prorated billing or access changes."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "User Profile Dashboard: Saved Properties and Notifications",
+    "description": "Verify user dashboard displays accurate saved properties, investment history, and notifications including real-time alert reception and read/unread status toggling.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a registered user with saved properties and notifications."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm all saved properties appear correctly with up-to-date data."
+      },
+      {
+        "type": "action",
+        "description": "Trigger real-time notification by generating an event (e.g., new property listed or subscription update)."
+      },
+      {
+        "type": "assertion",
+        "description": "Check notification center updates immediately."
+      },
+      {
+        "type": "action",
+        "description": "Mark notifications as read and unread."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the visual status changes appropriately and persists across sessions."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Admin Dashboard: Property Management CRUD Operations",
+    "description": "Ensure admin user can perform create, read, update, and delete operations on property records, including media uploads and developer information management with role-based access restrictions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as an admin user."
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the Admin Property Management section."
+      },
+      {
+        "type": "action",
+        "description": "Create a new property entry with valid data and upload media files."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the property is listed with correct details and media."
+      },
+      {
+        "type": "action",
+        "description": "Update an existing property’s specifications and developer info."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure the updates display correctly on front end and backend."
+      },
+      {
+        "type": "action",
+        "description": "Delete a property and confirm it is removed from listings and database."
+      },
+      {
+        "type": "assertion",
+        "description": "Validate role-based access: non-admin roles cannot access property management."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Admin User Management and Subscription Tracking",
+    "description": "Verify admin can list users, manage their roles, and track subscription statuses with correct data representation and access restrictions.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as an admin user."
+      },
+      {
+        "type": "action",
+        "description": "Access the Admin User Management section."
+      },
+      {
+        "type": "assertion",
+        "description": "Check users are listed with accurate profile and subscription information."
+      },
+      {
+        "type": "action",
+        "description": "Update user roles (e.g., upgrade to admin, downgrade to standard user)."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify role changes persist and access changes accordingly."
+      },
+      {
+        "type": "action",
+        "description": "View subscription statuses and validate correct linkage to user accounts."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Admin AI Configuration Management",
+    "description": "Verify access to AI agent configuration panel, ability to update AI prompts and settings, and ensure changes reflect correctly in AI assistant behavior.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin and navigate to AI Configuration page."
+      },
+      {
+        "type": "action",
+        "description": "Modify AI agent prompts and configuration parameters."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure input validation and save operations work without errors."
+      },
+      {
+        "type": "action",
+        "description": "Use AI assistant features as a subscriber after configuration change."
+      },
+      {
+        "type": "assertion",
+        "description": "Validate AI responses reflect updated configurations."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Content Management System for Blog and Testimonials",
+    "description": "Ensure admins can create, edit, and delete blog posts and testimonials with accurate rendering on public pages and proper role-based access controls.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin and access the Blog and Testimonials management panels."
+      },
+      {
+        "type": "action",
+        "description": "Create a new blog post with title, content, categories, and images."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the blog post is listed in admin panel and appears correctly on public blog pages."
+      },
+      {
+        "type": "action",
+        "description": "Edit an existing testimonial and save changes."
+      },
+      {
+        "type": "assertion",
+        "description": "Check updated testimonial displays correctly on home and testimonial sections."
+      },
+      {
+        "type": "action",
+        "description": "Delete a blog post and confirm removal from both admin and public views."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Contact and Enquiry Forms Validation and Submission",
+    "description": "Verify all contact and property enquiry forms validate inputs, submit correctly, and store leads with acknowledgment to the user.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to contact page and fill out inquiry form with valid data."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm form validation triggers on invalid or missing required fields."
+      },
+      {
+        "type": "action",
+        "description": "Submit the form and verify success acknowledgement."
+      },
+      {
+        "type": "assertion",
+        "description": "Validate lead is recorded in back-end database or lead management system."
+      },
+      {
+        "type": "action",
+        "description": "Repeat for property enquiry forms on property detail pages."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Static Pages Content and Accessibility Verification",
+    "description": "Verify all static pages (About, Services, How It Works, FAQs, Privacy Policy, Terms & Conditions) display correct content, are responsive, and meet WCAG 2.1 AA accessibility standards.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to each static page."
+      },
+      {
+        "type": "assertion",
+        "description": "Check presence of all key content sections and correct formatting."
+      },
+      {
+        "type": "assertion",
+        "description": "Test keyboard navigation across content and verify screen reader compatibility."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm color contrast and font sizes meet accessibility guidelines."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Performance and Uptime Under Load",
+    "description": "Validate platform meets performance targets: First Contentful Paint (FCP) under 1.5 seconds, API p95 latency under 500ms, and uptime above 99.9% under load testing scenarios.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Use performance testing tools to measure FCP on Home Page and Property Listings under normal and peak loads."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify FCP remains below 1.5 seconds across supported devices."
+      },
+      {
+        "type": "action",
+        "description": "Conduct API load testing for key endpoints (property search, AI assistant, subscription management)."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure 95th percentile API response times stay under 500ms."
+      },
+      {
+        "type": "action",
+        "description": "Simulate prolonged load and monitor uptime."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm uptime meets or exceeds 99.9% during test period."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Security Testing: HTTPS Enforcement, Data Encryption, and Rate Limiting",
+    "description": "Verify end-to-end security features including HTTPS enforcement for all endpoints, encryption of sensitive data at rest and in transit, and rate limiting to prevent abuse.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to access platform endpoints via HTTP and verify automatic redirection to HTTPS."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm that no unsecured HTTP endpoints exist."
+      },
+      {
+        "type": "action",
+        "description": "Inspect data encryption mechanisms on sensitive data, verifying encryption at REST (database) and in transit (TLS)."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure encryption keys and certificates are valid and securely managed."
+      },
+      {
+        "type": "action",
+        "description": "Test API rate limiting by sending excessive requests and monitor platform response."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm rate limiting triggers appropriate error responses and mitigates abuse."
+      }
+    ]
+  }
+]

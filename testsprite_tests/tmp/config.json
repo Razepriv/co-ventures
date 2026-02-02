@@ -1,0 +1,16 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "executionArgs": {
+    "projectName": "co-ventures",
+    "projectPath": "d:\\co-ventures",
+    "testIds": [],
+    "additionalInstruction": "Run all tests comprehensively. Test all pages, authentication flows, property listings, AI assistant, admin panel, and subscription system.",
+    "envs": {
+      "API_KEY": "sk-user-GR3x-QTyzeoM73GXMO_iIa6v-WCuB2mcNOMLjuzQggcf-8uXSgcnmc1JbkI2gXkLbQRLd8wShgmmnTocM_jTmuYiVSKGnITlyOC08O8Jnts8X64_V_CMCCvg35mVW7LSfLA"
+    }
+  },
+  "proxy": "http://b5e6fe34-79ab-41d9-aed1-3447bba280fe:eLq5BIdLENdtX5fc0V1q2BEUri5qUjsD@tun.testsprite.com:8080"
+}

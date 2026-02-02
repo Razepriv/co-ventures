@@ -1,57 +1,35 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { useAuth } from '@/lib/auth/AuthProvider'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Upload, Image as ImageIcon, FileText, File, Video, Music, MoreHorizontal, Trash2, Download, Eye, Search, Loader2 } from 'lucide-react'
+import { Upload, Image as ImageIcon, FileText, File, Video, Music, MoreHorizontal, Trash2, Download, Eye, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 
 interface MediaFile {
   id: string
-  name: string
-  url: string
-  mime_type: string
+  file_name: string
+  file_url: string
+  file_type: string
   file_size: number
   uploaded_by: string
-  users: { full_name: string } | null
+  users: { full_name: string }
   created_at: string
 }
 
 export default function MediaPage() {
-  const { user } = useAuth()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<MediaFile[]>([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [stats, setStats] = useState({ total: 0, images: 0, documents: 0, totalSize: 0 })
 
   useEffect(() => {
     fetchFiles()
-
-    // Set up realtime subscription for media file changes
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('admin_media_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'media_files' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          toast.success('New file uploaded!')
-        } else if (payload.eventType === 'DELETE') {
-          toast.info('File deleted')
-        }
-        fetchFiles()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [])
 
   async function fetchFiles() {
@@ -60,27 +38,20 @@ export default function MediaPage() {
       const { data, error } = await supabase
         .from('media_files')
         .select(`
-          id,
-          name,
-          url,
-          mime_type,
-          file_size,
-          uploaded_by,
-          created_at,
+          *,
           users (full_name)
         `)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      // @ts-ignore
       setFiles(data || [])
       
       const total = data?.length || 0
       // @ts-ignore
-      const images = data?.filter(f => f.mime_type.startsWith('image')).length || 0
+      const images = data?.filter(f => f.file_type.startsWith('image')).length || 0
       // @ts-ignore
-      const documents = data?.filter(f => f.mime_type.includes('pdf') || f.mime_type.includes('document')).length || 0
+      const documents = data?.filter(f => f.file_type.includes('pdf') || f.file_type.includes('document')).length || 0
       // @ts-ignore
       const totalSize = data?.reduce((sum, f) => sum + f.file_size, 0) || 0
       setStats({ total, images, documents, totalSize })
@@ -92,81 +63,6 @@ export default function MediaPage() {
     }
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = Array.from(e.target.files || [])
-    if (selectedFiles.length === 0) return
-
-    if (!user) {
-      toast.error('You must be logged in to upload files')
-      return
-    }
-
-    setUploading(true)
-    const supabase = getSupabaseClient()
-    let successCount = 0
-    let failCount = 0
-
-    try {
-      for (const file of selectedFiles) {
-        // Create unique filename
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-        const filePath = `library/${fileName}`
-
-        // 1. Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('coventures')
-          .upload(filePath, file)
-
-        if (uploadError) {
-          console.error(`Upload error for ${file.name}:`, uploadError)
-          failCount++
-          continue
-        }
-
-        // 2. Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('coventures')
-          .getPublicUrl(filePath)
-
-        // 3. Save record to database
-        const { error: dbError } = await supabase
-          .from('media_files')
-          // @ts-ignore
-          .insert({
-            name: file.name,
-            url: publicUrl,
-            mime_type: file.type,
-            file_size: file.size,
-            uploaded_by: user.id,
-            folder: 'library'
-          })
-
-        if (dbError) {
-          console.error(`Database error for ${file.name}:`, dbError)
-          failCount++
-          continue
-        }
-
-        successCount++
-      }
-
-      if (successCount > 0) {
-        toast.success(`Successfully uploaded ${successCount} file(s)`)
-        fetchFiles()
-      }
-      if (failCount > 0) {
-        toast.error(`Failed to upload ${failCount} file(s)`)
-      }
-    } catch (error) {
-      console.error('Unexpected upload error:', error)
-      toast.error('An unexpected error occurred during upload')
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
   async function handleDelete(id: string, fileUrl: string) {
     if (!confirm('Are you sure you want to delete this file?')) return
 
@@ -174,15 +70,9 @@ export default function MediaPage() {
       const supabase = getSupabaseClient()
       
       // Delete from storage
-      // The file path in storage is the part after 'coventures/'
-      // For library files, it's 'library/filename'
-      const urlParts = fileUrl.split('/')
-      const fileName = urlParts[urlParts.length - 1]
-      const folderName = urlParts[urlParts.length - 2]
-      
-      if (fileName && folderName) {
-        const filePath = `${folderName}/${fileName}`
-        await supabase.storage.from('coventures').remove([filePath])
+      const filePath = fileUrl.split('/').pop()
+      if (filePath) {
+        await supabase.storage.from('media').remove([filePath])
       }
 
       // Delete from database
@@ -198,11 +88,11 @@ export default function MediaPage() {
     }
   }
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image')) return ImageIcon
-    if (mimeType.startsWith('video')) return Video
-    if (mimeType.startsWith('audio')) return Music
-    if (mimeType.includes('pdf') || mimeType.includes('document')) return FileText
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image')) return ImageIcon
+    if (fileType.startsWith('video')) return Video
+    if (fileType.startsWith('audio')) return Music
+    if (fileType.includes('pdf') || fileType.includes('document')) return FileText
     return File
   }
 
@@ -214,13 +104,13 @@ export default function MediaPage() {
 
   const filteredFiles = files
     .filter(file => {
-      if (searchQuery && !file.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && !file.file_name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
       if (filterType !== 'all') {
-        if (filterType === 'images' && !file.mime_type.startsWith('image')) return false
-        if (filterType === 'documents' && !file.mime_type.includes('pdf') && !file.mime_type.includes('document')) return false
-        if (filterType === 'videos' && !file.mime_type.startsWith('video')) return false
+        if (filterType === 'images' && !file.file_type.startsWith('image')) return false
+        if (filterType === 'documents' && !file.file_type.includes('pdf') && !file.file_type.includes('document')) return false
+        if (filterType === 'videos' && !file.file_type.startsWith('video')) return false
       }
       return true
     })
@@ -244,27 +134,10 @@ export default function MediaPage() {
           <h1 className="text-3xl font-bold text-gray-900">Media Library</h1>
           <p className="mt-1 text-sm text-gray-500">Upload and manage media files</p>
         </div>
-        <div className="flex gap-2">
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleUpload}
-          />
-          <Button 
-            className="gap-2" 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploading ? 'Uploading...' : 'Upload Files'}
-          </Button>
-        </div>
+        <Button className="gap-2">
+          <Upload className="h-4 w-4" />
+          Upload Files
+        </Button>
       </div>
 
       {/* Stats */}
@@ -361,8 +234,8 @@ export default function MediaPage() {
       {/* Files Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredFiles.map((file) => {
-          const Icon = getFileIcon(file.mime_type)
-          const isImage = file.mime_type.startsWith('image')
+          const Icon = getFileIcon(file.file_type)
+          const isImage = file.file_type.startsWith('image')
 
           return (
             <div
@@ -373,8 +246,8 @@ export default function MediaPage() {
               <div className="aspect-square rounded-lg bg-gray-100 mb-3 overflow-hidden flex items-center justify-center">
                 {isImage ? (
                   <img
-                    src={file.url}
-                    alt={file.name}
+                    src={file.file_url}
+                    alt={file.file_name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -384,7 +257,7 @@ export default function MediaPage() {
 
               {/* File Info */}
               <div className="space-y-1">
-                <p className="font-medium text-sm text-gray-900 truncate">{file.name}</p>
+                <p className="font-medium text-sm text-gray-900 truncate">{file.file_name}</p>
                 <p className="text-xs text-gray-500">{formatFileSize(file.file_size)}</p>
                 <p className="text-xs text-gray-400">
                   {formatDistanceToNow(new Date(file.created_at), { addSuffix: true })}
@@ -401,18 +274,18 @@ export default function MediaPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => window.open(file.url, '_blank')}>
+                    <DropdownMenuItem onClick={() => window.open(file.file_url, '_blank')}>
                       <Eye className="mr-2 h-4 w-4" />
                       View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.open(file.url, '_blank')}>
+                    <DropdownMenuItem onClick={() => window.open(file.file_url, '_blank')}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-red-600"
-                      onClick={() => handleDelete(file.id, file.url)}
+                      onClick={() => handleDelete(file.id, file.file_url)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
@@ -435,17 +308,9 @@ export default function MediaPage() {
               : 'Upload your first file to get started'}
           </p>
           {!searchQuery && filterType === 'all' && (
-            <Button 
-              className="gap-2"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {uploading ? 'Uploading...' : 'Upload Files'}
+            <Button className="gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Files
             </Button>
           )}
         </div>

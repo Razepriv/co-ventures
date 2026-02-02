@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import {
   successResponse,
   errorResponse,
@@ -35,8 +35,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await validateRequest(request, subscribeNewsletterSchema)
     if (error) return error
 
-    // Use admin client for public newsletter subscription
-    const supabase = await createAdminClient()
+    const supabase = await createClient()
 
     // Check if email already exists
     const { data: existing } = await supabase

@@ -102,36 +102,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-
-    // Set up realtime subscriptions for dashboard updates
-    const supabase = getSupabaseClient()
-
-    const propertiesChannel = supabase
-      .channel('dashboard_properties')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-        fetchDashboardData()
-      })
-      .subscribe()
-
-    const enquiriesChannel = supabase
-      .channel('dashboard_enquiries')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-        fetchDashboardData()
-      })
-      .subscribe()
-
-    const usersChannel = supabase
-      .channel('dashboard_users')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        fetchDashboardData()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(propertiesChannel)
-      supabase.removeChannel(enquiriesChannel)
-      supabase.removeChannel(usersChannel)
-    }
   }, [])
 
   async function fetchDashboardData() {
@@ -292,7 +262,7 @@ export default function AdminDashboard() {
             const Icon = stat.icon
             const trendIcon = stat.trend === 'up' ? ArrowUpRight : ArrowDownRight
             const TrendIcon = trendIcon
-
+            
             return (
               <div
                 key={stat.name}
@@ -302,8 +272,9 @@ export default function AdminDashboard() {
                   <div className={`h-12 w-12 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
                     <Icon className={`h-6 w-6 ${stat.iconColor}`} />
                   </div>
-                  <div className={`flex items-center gap-1 text-sm font-medium ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                  <div className={`flex items-center gap-1 text-sm font-medium ${
+                    stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                  }`}>
                     <TrendIcon className="h-4 w-4" />
                     {stat.change}
                   </div>
@@ -334,8 +305,7 @@ export default function AdminDashboard() {
                 <Link key={property.id} href={`/admin/properties/${property.id}`}>
                   <div className="group rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer">
                     <div className="relative h-48 bg-gray-100">
-                      {property.featured_image &&
-                        property.featured_image.startsWith('http') ? (
+                      {property.featured_image ? (
                         <Image
                           src={property.featured_image}
                           alt={property.title}
@@ -519,6 +489,36 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="bg-gradient-to-r from-coral to-orange-500 rounded-xl p-6 shadow-lg">
+        <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/admin/properties/new">
+            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Add Property</span>
+            </Button>
+          </Link>
+          <Link href="/admin/enquiries">
+            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
+              <Eye className="mr-2 h-4 w-4" />
+              <span>View Enquiries</span>
+            </Button>
+          </Link>
+          <Link href="/admin/blog/new">
+            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Create Blog</span>
+            </Button>
+          </Link>
+          <Link href="/admin/users/new">
+            <Button className="w-full !bg-white !text-coral hover:!bg-gray-50 !font-semibold !border-0">
+              <UserPlus className="mr-2 h-4 w-4" />
+              <span>Add User</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

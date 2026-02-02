@@ -10,16 +10,16 @@ import { Plus, MoreHorizontal, Trash2, Star, CheckCircle, XCircle, Eye } from 'l
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
-import Link from 'next/link'
 
 interface Testimonial {
   id: string
-  full_name: string
-  role: string | null
-  company: string | null
-  content: string
+  client_name: string
+  client_designation: string
+  client_avatar: string | null
   rating: number
-  avatar_url: string | null
+  testimonial_text: string
+  property_id: string | null
+  properties: { title: string } | null
   is_featured: boolean
   is_approved: boolean
   created_at: string
@@ -32,24 +32,6 @@ export default function TestimonialsPage() {
 
   useEffect(() => {
     fetchTestimonials()
-
-    // Set up realtime subscription for testimonial changes
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('admin_testimonials_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          toast.success('New testimonial received!')
-        } else if (payload.eventType === 'UPDATE') {
-          toast.info('Testimonial updated')
-        }
-        fetchTestimonials()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [])
 
   async function fetchTestimonials() {
@@ -57,21 +39,24 @@ export default function TestimonialsPage() {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase
         .from('testimonials')
-        .select('*')
+        .select(`
+          *,
+          properties (title)
+        `)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
       setTestimonials(data || [])
-
+      
       const total = data?.length || 0
       // @ts-ignore
       const approved = data?.filter(t => t.is_approved).length || 0
       // @ts-ignore
       const featured = data?.filter(t => t.is_featured).length || 0
-      const avgRating = data?.length
+      const avgRating = data?.length 
         // @ts-ignore
-        ? data.reduce((sum, t) => sum + t.rating, 0) / data.length
+        ? data.reduce((sum, t) => sum + t.rating, 0) / data.length 
         : 0
       setStats({ total, approved, featured, avgRating })
     } catch (error) {
@@ -139,24 +124,16 @@ export default function TestimonialsPage() {
 
   const columns: ColumnDef<Testimonial>[] = [
     {
-      accessorKey: 'full_name',
+      accessorKey: 'client_name',
       header: 'Client',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          {row.original.avatar_url ? (
-            <img
-              src={row.original.avatar_url}
-              alt={row.original.full_name}
-              className="h-10 w-10 rounded-full object-cover"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-coral to-coral-dark flex items-center justify-center text-white font-semibold">
-              {row.original.full_name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white font-semibold">
+            {row.original.client_name.charAt(0).toUpperCase()}
+          </div>
           <div>
-            <p className="font-medium text-gray-900">{row.original.full_name}</p>
-            <p className="text-sm text-gray-500">{row.original.role}{row.original.company ? ` at ${row.original.company}` : ''}</p>
+            <p className="font-medium text-gray-900">{row.original.client_name}</p>
+            <p className="text-sm text-gray-500">{row.original.client_designation}</p>
           </div>
         </div>
       ),
@@ -169,10 +146,11 @@ export default function TestimonialsPage() {
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`h-4 w-4 ${i < row.original.rating
+              className={`h-4 w-4 ${
+                i < row.original.rating
                   ? 'fill-amber-400 text-amber-400'
                   : 'text-gray-300'
-                }`}
+              }`}
             />
           ))}
           <span className="ml-1 text-sm font-medium text-gray-600">
@@ -182,11 +160,20 @@ export default function TestimonialsPage() {
       ),
     },
     {
-      accessorKey: 'content',
+      accessorKey: 'testimonial_text',
       header: 'Testimonial',
       cell: ({ row }) => (
         <p className="max-w-md truncate text-sm text-gray-600">
-          {row.original.content}
+          {row.original.testimonial_text}
+        </p>
+      ),
+    },
+    {
+      accessorKey: 'property',
+      header: 'Property',
+      cell: ({ row }) => (
+        <p className="text-sm text-gray-600">
+          {row.original.properties?.title || '—'}
         </p>
       ),
     },
@@ -253,7 +240,7 @@ export default function TestimonialsPage() {
               {row.original.is_featured ? 'Remove from Featured' : 'Mark as Featured'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
+            <DropdownMenuItem 
               className="text-red-600"
               onClick={() => handleDelete(row.original.id)}
             >
@@ -279,17 +266,9 @@ export default function TestimonialsPage() {
 
   return (
     <div className="space-y-6 px-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Testimonials</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage customer testimonials and reviews</p>
-        </div>
-        <Link href="/admin/testimonials/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Testimonial
-          </Button>
-        </Link>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Testimonials</h1>
+        <p className="mt-1 text-sm text-gray-500">Manage customer testimonials and reviews</p>
       </div>
 
       {/* Stats */}
@@ -345,7 +324,7 @@ export default function TestimonialsPage() {
         <DataTable
           columns={columns}
           data={testimonials}
-          searchKey="full_name"
+          searchKey="client_name"
           searchPlaceholder="Search testimonials..."
         />
       </div>

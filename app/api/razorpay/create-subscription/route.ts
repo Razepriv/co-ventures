@@ -3,26 +3,17 @@ import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 
 // Initialize Razorpay
-const getRazorpay = () => {
-  const key_id = process.env.RAZORPAY_KEY_ID || ''
-  const key_secret = process.env.RAZORPAY_KEY_SECRET || ''
-
-  if (!key_id || !key_secret) {
-    throw new Error('Razorpay keys not configured')
-  }
-
-  return new Razorpay({
-    key_id,
-    key_secret
-  })
-}
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || '',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || ''
+})
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
-
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-
+    
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -67,7 +58,6 @@ export async function POST(request: Request) {
     }
 
     // Create Razorpay subscription
-    const razorpay = getRazorpay()
     const subscription = await razorpay.subscriptions.create({
       plan_id: process.env[`RAZORPAY_PLAN_${planSlug.toUpperCase()}`] || '',
       customer_notify: 1,

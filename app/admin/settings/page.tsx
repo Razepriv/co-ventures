@@ -26,20 +26,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchSettings()
-
-    // Set up realtime subscription for settings changes
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('admin_settings_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
-        fetchSettings()
-        toast.info('Settings updated by another admin')
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [])
 
   async function fetchSettings() {
@@ -69,7 +55,7 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       const supabase = getSupabaseClient()
-
+      
       // Update each setting
       const updates = Object.entries(settings).map(([key, value]) =>
         supabase
@@ -174,7 +160,7 @@ export default function SettingsPage() {
                   id="site_url"
                   value={settings.site_url || ''}
                   onChange={(e) => updateSetting('site_url', e.target.value)}
-                  placeholder="https://www.coventure.in"
+                  placeholder="https://cohousingventures.com"
                 />
               </div>
             </CardContent>
@@ -199,7 +185,7 @@ export default function SettingsPage() {
                   type="email"
                   value={settings.contact_email || ''}
                   onChange={(e) => updateSetting('contact_email', e.target.value)}
-                  placeholder="info@coventure.in"
+                  placeholder="contact@cohousingventures.com"
                 />
               </div>
 

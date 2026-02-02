@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { DataTable } from '@/components/admin/data-table'
 import { Button } from '@/components/ui/Button'
@@ -10,8 +10,6 @@ import { MoreHorizontal, Mail, Phone, Eye, CheckCircle2, Clock, XCircle } from '
 import { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
-import { DateRangeFilter } from '@/components/ui/DateRangeFilter'
-import { exportToCSV, formatEnquiriesForExport } from '@/lib/utils/export'
 
 interface Enquiry {
   id: string
@@ -39,12 +37,28 @@ export default function EnquiriesPage() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total: 0, new: 0, inProgress: 0, closed: 0 })
-  const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
 
-  const fetchEnquiries = useCallback(async () => {
+  useEffect(() => {
+    fetchEnquiries()
+    
+    // Set up realtime subscription
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel('enquiries_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
+        fetchEnquiries()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  async function fetchEnquiries() {
     try {
       const supabase = getSupabaseClient()
-      let query = supabase
+      const { data, error } = await supabase
         .from('enquiries')
         .select(`
           *,
@@ -52,19 +66,10 @@ export default function EnquiriesPage() {
         `)
         .order('created_at', { ascending: false })
 
-      // Apply date range filter
-      if (dateRange.start && dateRange.end) {
-        query = query
-          .gte('created_at', new Date(dateRange.start).toISOString())
-          .lte('created_at', new Date(dateRange.end + 'T23:59:59').toISOString())
-      }
-
-      const { data, error } = await query
-
       if (error) throw error
 
       setEnquiries(data || [])
-
+      
       // Calculate stats
       const total = data?.length || 0
       // @ts-ignore
@@ -80,24 +85,7 @@ export default function EnquiriesPage() {
     } finally {
       setLoading(false)
     }
-  }, [dateRange])
-
-  useEffect(() => {
-    fetchEnquiries()
-
-    // Set up realtime subscription
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel('enquiries_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-        fetchEnquiries()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [fetchEnquiries])
+  }
 
   async function updateStatus(id: string, status: string) {
     try {
@@ -133,16 +121,6 @@ export default function EnquiriesPage() {
       console.error('Error deleting enquiry:', error)
       toast.error('Failed to delete enquiry')
     }
-  }
-
-  function handleDateRangeChange(start: string | null, end: string | null) {
-    setDateRange({ start, end })
-  }
-
-  function handleExport(data: Enquiry[]) {
-    const formatted = formatEnquiriesForExport(data)
-    exportToCSV(formatted, 'enquiries')
-    toast.success('Enquiries exported successfully')
   }
 
   const columns: ColumnDef<Enquiry>[] = [
@@ -231,7 +209,7 @@ export default function EnquiriesPage() {
               Mark as Closed
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
+            <DropdownMenuItem 
               className="text-red-600"
               onClick={() => deleteEnquiry(row.original.id)}
             >
@@ -313,12 +291,6 @@ export default function EnquiriesPage() {
         </div>
       </div>
 
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        onDateRangeChange={handleDateRangeChange}
-        label="Filter by Date"
-      />
-
       {/* Data Table */}
       <div className="rounded-xl border bg-white shadow-sm">
         <DataTable
@@ -326,8 +298,6 @@ export default function EnquiriesPage() {
           data={enquiries}
           searchKey="full_name"
           searchPlaceholder="Search by name..."
-          onExport={handleExport}
-          exportFileName="enquiries"
         />
       </div>
     </div>
