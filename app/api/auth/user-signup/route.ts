@@ -1,19 +1,26 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Create admin client that bypasses RLS for profile creation
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Lazy initialize Supabase admin client to avoid build-time errors
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase URL and Service Role Key are required')
   }
-})
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 export async function POST(request: Request) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { email, password, fullName, phone, firebase_uid } = await request.json()
 
     // Validate required fields
