@@ -1,18 +1,23 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 
-// Use service role key for webhook (bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
+// Lazy initialize Supabase admin client to avoid build-time errors
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase URL and Service Role Key are required')
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
-  }
-)
+  })
+}
 
 function verifyWebhookSignature(body: string, signature: string, secret: string): boolean {
   const expectedSignature = crypto
@@ -25,6 +30,7 @@ function verifyWebhookSignature(body: string, signature: string, secret: string)
 
 export async function POST(request: Request) {
   try {
+    const supabase = getSupabaseAdmin()
     const body = await request.text()
     const signature = request.headers.get('x-razorpay-signature') || ''
     
@@ -47,31 +53,31 @@ export async function POST(request: Request) {
 
     switch (eventType) {
       case 'subscription.activated':
-        await handleSubscriptionActivated(payload.subscription.entity)
+        await handleSubscriptionActivated(supabase, payload.subscription.entity)
         break
 
       case 'subscription.charged':
-        await handleSubscriptionCharged(payload.payment.entity, payload.subscription.entity)
+        await handleSubscriptionCharged(supabase, payload.payment.entity, payload.subscription.entity)
         break
 
       case 'subscription.cancelled':
-        await handleSubscriptionCancelled(payload.subscription.entity)
+        await handleSubscriptionCancelled(supabase, payload.subscription.entity)
         break
 
       case 'subscription.completed':
-        await handleSubscriptionCompleted(payload.subscription.entity)
+        await handleSubscriptionCompleted(supabase, payload.subscription.entity)
         break
 
       case 'subscription.paused':
-        await handleSubscriptionPaused(payload.subscription.entity)
+        await handleSubscriptionPaused(supabase, payload.subscription.entity)
         break
 
       case 'subscription.resumed':
-        await handleSubscriptionResumed(payload.subscription.entity)
+        await handleSubscriptionResumed(supabase, payload.subscription.entity)
         break
 
       case 'payment.failed':
-        await handlePaymentFailed(payload.payment.entity)
+        await handlePaymentFailed(supabase, payload.payment.entity)
         break
 
       default:
@@ -88,7 +94,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function handleSubscriptionActivated(subscription: any) {
+async function handleSubscriptionActivated(supabase: SupabaseClient, subscription: any) {
   try {
     const { data, error } = await supabase
       .from('user_subscriptions')
@@ -107,7 +113,7 @@ async function handleSubscriptionActivated(subscription: any) {
   }
 }
 
-async function handleSubscriptionCharged(payment: any, subscription: any) {
+async function handleSubscriptionCharged(supabase: SupabaseClient, payment: any, subscription: any) {
   try {
     // Update subscription period dates
     await supabase
@@ -125,7 +131,7 @@ async function handleSubscriptionCharged(payment: any, subscription: any) {
   }
 }
 
-async function handleSubscriptionCancelled(subscription: any) {
+async function handleSubscriptionCancelled(supabase: SupabaseClient, subscription: any) {
   try {
     const { data, error } = await supabase
       .from('user_subscriptions')
@@ -143,7 +149,7 @@ async function handleSubscriptionCancelled(subscription: any) {
   }
 }
 
-async function handleSubscriptionCompleted(subscription: any) {
+async function handleSubscriptionCompleted(supabase: SupabaseClient, subscription: any) {
   try {
     const { data, error } = await supabase
       .from('user_subscriptions')
@@ -160,7 +166,7 @@ async function handleSubscriptionCompleted(subscription: any) {
   }
 }
 
-async function handleSubscriptionPaused(subscription: any) {
+async function handleSubscriptionPaused(supabase: SupabaseClient, subscription: any) {
   try {
     const { data, error } = await supabase
       .from('user_subscriptions')
@@ -177,7 +183,7 @@ async function handleSubscriptionPaused(subscription: any) {
   }
 }
 
-async function handleSubscriptionResumed(subscription: any) {
+async function handleSubscriptionResumed(supabase: SupabaseClient, subscription: any) {
   try {
     const { data, error } = await supabase
       .from('user_subscriptions')
@@ -194,7 +200,7 @@ async function handleSubscriptionResumed(subscription: any) {
   }
 }
 
-async function handlePaymentFailed(payment: any) {
+async function handlePaymentFailed(supabase: SupabaseClient, payment: any) {
   try {
     console.log('Payment failed:', payment.id, 'for subscription:', payment.subscription_id)
     
