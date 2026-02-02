@@ -165,17 +165,18 @@ function UserSignupContent() {
         return
       }
 
-      // Update with Firebase fields
+      // Update with Firebase fields and sign in to Supabase
       const supabase = getSupabaseClient()
       const { data: userData } = await supabase
         .from('users')
-        .select('id')
+        .select('id, email')
         .eq('email', email)
         .single()
 
       const newUser = userData as any
 
       if (newUser) {
+        // Update user record with Firebase details
         await supabase
           .from('users')
           // @ts-ignore
@@ -185,10 +186,26 @@ function UserSignupContent() {
             last_login_at: new Date().toISOString()
           })
           .eq('id', newUser.id)
+
+        // Sign in to Supabase Auth to establish session (seamless login after signup)
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: firebaseUser.uid
+        })
+
+        if (signInError) {
+          console.error('Auto sign-in error:', signInError)
+          // Even if auto-login fails, account is created - redirect to login
+          toast.success('Account created! Please login to continue.')
+          router.push(`/auth/phone-login?phone=${encodeURIComponent(phoneNumber)}`)
+          return
+        }
       }
 
-      toast.success('Account created successfully!')
+      toast.success('Account created successfully! Welcome!')
       router.push('/')
+      // Refresh page after a short delay to ensure AuthProvider picks up the session
+      setTimeout(() => window.location.reload(), 500)
 
     } catch (error: any) {
       console.error('Error verifying OTP:', error)

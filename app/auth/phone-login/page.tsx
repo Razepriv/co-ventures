@@ -59,13 +59,28 @@ export default function UserLoginPage() {
     setLoading(true)
 
     try {
-      // Skip database check - just send OTP directly
-      // User will be verified/created after OTP confirmation
+      // Check if user exists in database first
+      const supabase = getSupabaseClient()
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, phone')
+        .eq('phone', phoneNumber)
+        .maybeSingle()
+
+      if (!existingUser) {
+        // User doesn't exist - redirect to signup with phone pre-filled
+        toast.info('No account found with this number. Please create an account.')
+        router.push(`/auth/phone-signup?phone=${encodeURIComponent(phoneNumber)}`)
+        setLoading(false)
+        return
+      }
+
+      // User exists - send OTP for login
       await sendOTP()
       setStep('otp')
       toast.success('OTP sent successfully!')
     } catch (error: any) {
-      console.error('Error sending OTP:', error)
+      console.error('Error:', error)
       if (error.code === 'auth/invalid-phone-number') {
         toast.error('Invalid phone number format')
       } else if (error.code === 'auth/too-many-requests') {
@@ -188,9 +203,9 @@ export default function UserLoginPage() {
         return
       }
 
-      // User doesn't exist - redirect to sign up page with phone number pre-filled
-      toast.info('No account found. Please sign up first.')
-      // Sign out from Firebase to clear the session
+      // User doesn't exist - this shouldn't happen as we check before sending OTP
+      // But handle it gracefully by redirecting to signup
+      toast.info('No account found. Please create an account.')
       await auth.signOut()
       router.push(`/auth/phone-signup?phone=${encodeURIComponent(phoneNumber)}`)
 
