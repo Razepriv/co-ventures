@@ -414,11 +414,6 @@ export default function PropertiesPage() {
           data={properties}
           searchKey="title"
           searchPlaceholder="Search properties..."
-          enableBulkActions={true}
-          onBulkDelete={handleBulkDelete}
-          onBulkUpdate={handleBulkUpdate}
-          onExport={handleExport}
-          exportFileName="properties"
         />
       </div>
     </div>

@@ -323,8 +323,6 @@ export default function ContactsPage() {
                     data={messages}
                     searchKey="full_name"
                     searchPlaceholder="Search by name..."
-                    onExport={handleExport}
-                    exportFileName="contact-messages"
                 />
             </div>
         </div>

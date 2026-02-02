@@ -606,8 +606,6 @@ export default function LeadsPage() {
                             data={leads}
                             searchKey="full_name"
                             searchPlaceholder="Search by name..."
-                            onExport={handleExport}
-                            exportFileName="all-enquiries"
                         />
                     </div>
                 </TabsContent>
@@ -619,8 +617,6 @@ export default function LeadsPage() {
                             data={leads.filter(l => l.source === 'Investment')}
                             searchKey="full_name"
                             searchPlaceholder="Search investments..."
-                            onExport={handleExport}
-                            exportFileName="investment-enquiries"
                         />
                     </div>
                 </TabsContent>
@@ -632,8 +628,6 @@ export default function LeadsPage() {
                             data={leads.filter(l => l.source === 'Group Buying')}
                             searchKey="full_name"
                             searchPlaceholder="Search group buying..."
-                            onExport={handleExport}
-                            exportFileName="group-buying-leads"
                         />
                     </div>
                 </TabsContent>
@@ -645,8 +639,6 @@ export default function LeadsPage() {
                             data={leads.filter(l => l.source === 'Contact Form')}
                             searchKey="full_name"
                             searchPlaceholder="Search contacts..."
-                            onExport={handleExport}
-                            exportFileName="contact-form-messages"
                         />
                     </div>
                 </TabsContent>
@@ -658,8 +650,6 @@ export default function LeadsPage() {
                             data={leads.filter(l => ['Callback', 'Live Tour', 'Site Visit', 'Lead'].includes(l.source))}
                             searchKey="full_name"
                             searchPlaceholder="Search other leads..."
-                            onExport={handleExport}
-                            exportFileName="other-leads"
                         />
                     </div>
                 </TabsContent>
