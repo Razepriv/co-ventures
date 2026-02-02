@@ -2,14 +2,20 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-})
+// Lazy initialize OpenAI to avoid build-time errors
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error('OpenAI API key not configured')
+  }
+  return new OpenAI({ apiKey })
+}
 
 export async function POST(request: Request) {
   const startTime = Date.now()
   
   try {
+    const openai = getOpenAI()
     const supabase = await createClient()
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -92,7 +98,7 @@ export async function POST(request: Request) {
 
     for (const agent of agents) {
       try {
-        const result = await runAgentAnalysis(agent, property)
+        const result = await runAgentAnalysis(openai, agent, property)
         // @ts-ignore
         analysisResults[agent.agent_slug] = result
         totalTokensUsed += result.tokensUsed || 0
@@ -209,7 +215,7 @@ function checkAgentAccess(plan: any, agentSlug: string): boolean {
   return plan.agents_access.includes(agentSlug)
 }
 
-async function runAgentAnalysis(agent: any, property: any) {
+async function runAgentAnalysis(openai: OpenAI, agent: any, property: any) {
   const propertyContext = `
 Property Details:
 - Title: ${property.title}

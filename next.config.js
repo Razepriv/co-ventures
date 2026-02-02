@@ -21,7 +21,7 @@ const nextConfig = {
   },
   reactStrictMode: true,
   // Transpile ESM-only packages
-  transpilePackages: ['razorpay'],
+  transpilePackages: ['razorpay', 'openai'],
 }
 
 module.exports = nextConfig
