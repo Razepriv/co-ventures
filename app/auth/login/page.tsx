@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -12,15 +12,30 @@ import { Building2, Loader2, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn, user } = useAuth()
+  const { signIn, user, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Redirect if already logged in
+  // Redirect if already logged in - use useEffect to avoid hydration issues
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/admin')
+    }
+  }, [user, authLoading, router])
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-coral-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-coral-600" />
+      </div>
+    )
+  }
+
+  // Don't render form if user is logged in (redirect will happen)
   if (user) {
-    router.push('/admin')
     return null
   }
 
@@ -39,7 +54,7 @@ export default function LoginPage() {
 
       // Wait a bit for the profile to load
       await new Promise(resolve => setTimeout(resolve, 500))
-
+      
       // Force a hard redirect to admin panel
       window.location.href = '/admin'
     } catch (err) {
@@ -71,7 +86,7 @@ export default function LoginPage() {
                 <span>{error}</span>
               </div>
             )}
-
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -84,7 +99,7 @@ export default function LoginPage() {
                 disabled={loading}
               />
             </div>
-
+            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -99,8 +114,8 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <Link
-                href="/auth/forgot-password"
+              <Link 
+                href="/auth/forgot-password" 
                 className="text-coral-600 hover:text-coral-700 hover:underline"
               >
                 Forgot password?
@@ -108,9 +123,9 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full"
+            <Button 
+              type="submit" 
+              className="w-full" 
               disabled={loading}
             >
               {loading ? (
@@ -133,8 +148,8 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center text-sm">
-              <Link
-                href="/auth/phone-login"
+              <Link 
+                href="/auth/user-login" 
                 className="text-gray-600 hover:text-gray-900 hover:underline"
               >
                 Sign in as User →

@@ -17,10 +17,8 @@ import Link from 'next/link'
 
 export default function UserLoginPage() {
   const router = useRouter()
-  const [step, setStep] = useState<'phone' | 'details' | 'otp'>('phone')
+  const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phoneNumber, setPhoneNumber] = useState('+91')
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
@@ -75,31 +73,6 @@ export default function UserLoginPage() {
       } else {
         toast.error('Failed to send OTP. Please try again.')
       }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleDetailsSubmit(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (!fullName.trim()) {
-      toast.error('Please enter your full name')
-      return
-    }
-
-    if (!email.trim() || !email.includes('@')) {
-      toast.error('Please enter a valid email')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      await sendOTP()
-      setStep('otp')
-    } catch (error) {
-      console.error('Error sending OTP:', error)
     } finally {
       setLoading(false)
     }
@@ -215,57 +188,11 @@ export default function UserLoginPage() {
         return
       }
 
-      // User doesn't exist - need to collect details for signup
-      // Check if we already have details from the form
-      if (!fullName || !email) {
-        // Show details step
-        setStep('details')
-        toast.info('Please provide your details to complete signup')
-        return
-      }
-
-      // Create new user via API
-      const response = await fetch('/api/auth/user-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          password: firebaseUser.uid,
-          fullName: fullName,
-          phone: phoneNumber,
-          firebase_uid: firebaseUser.uid
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        // Check if user already exists
-        if (response.status === 409 || (data.error && data.error.includes('already'))) {
-          // Attempt login if user creation failed because they exist
-          await supabase.auth.signInWithPassword({
-            email: email,
-            password: firebaseUser.uid
-          })
-          toast.success('Successfully logged in!')
-          router.push('/')
-          setTimeout(() => window.location.reload(), 500)
-          return
-        }
-        toast.error(data.error || 'Failed to create account')
-        return
-      }
-
-      // Sign in with the newly created account
-      await supabase.auth.signInWithPassword({
-        email: email,
-        password: firebaseUser.uid
-      })
-
-      toast.success('Account created and logged in!')
-      router.push('/')
-      // Refresh page after a short delay to ensure AuthProvider picks up the session
-      setTimeout(() => window.location.reload(), 500)
+      // User doesn't exist - redirect to sign up page with phone number pre-filled
+      toast.info('No account found. Please sign up first.')
+      // Sign out from Firebase to clear the session
+      await auth.signOut()
+      router.push(`/auth/phone-signup?phone=${encodeURIComponent(phoneNumber)}`)
 
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
@@ -318,8 +245,7 @@ export default function UserLoginPage() {
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Phone Login</h1>
             <p className="mt-2 text-gray-600">
-              {step === 'phone' && 'Enter your phone number to continue'}
-              {step === 'details' && 'Complete your profile'}
+              {step === 'phone' && 'Enter your registered phone number'}
               {step === 'otp' && 'Enter the OTP sent to your phone'}
             </p>
           </div>

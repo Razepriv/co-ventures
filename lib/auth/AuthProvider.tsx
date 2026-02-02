@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { getUserProfile } from './auth'
@@ -23,38 +23,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const supabase = useMemo(() => createClient(), [])
-
-  const loadProfile = useCallback(async (userId: string) => {
-    try {
-      const profileData = await getUserProfile(userId)
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          await loadProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error)
         setLoading(false)
       }
-    })
+    }
+
+    initializeAuth()
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        loadProfile(session.user.id)
+        await loadProfile(session.user.id)
       } else {
         setProfile(null)
         setLoading(false)
@@ -62,53 +58,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, loadProfile])
+  }, [supabase])
 
-  const refreshProfile = useCallback(async () => {
+  const loadProfile = async (userId: string) => {
+    try {
+      const profileData = await getUserProfile(userId)
+      setProfile(profileData)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+      // Profile may not exist yet for new users, that's okay
+      setProfile(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const refreshProfile = async () => {
     if (user) {
       await loadProfile(user.id)
     }
-  }, [user, loadProfile])
+  }
 
-  const handleSignIn = useCallback(async (email: string, password: string) => {
+  const handleSignIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-
+      
       if (error) {
         return { error }
       }
-
+      
       if (data.user) {
         setUser(data.user)
         await loadProfile(data.user.id)
       }
-
+      
       return { error: null }
     } catch (err) {
       return { error: err as Error }
     }
-  }, [supabase, loadProfile])
+  }
 
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
-  }, [supabase])
-
-  const contextValue = useMemo(() => ({
-    user,
-    profile,
-    loading,
-    signIn: handleSignIn,
-    signOut: handleSignOut,
-    refreshProfile,
-  }), [user, profile, loading, handleSignIn, handleSignOut, refreshProfile])
+  }
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signIn: handleSignIn,
+        signOut: handleSignOut,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
