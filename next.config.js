@@ -20,6 +20,8 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
   },
   reactStrictMode: true,
+  // Transpile ESM-only packages
+  transpilePackages: ['razorpay'],
 }
 
 module.exports = nextConfig
