@@ -50,14 +50,18 @@ export async function POST(request: NextRequest) {
       return errorResponse('Failed to create user', 500)
     }
 
-    // Create profile in public.users table as super_admin (bypasses RLS)
+    // Create/update profile in public.users table as super_admin (bypasses RLS)
+    // Note: A database trigger may have already created a basic profile, so we use upsert
     const { error: profileError } = await supabaseAdmin
       .from('users')
-      .insert({
+      .upsert({
         id: authData.user.id,
         email: email,
         role: 'super_admin',
         full_name: fullName,
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false // We want to update existing records
       })
 
     if (profileError) {

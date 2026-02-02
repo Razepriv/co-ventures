@@ -79,10 +79,11 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create user profile in the users table with 'user' role (using admin to bypass RLS)
+    // Update or create user profile in the users table with 'user' role
+    // Note: A database trigger may have already created a basic profile, so we use upsert
     const { error: profileError } = await supabaseAdmin
       .from('users')
-      .insert({
+      .upsert({
         id: authData.user.id,
         email: authData.user.email!,
         full_name: fullName,
@@ -90,6 +91,9 @@ export async function POST(request: Request) {
         role: 'user', // Regular user role
         firebase_uid: firebase_uid || null,
         phone_verified: !!phone,
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false // We want to update existing records
       })
 
     if (profileError) {
