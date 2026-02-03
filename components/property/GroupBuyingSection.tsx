@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Users, UserPlus, Lock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -25,11 +26,17 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
     const { user } = useAuth()
     const [showJoinModal, setShowJoinModal] = useState(false)
     const [joining, setJoining] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const [formData, setFormData] = useState({
         full_name: '',
         email: '',
         phone: ''
     })
+
+    // For SSR compatibility - only render portal after mount
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     const handleJoinGroup = async () => {
         if (!user) {
@@ -135,10 +142,10 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
                 </CardContent>
             </Card>
 
-            {/* Join Group Modal */}
-            {showJoinModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative z-[61]">
+            {/* Join Group Modal - Using Portal to render at body level */}
+            {mounted && showJoinModal && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-bold text-gray-900">Join Investment Group</h3>
                             <button
@@ -204,7 +211,8 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     )

@@ -667,7 +667,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
               {/* Tabs */}
               <div className="relative">
                 <Tabs defaultValue="overview" className="w-full">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-1 mb-6 sticky top-20 z-20 overflow-x-auto no-scrollbar">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-1 mb-6 sticky top-20 z-10 overflow-x-auto no-scrollbar">
                     <TabsList className="bg-transparent h-auto p-0 flex lg:grid lg:grid-cols-6 min-w-max lg:min-w-0">
                       <TabsTrigger value="overview" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Overview</TabsTrigger>
                       <TabsTrigger value="highlights" className="flex-1 py-3 px-6 rounded-lg data-[state=active]:bg-coral data-[state=active]:text-white transition-all whitespace-nowrap">Highlights</TabsTrigger>
