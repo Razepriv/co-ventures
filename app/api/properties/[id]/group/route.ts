@@ -24,21 +24,40 @@ export async function GET(
       }
     }
 
-    // Get group info
+    // Get group info with only approved members
     const { data: group, error } = await supabase
       .from('property_groups')
       .select(`
         *,
-        group_members (
+        group_members!inner (
           id,
           user_id,
           full_name,
           email,
+          status,
           joined_at
         )
       `)
       .eq('property_id', propertyId)
+      .eq('group_members.status', 'approved')
       .maybeSingle()
+
+    // If no approved members yet, fetch group without members
+    if (!group) {
+      const { data: groupOnly, error: groupOnlyError } = await supabase
+        .from('property_groups')
+        .select('*')
+        .eq('property_id', propertyId)
+        .maybeSingle()
+
+      if (groupOnlyError) throw groupOnlyError
+
+      return NextResponse.json({
+        group: groupOnly
+          ? { ...groupOnly, group_members: [] }
+          : { total_slots: 5, filled_slots: 0, is_locked: false, group_members: [] },
+      })
+    }
 
     if (error) throw error
 
@@ -135,7 +154,7 @@ export async function POST(
       )
     }
 
-    // Add member to group (using admin client)
+    // Add member to group with pending status (admin must approve)
     const { data: member, error: memberError } = await adminSupabase
       .from('group_members')
       // @ts-ignore
@@ -146,6 +165,7 @@ export async function POST(
         full_name,
         email,
         phone,
+        status: 'pending',
       })
       .select()
       .single()

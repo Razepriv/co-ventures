@@ -334,6 +334,46 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
     }
   }, [property?.id, fetchPropertyContent, fetchGroup])
 
+  // Real-time subscription for group membership updates
+  useEffect(() => {
+    if (!property?.id) return
+
+    const supabase = getSupabaseClient()
+
+    // Subscribe to group_members changes for this property's group
+    const channel = supabase
+      .channel(`group_updates_${property.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_members'
+        },
+        () => {
+          // Refetch group data when members are added/removed
+          fetchGroup()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'property_groups'
+        },
+        () => {
+          // Refetch when group is updated (e.g., locked)
+          fetchGroup()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [property?.id, fetchGroup])
+
   const handleAIChat = () => {
     if (!user) {
       toast.error('Please login to use AI Assistant')

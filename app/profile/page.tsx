@@ -67,7 +67,7 @@ export default function ProfilePage() {
     }
   }, [profile])
 
-  // Fetch joined groups
+  // Fetch joined groups (only approved memberships)
   useEffect(() => {
     async function fetchGroups() {
       if (!user) return
@@ -80,6 +80,7 @@ export default function ProfilePage() {
           .select(`
             id,
             joined_at,
+            status,
             property_groups (
               id,
               total_slots,
@@ -95,6 +96,7 @@ export default function ProfilePage() {
             )
           `)
           .eq('user_id', user.id)
+          .eq('status', 'approved')
           .order('joined_at', { ascending: false })
 
         if (error) throw error
@@ -110,7 +112,7 @@ export default function ProfilePage() {
       fetchGroups()
     }
 
-    // Real-time subscription for when user is added to new groups
+    // Real-time subscription for when user is added/approved in groups
     if (user) {
       const supabase = getSupabaseClient()
       const channel = supabase
@@ -126,7 +128,36 @@ export default function ProfilePage() {
           () => {
             // Refetch groups when user is added to a new group
             fetchGroups()
-            toast.success('You have been added to a new investment group!')
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'group_members',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            // Refetch groups when membership status changes (e.g., approved)
+            fetchGroups()
+            // Show toast only when status changes to approved
+            if (payload.new && (payload.new as any).status === 'approved') {
+              toast.success('Your group membership has been approved!')
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'group_members',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            // Refetch groups when removed from a group
+            fetchGroups()
           }
         )
         .subscribe()

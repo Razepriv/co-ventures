@@ -63,7 +63,7 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
                 throw new Error(data.error || 'Failed to join group')
             }
 
-            toast.success('Successfully joined the investment group!')
+            toast.success('Request submitted! You will be notified when approved.')
             setShowJoinModal(false)
             setFormData({ full_name: '', email: '', phone: '' })
             onJoinSuccess()
