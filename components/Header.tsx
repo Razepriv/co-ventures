@@ -81,10 +81,6 @@ export const Header: React.FC = () => {
     };
   }, [isMobileMenuOpen]);
 
-  const handleLoginClick = useCallback(() => {
-    window.location.href = '/auth/login';
-  }, []);
-
   const handleUserLoginClick = useCallback(() => {
     window.location.href = '/auth/user-login';
   }, []);
@@ -289,15 +285,6 @@ export const Header: React.FC = () => {
                 </Button>
               )}
 
-              {/* Admin Login Button */}
-              <Button
-                size="sm"
-                className="hidden md:inline-flex shadow-lg hover:shadow-xl transition-shadow"
-                onClick={handleLoginClick}
-              >
-                Admin
-              </Button>
-
               {/* Mobile Menu Button */}
               <button
                 className={cn(
@@ -409,16 +396,6 @@ export const Header: React.FC = () => {
                   User Login
                 </Button>
               )}
-              <Button
-                size="md"
-                className="w-full shadow-lg hover:shadow-xl transition-shadow"
-                onClick={() => {
-                  handleLoginClick();
-                  toggleMobileMenu();
-                }}
-              >
-                Admin Login
-              </Button>
             </div>
           </nav>
         </div>

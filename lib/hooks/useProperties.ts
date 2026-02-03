@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 
 type Property = Database['public']['Tables']['properties']['Row']
@@ -24,7 +24,7 @@ interface PropertyFilters {
  * Fetch all properties with optional filters
  */
 export function useProperties(filters?: PropertyFilters) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   return useSWR(
     ['properties', filters],
@@ -79,7 +79,7 @@ export function useProperties(filters?: PropertyFilters) {
  * Fetch a single property by ID
  */
 export function useProperty(id: string) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   return useSWR(
     id ? ['property', id] : null,
@@ -115,7 +115,7 @@ export function useProperty(id: string) {
  * Fetch featured properties
  */
 export function useFeaturedProperties(limit = 6) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   return useSWR(
     ['featured-properties', limit],
@@ -146,7 +146,7 @@ export function useFeaturedProperties(limit = 6) {
  * Fetch user's saved properties
  */
 export function useSavedProperties(userId?: string) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   return useSWR(
     userId ? ['saved-properties', userId] : null,
@@ -177,7 +177,7 @@ export function useSavedProperties(userId?: string) {
  * Save/unsave a property
  */
 export async function toggleSaveProperty(propertyId: string, userId: string) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   // Check if already saved
   const { data: existing } = await supabase

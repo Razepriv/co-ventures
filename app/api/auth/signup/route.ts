@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse, handleApiError } from '@/lib/api/utils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -15,11 +16,34 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, fullName } = await request.json()
+    // SECURITY: Verify the requester is an authenticated super_admin
+    const supabase = await createServerClient()
+    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !currentUser) {
+      return errorResponse('Unauthorized - Authentication required', 401)
+    }
+
+    // Check if current user is a super_admin
+    const { data: currentUserProfile } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', currentUser.id)
+      .single()
+
+    if (!currentUserProfile || currentUserProfile.role !== 'super_admin') {
+      return errorResponse('Forbidden - Only super admins can create admin accounts', 403)
+    }
+
+    const { email, password, fullName, role } = await request.json()
 
     if (!email || !password || !fullName) {
       return errorResponse('Email, password, and full name are required', 400)
     }
+
+    // Validate role - only allow 'admin' or 'super_admin', default to 'admin'
+    const validRoles = ['admin', 'super_admin']
+    const assignedRole = validRoles.includes(role) ? role : 'admin'
 
     // Check if user already exists (using admin client to bypass RLS)
     const { data: existingUser } = await supabaseAdmin
@@ -33,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create auth user (auto-confirmed)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -42,22 +66,22 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (authError) {
-      return errorResponse(authError.message, 400)
+    if (createAuthError) {
+      return errorResponse(createAuthError.message, 400)
     }
 
     if (!authData.user) {
       return errorResponse('Failed to create user', 500)
     }
 
-    // Create/update profile in public.users table as super_admin (bypasses RLS)
+    // Create/update profile in public.users table (bypasses RLS)
     // Note: A database trigger may have already created a basic profile, so we use upsert
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .upsert({
         id: authData.user.id,
         email: email,
-        role: 'super_admin',
+        role: assignedRole,
         full_name: fullName,
       }, {
         onConflict: 'id',
@@ -75,8 +99,9 @@ export async function POST(request: NextRequest) {
         user: {
           id: authData.user.id,
           email: authData.user.email,
+          role: assignedRole,
         },
-        message: 'Super admin account created successfully',
+        message: `${assignedRole === 'super_admin' ? 'Super admin' : 'Admin'} account created successfully`,
       },
       201
     )

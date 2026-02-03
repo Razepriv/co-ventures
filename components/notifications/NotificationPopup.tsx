@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Bell, X, Users, Mail, Home, FileText, CheckCircle, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 interface Notification {
@@ -26,7 +26,7 @@ interface NotificationPopupProps {
 export default function NotificationPopup({ isOpen, onClose }: NotificationPopupProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const fetchNotifications = useCallback(async () => {
     try {

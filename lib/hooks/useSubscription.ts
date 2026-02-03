@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState, useCallback } from 'react'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import type {
   SubscriptionPlan,
   UserSubscription,
@@ -14,7 +14,7 @@ export function useSubscription() {
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = getSupabaseClient()
 
   const calculateUsage = useCallback(async (
     userId: string,

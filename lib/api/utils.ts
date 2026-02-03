@@ -88,34 +88,155 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
 }
 
 /**
- * Rate limiting (simple in-memory implementation)
+ * Production-ready Rate Limiter with automatic TTL cleanup
+ *
+ * Features:
+ * - Sliding window rate limiting
+ * - Automatic cleanup of expired entries (prevents memory leaks)
+ * - Configurable max entries to prevent unbounded growth
+ * - Thread-safe for single Node.js process
  */
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 
+interface RateLimitEntry {
+  count: number
+  resetTime: number
+}
+
+class RateLimiter {
+  private store: Map<string, RateLimitEntry> = new Map()
+  private cleanupInterval: NodeJS.Timeout | null = null
+  private readonly maxEntries: number
+  private readonly cleanupIntervalMs: number
+
+  constructor(options?: { maxEntries?: number; cleanupIntervalMs?: number }) {
+    this.maxEntries = options?.maxEntries ?? 10000 // Max 10k entries
+    this.cleanupIntervalMs = options?.cleanupIntervalMs ?? 60000 // Cleanup every minute
+    this.startCleanup()
+  }
+
+  /**
+   * Start periodic cleanup of expired entries
+   */
+  private startCleanup(): void {
+    // Only start cleanup in server environment
+    if (typeof setInterval !== 'undefined' && !this.cleanupInterval) {
+      this.cleanupInterval = setInterval(() => {
+        this.cleanup()
+      }, this.cleanupIntervalMs)
+
+      // Don't prevent Node.js from exiting
+      if (this.cleanupInterval.unref) {
+        this.cleanupInterval.unref()
+      }
+    }
+  }
+
+  /**
+   * Remove expired entries and enforce max entries limit
+   */
+  private cleanup(): void {
+    const now = Date.now()
+    let deletedCount = 0
+
+    // Remove expired entries
+    for (const [key, value] of this.store) {
+      if (now > value.resetTime) {
+        this.store.delete(key)
+        deletedCount++
+      }
+    }
+
+    // If still over max entries, remove oldest entries
+    if (this.store.size > this.maxEntries) {
+      const entries = Array.from(this.store.entries())
+        .sort((a, b) => a[1].resetTime - b[1].resetTime)
+
+      const toRemove = this.store.size - this.maxEntries
+      for (let i = 0; i < toRemove; i++) {
+        this.store.delete(entries[i][0])
+      }
+    }
+
+    if (deletedCount > 0 || this.store.size > this.maxEntries * 0.9) {
+      console.log(`[RateLimiter] Cleanup: removed ${deletedCount} expired entries, ${this.store.size} active`)
+    }
+  }
+
+  /**
+   * Check and update rate limit for an identifier
+   */
+  check(
+    identifier: string,
+    maxRequests: number,
+    windowMs: number
+  ): { success: boolean; remaining: number; resetTime: number } {
+    const now = Date.now()
+    const record = this.store.get(identifier)
+
+    // New entry or expired entry
+    if (!record || now > record.resetTime) {
+      const resetTime = now + windowMs
+      this.store.set(identifier, { count: 1, resetTime })
+      return { success: true, remaining: maxRequests - 1, resetTime }
+    }
+
+    // Rate limit exceeded
+    if (record.count >= maxRequests) {
+      return { success: false, remaining: 0, resetTime: record.resetTime }
+    }
+
+    // Increment count
+    record.count++
+    return {
+      success: true,
+      remaining: maxRequests - record.count,
+      resetTime: record.resetTime,
+    }
+  }
+
+  /**
+   * Get current store size (for monitoring)
+   */
+  get size(): number {
+    return this.store.size
+  }
+
+  /**
+   * Stop the cleanup interval (for graceful shutdown)
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
+    this.store.clear()
+  }
+}
+
+// Singleton rate limiter instance
+const rateLimiter = new RateLimiter()
+
+/**
+ * Rate limit a request by identifier
+ *
+ * @param identifier - Unique identifier (e.g., IP address, user ID)
+ * @param maxRequests - Maximum requests allowed in the window (default: 100)
+ * @param windowMs - Time window in milliseconds (default: 60000 = 1 minute)
+ * @returns Object with success status, remaining requests, and reset time
+ */
 export function rateLimit(
   identifier: string,
   maxRequests = 100,
   windowMs = 60000
 ): { success: boolean; remaining: number; resetTime: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(identifier)
+  return rateLimiter.check(identifier, maxRequests, windowMs)
+}
 
-  if (!record || now > record.resetTime) {
-    const resetTime = now + windowMs
-    rateLimitMap.set(identifier, { count: 1, resetTime })
-    return { success: true, remaining: maxRequests - 1, resetTime }
-  }
-
-  if (record.count >= maxRequests) {
-    return { success: false, remaining: 0, resetTime: record.resetTime }
-  }
-
-  record.count++
-  return {
-    success: true,
-    remaining: maxRequests - record.count,
-    resetTime: record.resetTime,
-  }
+/**
+ * Get rate limiter stats (for monitoring endpoints)
+ */
+export function getRateLimiterStats(): { activeEntries: number } {
+  return { activeEntries: rateLimiter.size }
 }
 
 /**

@@ -611,17 +611,6 @@ function UserLoginContent() {
             </div>
           )}
 
-          {/* Admin Login Link */}
-          {flowState === 'phone_input' && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-center text-sm text-gray-600">
-                Admin? {' '}
-                <Link href="/auth/login" className="text-coral font-semibold hover:text-coral-dark">
-                  Login as Admin
-                </Link>
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Additional Info */}
