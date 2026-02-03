@@ -49,24 +49,15 @@ function UserLoginContent() {
     }
   }, [user, authLoading, router])
 
-  // Initialize reCAPTCHA
+  // Cleanup reCAPTCHA on unmount
   useEffect(() => {
-    if (typeof window !== 'undefined' && !verifierRef.current) {
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          console.log('reCAPTCHA verified')
-        },
-        'expired-callback': () => {
-          toast.error('reCAPTCHA expired. Please try again.')
-        }
-      })
-      verifierRef.current = verifier
-    }
-
     return () => {
       if (verifierRef.current) {
-        verifierRef.current.clear()
+        try {
+          verifierRef.current.clear()
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
         verifierRef.current = null
       }
     }
@@ -86,19 +77,57 @@ function UserLoginContent() {
     return null
   }
 
+  // ── Shared helper: initialize reCAPTCHA lazily ──
+  function getRecaptchaVerifier(): RecaptchaVerifier {
+    // If we already have a valid verifier, return it
+    if (verifierRef.current) {
+      return verifierRef.current
+    }
+
+    // Check DOM element exists
+    const container = document.getElementById('recaptcha-container')
+    if (!container) {
+      throw new Error('reCAPTCHA container not found in DOM')
+    }
+
+    // Create new verifier
+    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      size: 'invisible',
+      callback: () => {
+        console.log('reCAPTCHA verified')
+      },
+      'expired-callback': () => {
+        toast.error('reCAPTCHA expired. Please try again.')
+        // Clear so it can be re-initialized
+        if (verifierRef.current) {
+          try {
+            verifierRef.current.clear()
+          } catch (e) {
+            // Ignore
+          }
+          verifierRef.current = null
+        }
+      }
+    })
+
+    verifierRef.current = verifier
+    return verifier
+  }
+
   // ── Shared helper: send OTP via Firebase ──
   async function sendOTP() {
-    if (!verifierRef.current) {
-      // Re-initialize if cleared
-      verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {},
-        'expired-callback': () => { toast.error('reCAPTCHA expired.') }
-      })
+    let verifier: RecaptchaVerifier
+
+    try {
+      verifier = getRecaptchaVerifier()
+    } catch (e: any) {
+      console.error('Failed to initialize reCAPTCHA:', e)
+      toast.error('Failed to initialize verification. Please refresh the page.')
+      throw e
     }
 
     try {
-      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current)
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, verifier)
       setConfirmationResult(confirmation)
     } catch (error: any) {
       console.error('Error sending OTP:', error)
@@ -106,7 +135,11 @@ function UserLoginContent() {
       // If captcha-related error, clear and re-init on next attempt
       if (error.code === 'auth/captcha-check-failed' || error.code === 'auth/argument-error') {
         if (verifierRef.current) {
-          verifierRef.current.clear()
+          try {
+            verifierRef.current.clear()
+          } catch (e) {
+            // Ignore cleanup errors
+          }
           verifierRef.current = null
         }
       }
@@ -119,6 +152,8 @@ function UserLoginContent() {
         toast.error('Phone authentication is not enabled. Please contact support.')
       } else if (error.code === 'auth/captcha-check-failed') {
         toast.error('reCAPTCHA verification failed. Please refresh and try again.')
+      } else if (error.code === 'auth/argument-error') {
+        toast.error('Authentication error. Please refresh and try again.')
       } else {
         toast.error('Failed to send OTP. Please try again.')
       }
