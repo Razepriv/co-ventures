@@ -137,7 +137,7 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
 
             {/* Join Group Modal */}
             {showJoinModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative z-[61]">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-bold text-gray-900">Join Investment Group</h3>
