@@ -262,6 +262,16 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       const supabase = getSupabaseClient()
       const propertyId = property.id
 
+      // Helper to safely fetch data (wraps PromiseLike in proper Promise for .catch support)
+      const safeFetch = async <T,>(query: PromiseLike<{ data: T | null }>): Promise<T | null> => {
+        try {
+          const result = await query
+          return result.data
+        } catch {
+          return null
+        }
+      }
+
       // Run all queries in parallel for better performance
       const [
         highlightsResult,
@@ -271,21 +281,21 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
         reraInfoResult,
         developerResult
       ] = await Promise.all([
-        supabase.from('property_highlights').select('*').eq('property_id', propertyId).order('display_order').then(r => r.data).catch(() => null),
-        supabase.from('property_amenities').select('*').eq('property_id', propertyId).order('display_order').then(r => r.data).catch(() => null),
-        supabase.from('property_specifications').select('*').eq('property_id', propertyId).order('category, display_order').then(r => r.data).catch(() => null),
-        supabase.from('nearby_places').select('*').eq('property_id', propertyId).then(r => r.data).catch(() => null),
-        supabase.from('property_rera_info').select('*').eq('property_id', propertyId).maybeSingle().then(r => r.data).catch(() => null),
+        safeFetch(supabase.from('property_highlights').select('*').eq('property_id', propertyId).order('display_order')),
+        safeFetch(supabase.from('property_amenities').select('*').eq('property_id', propertyId).order('display_order')),
+        safeFetch(supabase.from('property_specifications').select('*').eq('property_id', propertyId).order('category, display_order')),
+        safeFetch(supabase.from('nearby_places').select('*').eq('property_id', propertyId)),
+        safeFetch(supabase.from('property_rera_info').select('*').eq('property_id', propertyId).maybeSingle()),
         property?.developer_id
-          ? supabase.from('developers').select('*').eq('id', property.developer_id).single().then(r => r.data).catch(() => null)
+          ? safeFetch(supabase.from('developers').select('*').eq('id', property.developer_id).single())
           : Promise.resolve(null)
       ])
 
       // Set all state at once
-      setHighlights(highlightsResult || [])
-      setAmenities(amenitiesResult || [])
-      setSpecifications(specificationsResult || [])
-      setNearbyPlaces(nearbyPlacesResult || [])
+      setHighlights((highlightsResult as any[]) || [])
+      setAmenities((amenitiesResult as any[]) || [])
+      setSpecifications((specificationsResult as any[]) || [])
+      setNearbyPlaces((nearbyPlacesResult as any[]) || [])
       setReraInfo(reraInfoResult)
       setDeveloper(developerResult)
 
