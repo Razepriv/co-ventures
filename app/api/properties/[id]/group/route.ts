@@ -38,18 +38,21 @@ export async function GET(
       return NextResponse.json({ group: null })
     }
 
+    // Cast to proper type
+    const groupInfo = groupData as { id: string; total_slots: number; filled_slots: number; is_locked: boolean; property_id: string }
+
     // Now get approved members for this group
     const { data: members, error: membersError } = await supabase
       .from('group_members')
       .select('id, user_id, full_name, email, status, joined_at')
-      .eq('group_id', groupData.id)
+      .eq('group_id', groupInfo.id)
       .eq('status', 'approved')
 
     if (membersError) throw membersError
 
     return NextResponse.json({
       group: {
-        ...groupData,
+        ...groupInfo,
         group_members: members || []
       }
     })
