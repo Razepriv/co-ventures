@@ -113,7 +113,9 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (user && profile) {
-      fetchNotifications()
+      // Defer notification fetch so it doesn't block initial admin panel render
+      const timer = setTimeout(fetchNotifications, 100)
+      return () => clearTimeout(timer)
     }
   }, [user, profile])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { getUserProfile } from './auth'
@@ -24,6 +24,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [supabase] = useState(() => createClient())
+
+  // Track which user ID we've already loaded a profile for to prevent duplicate fetches
+  const loadedProfileRef = useRef<string | null>(null)
+  const profileLoadingRef = useRef<Promise<void> | null>(null)
+
+  const loadProfile = useCallback(async (userId: string, force = false) => {
+    // Skip if we already loaded this user's profile (prevents duplicate calls)
+    if (!force && loadedProfileRef.current === userId) {
+      setLoading(false)
+      return
+    }
+
+    // If a load is already in progress for the same user, wait for it
+    if (profileLoadingRef.current && loadedProfileRef.current === userId) {
+      await profileLoadingRef.current
+      return
+    }
+
+    loadedProfileRef.current = userId
+
+    const loadPromise = (async () => {
+      try {
+        const profileData = await getUserProfile(userId)
+        setProfile(profileData)
+      } catch (error) {
+        console.error('Error loading profile:', error)
+        setProfile(null)
+        loadedProfileRef.current = null
+      } finally {
+        setLoading(false)
+        profileLoadingRef.current = null
+      }
+    })()
+
+    profileLoadingRef.current = loadPromise
+    await loadPromise
+  }, [])
 
   useEffect(() => {
     // Get initial session
@@ -50,32 +87,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
+        // This will be a no-op if handleSignIn or initializeAuth already loaded the profile
         await loadProfile(session.user.id)
       } else {
         setProfile(null)
+        loadedProfileRef.current = null
         setLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
-
-  const loadProfile = async (userId: string) => {
-    try {
-      const profileData = await getUserProfile(userId)
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-      // Profile may not exist yet for new users, that's okay
-      setProfile(null)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [supabase, loadProfile])
 
   const refreshProfile = async () => {
     if (user) {
-      await loadProfile(user.id)
+      await loadProfile(user.id, true)
     }
   }
 
@@ -85,16 +111,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       })
-      
+
       if (error) {
         return { error }
       }
-      
+
       if (data.user) {
         setUser(data.user)
         await loadProfile(data.user.id)
       }
-      
+
       return { error: null }
     } catch (err) {
       return { error: err as Error }
@@ -105,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
+    loadedProfileRef.current = null
   }
 
   return (

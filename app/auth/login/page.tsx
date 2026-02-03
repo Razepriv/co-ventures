@@ -52,11 +52,9 @@ export default function LoginPage() {
         return
       }
 
-      // Wait a bit for the profile to load
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Force a hard redirect to admin panel
-      window.location.href = '/admin'
+      // Profile is already loaded by signIn - use client-side navigation
+      // to preserve in-memory auth state (avoids full page reload)
+      router.push('/admin')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       setLoading(false)
