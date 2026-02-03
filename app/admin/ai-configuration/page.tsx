@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 const agentIcons = {
@@ -104,7 +104,7 @@ export default function AIConfigurationPage() {
   const fetchAgents = useCallback(async () => {
     try {
       setLoading(true)
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
 
       const { data, error } = await supabase
         .from('ai_agent_configurations')
@@ -125,7 +125,7 @@ export default function AIConfigurationPage() {
 
   const fetchGeminiApiKey = useCallback(async () => {
     try {
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
       const { data, error } = await supabase
         .from('ai_api_keys')
         .select('api_key')
@@ -150,7 +150,7 @@ export default function AIConfigurationPage() {
     fetchGeminiApiKey()
 
     // Set up realtime subscription for AI configuration changes
-    const supabase = createClient()
+    const supabase = getSupabaseClient()
     const channel = supabase
       .channel('admin_ai_config_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_agent_configurations' }, (payload) => {
@@ -180,7 +180,7 @@ export default function AIConfigurationPage() {
 
     try {
       setSavingApiKey(true)
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
 
       // Upsert API key
       const { error } = await (supabase as any)
@@ -211,7 +211,7 @@ export default function AIConfigurationPage() {
 
     try {
       setSaving(true)
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
 
       // Save configuration
       const { data: updatedAgent, error } = await supabase
@@ -267,7 +267,7 @@ export default function AIConfigurationPage() {
       setTestResult(null)
 
       // Get a sample property for testing
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
       const { data: property } = await supabase
         .from('properties')
         .select('*')
@@ -306,7 +306,7 @@ export default function AIConfigurationPage() {
     if (!confirm('Are you sure you want to rollback to the previous version?')) return
 
     try {
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
 
       // Get previous version
       const { data: history, error: historyError } = await supabase
