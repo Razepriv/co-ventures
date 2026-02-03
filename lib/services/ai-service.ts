@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 interface AIResponse {
@@ -16,7 +16,7 @@ export class AIService {
   static async getApiKey(provider: 'gemini'): Promise<string | null> {
     try {
       // First try to get from database (dynamic config) using Admin Client to bypass RLS
-      const supabase = await createAdminClient()
+      const supabase = createServiceClient()
       const { data, error } = await supabase
         .from('ai_api_keys')
         .select('api_key')
@@ -24,21 +24,35 @@ export class AIService {
         .eq('is_active', true)
         .single()
 
+      if (error) {
+        console.error(`[AIService] Database error fetching ${provider} API key:`, error.message)
+      }
+
       if (data && (data as any).api_key) {
+        console.log(`[AIService] Found ${provider} API key in database`)
         return (data as any).api_key
       }
 
       // Fallback to environment variables
       if (provider === 'gemini') {
-        return process.env.GEMINI_API_KEY || null
+        const envKey = process.env.GEMINI_API_KEY
+        if (envKey) {
+          console.log(`[AIService] Using ${provider} API key from environment`)
+          return envKey
+        }
       }
 
+      console.warn(`[AIService] No ${provider} API key found in database or environment`)
       return null
     } catch (error) {
-      console.error('Error fetching API key:', error)
+      console.error('[AIService] Error fetching API key:', error)
       // Fallback to environment variables on error
       if (provider === 'gemini') {
-        return process.env.GEMINI_API_KEY || null
+        const envKey = process.env.GEMINI_API_KEY
+        if (envKey) {
+          console.log(`[AIService] Using ${provider} API key from environment (after error)`)
+          return envKey
+        }
       }
       return null
     }
@@ -286,7 +300,7 @@ export class AIService {
   ): Promise<AIResponse> {
     try {
       // 1. Fetch all configured agents from the database
-      const supabase = await createAdminClient()
+      const supabase = createServiceClient()
       const { data: agents, error } = await supabase
         .from('ai_agent_configurations')
         .select('*')
@@ -384,7 +398,7 @@ GUIDELINES:
     context: any
   ): Promise<AIResponse> {
     try {
-      const supabase = await createAdminClient()
+      const supabase = createServiceClient()
 
       // Get agent configuration
       const { data: agent, error } = await supabase
