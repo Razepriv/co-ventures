@@ -1,23 +1,32 @@
 import { updateSession } from '@/lib/supabase/middleware'
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware for static files and public API routes for better performance
+  const { pathname } = request.nextUrl
+
+  // Skip for static assets and public routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/search') ||
+    pathname.startsWith('/api/public') ||
+    pathname.includes('.') // static files like .svg, .png, etc.
+  ) {
+    return NextResponse.next()
+  }
+
   return await updateSession(request)
 }
 
 export const config = {
   matcher: [
     /*
-     * Only run middleware on routes that need authentication:
-     * - /admin (admin panel)
-     * - /profile (user profile)
-     * - /api routes (except public ones like search)
-     *
-     * Public pages like /, /properties, /blog, /about, /contact
-     * don't need middleware auth checks - this significantly improves load time
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, robots.txt, sitemap.xml
+     * - Static files (.svg, .png, .jpg, etc.)
      */
-    '/admin/:path*',
-    '/profile/:path*',
-    '/api/((?!search|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

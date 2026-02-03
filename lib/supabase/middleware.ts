@@ -13,6 +13,16 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
+  // Only process auth if there's an existing auth cookie
+  // This speeds up requests for unauthenticated users
+  const hasAuthCookie = request.cookies.getAll().some(
+    cookie => cookie.name.includes('sb-') && cookie.name.includes('-auth-token')
+  )
+
+  if (!hasAuthCookie) {
+    return response
+  }
+
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -59,7 +69,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Refresh session if expired - only runs if auth cookie exists
   await supabase.auth.getUser()
 
   return response
