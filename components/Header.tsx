@@ -8,7 +8,7 @@ import { Menu, X, Bell, User, LogOut } from 'lucide-react';
 import { Button } from './ui/Button';
 import { cn } from '@/lib/utils';
 import NotificationPopup from './notifications/NotificationPopup';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
 import { useAuth } from '@/lib/auth/AuthProvider';
 
@@ -29,7 +29,7 @@ export const Header: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { user, profile, signOut } = useAuth();
 
   // Memoized scroll handler with throttle
@@ -86,7 +86,7 @@ export const Header: React.FC = () => {
   }, []);
 
   const handleUserLoginClick = useCallback(() => {
-    window.location.href = '/auth/phone-login';
+    window.location.href = '/auth/user-login';
   }, []);
 
   const handleProfileClick = useCallback(() => {

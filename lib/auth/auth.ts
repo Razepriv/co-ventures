@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 export interface SignUpData {
@@ -31,7 +31,7 @@ export interface UpdateProfileData {
  * Sign up a new user with email and password
  */
 export async function signUp({ email, password, fullName, phone }: SignUpData) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -56,7 +56,7 @@ export async function signUp({ email, password, fullName, phone }: SignUpData) {
  * Sign in an existing user with email and password
  */
 export async function signIn({ email, password }: SignInData) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -74,7 +74,7 @@ export async function signIn({ email, password }: SignInData) {
  * Sign out the current user
  */
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const { error } = await supabase.auth.signOut()
 
@@ -87,7 +87,7 @@ export async function signOut() {
  * Get the current user session
  */
 export async function getSession() {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const {
     data: { session },
@@ -105,7 +105,7 @@ export async function getSession() {
  * Get the current user
  */
 export async function getUser(): Promise<User | null> {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const {
     data: { user },
@@ -123,7 +123,7 @@ export async function getUser(): Promise<User | null> {
  * Send a password reset email
  */
 export async function resetPassword({ email }: ResetPasswordData) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
@@ -138,7 +138,7 @@ export async function resetPassword({ email }: ResetPasswordData) {
  * Update the user's password
  */
 export async function updatePassword({ password }: UpdatePasswordData) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const { error } = await supabase.auth.updateUser({
     password,
@@ -153,7 +153,7 @@ export async function updatePassword({ password }: UpdatePasswordData) {
  * Update the user's profile
  */
 export async function updateProfile(data: UpdateProfileData) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
   const user = await getUser()
 
   if (!user) {
@@ -188,7 +188,7 @@ export async function isAuthenticated(): Promise<boolean> {
  * Check if user has admin role
  */
 export async function isAdmin(): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
   const user = await getUser()
 
   if (!user) {
@@ -213,7 +213,7 @@ export async function isAdmin(): Promise<boolean> {
  * Get user profile from database
  */
 export async function getUserProfile(userId?: string) {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
   const id = userId || (await getUser())?.id
 
   if (!id) {

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { getUserProfile } from './auth'
 import type { Database } from '@/lib/supabase/types'
 
@@ -19,11 +19,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Helper to check if an error is an abort (component unmounted during fetch)
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && (
+    error.name === 'AbortError' ||
+    error.message.includes('signal is aborted') ||
+    error.message.includes('aborted')
+  )
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [supabase] = useState(() => createClient())
+
+  // Use singleton client to prevent AbortError from multiple client instances
+  const supabase = getSupabaseClient()
+
+  // Track mounted state to prevent state updates after unmount
+  const mountedRef = useRef(true)
 
   // Track which user ID we've already loaded a profile for to prevent duplicate fetches
   const loadedProfileRef = useRef<string | null>(null)
@@ -32,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadProfile = useCallback(async (userId: string, force = false) => {
     // Skip if we already loaded this user's profile (prevents duplicate calls)
     if (!force && loadedProfileRef.current === userId) {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
       return
     }
 
@@ -47,13 +61,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loadPromise = (async () => {
       try {
         const profileData = await getUserProfile(userId)
-        setProfile(profileData)
+        if (mountedRef.current) setProfile(profileData)
       } catch (error) {
+        if (isAbortError(error)) return // Silently ignore abort errors
         console.error('Error loading profile:', error)
-        setProfile(null)
+        if (mountedRef.current) setProfile(null)
         loadedProfileRef.current = null
       } finally {
-        setLoading(false)
+        if (mountedRef.current) setLoading(false)
         profileLoadingRef.current = null
       }
     })()
@@ -63,19 +78,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    mountedRef.current = true
+
     // Get initial session
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
+        if (!mountedRef.current) return
         setUser(session?.user ?? null)
         if (session?.user) {
           await loadProfile(session.user.id)
         } else {
-          setLoading(false)
+          if (mountedRef.current) setLoading(false)
         }
       } catch (error) {
+        if (isAbortError(error)) return // Silently ignore abort errors
         console.error('Error initializing auth:', error)
-        setLoading(false)
+        if (mountedRef.current) setLoading(false)
       }
     }
 
@@ -85,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mountedRef.current) return
       setUser(session?.user ?? null)
       if (session?.user) {
         // This will be a no-op if handleSignIn or initializeAuth already loaded the profile
@@ -96,7 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mountedRef.current = false
+      subscription.unsubscribe()
+    }
   }, [supabase, loadProfile])
 
   const refreshProfile = async () => {
