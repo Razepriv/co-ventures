@@ -262,46 +262,32 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
       const supabase = getSupabaseClient()
       const propertyId = property.id
 
-      // Fetch each table separately to handle missing tables gracefully
-      try {
-        const { data } = await supabase.from('property_highlights').select('*').eq('property_id', propertyId).order('display_order')
-        setHighlights(data || [])
-      } catch (e) { /* Table may not exist */ }
+      // Run all queries in parallel for better performance
+      const [
+        highlightsResult,
+        amenitiesResult,
+        specificationsResult,
+        nearbyPlacesResult,
+        reraInfoResult,
+        developerResult
+      ] = await Promise.all([
+        supabase.from('property_highlights').select('*').eq('property_id', propertyId).order('display_order').then(r => r.data).catch(() => null),
+        supabase.from('property_amenities').select('*').eq('property_id', propertyId).order('display_order').then(r => r.data).catch(() => null),
+        supabase.from('property_specifications').select('*').eq('property_id', propertyId).order('category, display_order').then(r => r.data).catch(() => null),
+        supabase.from('nearby_places').select('*').eq('property_id', propertyId).then(r => r.data).catch(() => null),
+        supabase.from('property_rera_info').select('*').eq('property_id', propertyId).maybeSingle().then(r => r.data).catch(() => null),
+        property?.developer_id
+          ? supabase.from('developers').select('*').eq('id', property.developer_id).single().then(r => r.data).catch(() => null)
+          : Promise.resolve(null)
+      ])
 
-      try {
-        const { data } = await supabase.from('property_amenities').select('*').eq('property_id', propertyId).order('display_order')
-        setAmenities(data || [])
-      } catch (e) { /* Table may not exist */ }
-
-      try {
-        const { data } = await supabase.from('property_specifications').select('*').eq('property_id', propertyId).order('category, display_order')
-        setSpecifications(data || [])
-      } catch (e) { /* Table may not exist */ }
-
-      try {
-        const { data } = await supabase.from('nearby_places').select('*').eq('property_id', propertyId)
-        setNearbyPlaces(data || [])
-      } catch (e) { /* Table may not exist */ }
-
-      // Use .maybeSingle() instead of .single() to avoid 406 on no match
-      try {
-        const { data } = await supabase.from('property_rera_info').select('*').eq('property_id', propertyId).maybeSingle()
-        setReraInfo(data)
-      } catch (e) { /* Table may not exist */ }
-
-      // Fetch developer if developer_id exists
-      if (property?.developer_id) {
-        try {
-          const { data: devData } = await supabase
-            .from('developers')
-            .select('*')
-            .eq('id', property.developer_id)
-            .single()
-          setDeveloper(devData)
-        } catch (err) {
-          /* Developers table may not exist */
-        }
-      }
+      // Set all state at once
+      setHighlights(highlightsResult || [])
+      setAmenities(amenitiesResult || [])
+      setSpecifications(specificationsResult || [])
+      setNearbyPlaces(nearbyPlacesResult || [])
+      setReraInfo(reraInfoResult)
+      setDeveloper(developerResult)
 
       setContentLoaded(true)
     } catch (error) {

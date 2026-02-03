@@ -4,6 +4,15 @@ import { useEffect, useRef } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
+// Debounce helper
+function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): T {
+  let timeoutId: NodeJS.Timeout | null = null
+  return ((...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }) as T
+}
+
 export function useRealtimeSubscription<T = any>({
   table,
   event = '*',
@@ -13,6 +22,7 @@ export function useRealtimeSubscription<T = any>({
   onDelete,
   onError,
   enabled = true,
+  debounceMs = 500, // Default 500ms debounce to prevent rapid refetches
 }: {
   table: string
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
@@ -22,6 +32,7 @@ export function useRealtimeSubscription<T = any>({
   onDelete?: (payload: T) => void
   onError?: (error: Error) => void
   enabled?: boolean
+  debounceMs?: number
 }) {
   const channelRef = useRef<any>(null)
   const onInsertRef = useRef(onInsert)
@@ -36,6 +47,19 @@ export function useRealtimeSubscription<T = any>({
     onDeleteRef.current = onDelete
     onErrorRef.current = onError
   }, [onInsert, onUpdate, onDelete, onError])
+
+  // Create debounced handlers
+  const debouncedInsertRef = useRef<((payload: T) => void) | null>(null)
+  const debouncedUpdateRef = useRef<((payload: { old: T; new: T }) => void) | null>(null)
+  const debouncedDeleteRef = useRef<((payload: T) => void) | null>(null)
+
+  useEffect(() => {
+    if (debounceMs > 0) {
+      debouncedInsertRef.current = debounce((payload: T) => onInsertRef.current?.(payload), debounceMs)
+      debouncedUpdateRef.current = debounce((payload: { old: T; new: T }) => onUpdateRef.current?.(payload), debounceMs)
+      debouncedDeleteRef.current = debounce((payload: T) => onDeleteRef.current?.(payload), debounceMs)
+    }
+  }, [debounceMs])
 
   useEffect(() => {
     if (!enabled) return
@@ -57,12 +81,26 @@ export function useRealtimeSubscription<T = any>({
         },
         (payload: any) => {
           try {
-            if (payload.eventType === 'INSERT' && onInsertRef.current) {
-              onInsertRef.current(payload.new as T)
-            } else if (payload.eventType === 'UPDATE' && onUpdateRef.current) {
-              onUpdateRef.current({ old: payload.old as T, new: payload.new as T })
-            } else if (payload.eventType === 'DELETE' && onDeleteRef.current) {
-              onDeleteRef.current(payload.old as T)
+            const useDebounced = debounceMs > 0
+
+            if (payload.eventType === 'INSERT') {
+              if (useDebounced && debouncedInsertRef.current) {
+                debouncedInsertRef.current(payload.new as T)
+              } else {
+                onInsertRef.current?.(payload.new as T)
+              }
+            } else if (payload.eventType === 'UPDATE') {
+              if (useDebounced && debouncedUpdateRef.current) {
+                debouncedUpdateRef.current({ old: payload.old as T, new: payload.new as T })
+              } else {
+                onUpdateRef.current?.({ old: payload.old as T, new: payload.new as T })
+              }
+            } else if (payload.eventType === 'DELETE') {
+              if (useDebounced && debouncedDeleteRef.current) {
+                debouncedDeleteRef.current(payload.old as T)
+              } else {
+                onDeleteRef.current?.(payload.old as T)
+              }
             }
           } catch (error) {
             console.error('[Realtime] Error handling event:', error)
@@ -87,7 +125,7 @@ export function useRealtimeSubscription<T = any>({
         channelRef.current = null
       }
     }
-  }, [table, event, filter, enabled])
+  }, [table, event, filter, enabled, debounceMs])
 }
 
 // Specialized hook for enquiry notifications

@@ -99,14 +99,27 @@ export const Header: React.FC = () => {
     setIsMobileMenuOpen(prev => !prev);
   }, []);
 
-  // Fetch unread notification count
+  // Fetch unread notification count for users (filter by target_audience)
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const { count, error } = await supabase
+        // For regular users, only count user-targeted notifications
+        // RLS handles this but we add explicit filter for clarity
+        const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+
+        let query = supabase
           .from('notifications')
           .select('*', { count: 'exact', head: true })
           .eq('is_read', false);
+
+        // Filter by target_audience based on user role
+        if (isAdmin) {
+          query = query.in('target_audience', ['admin', 'all']);
+        } else {
+          query = query.in('target_audience', ['user', 'all']);
+        }
+
+        const { count, error } = await query;
 
         if (error) throw error;
         setUnreadCount(count || 0);
@@ -136,7 +149,7 @@ export const Header: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, profile?.role]);
 
   // Close user menu when clicking outside
   useEffect(() => {

@@ -102,10 +102,11 @@ function PropertiesContent() {
     fetchCities()
   }, [])
 
-  // Real-time subscription for property updates
+  // Real-time subscription for property updates with 1s debounce to prevent rapid refetches
   useRealtimeSubscription<Property>({
     table: 'properties',
     event: '*',
+    debounceMs: 1000,
     onInsert: (newProperty) => {
       fetchProperties()
       toast.success('New property added!', {

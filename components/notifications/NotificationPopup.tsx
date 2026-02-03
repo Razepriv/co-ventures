@@ -1,14 +1,16 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Bell, X, Users, Mail, Home, FileText, CheckCircle, Clock } from 'lucide-react'
+import { Bell, X, Users, Mail, Home, FileText, CheckCircle, Clock, UserPlus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/auth/AuthProvider'
 import { toast } from 'sonner'
 
 interface Notification {
   id: string
-  type: 'new_user' | 'new_enquiry' | 'new_property' | 'property_update' | 'enquiry_update' | 'new_blog' | 'new_testimonial'
+  user_id?: string | null
+  type: 'new_user' | 'new_enquiry' | 'new_property' | 'property_update' | 'enquiry_update' | 'new_blog' | 'new_testimonial' | 'group_added'
   title: string
   message: string
   link?: string
@@ -27,14 +29,27 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = getSupabaseClient()
+  const { profile } = useAuth()
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Determine user role for filtering
+      const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+
+      let query = supabase
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50)
+
+      // Filter by target_audience based on user role
+      if (isAdmin) {
+        query = query.in('target_audience', ['admin', 'all'])
+      } else {
+        query = query.in('target_audience', ['user', 'all'])
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -45,7 +60,7 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, profile?.role])
 
   useEffect(() => {
     if (isOpen) {
@@ -53,8 +68,11 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
     }
   }, [isOpen, fetchNotifications])
 
-  // Real-time subscription
+  // Real-time subscription - filter by user role
   useEffect(() => {
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+    const currentUserId = profile?.id
+
     const channel = supabase
       .channel('notifications_channel')
       .on(
@@ -66,12 +84,23 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
         },
         (payload: any) => {
           const newNotification = payload.new as Notification
-          setNotifications(prev => [newNotification, ...prev])
-          
-          // Show toast for new notification
-          toast.info(newNotification.title, {
-            description: newNotification.message
-          })
+
+          // Filter based on user role and target_audience
+          const isForAdmin = newNotification.target_audience === 'admin' || newNotification.target_audience === 'all'
+          const isForUser = newNotification.target_audience === 'user' || newNotification.target_audience === 'all'
+          const isForSpecificUser = newNotification.user_id === null || newNotification.user_id === currentUserId
+
+          // Only add notification if it matches user's role
+          const shouldShow = isAdmin ? isForAdmin : (isForUser && isForSpecificUser)
+
+          if (shouldShow) {
+            setNotifications(prev => [newNotification, ...prev])
+
+            // Show toast for new notification
+            toast.info(newNotification.title, {
+              description: newNotification.message
+            })
+          }
         }
       )
       .subscribe()
@@ -79,7 +108,7 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [supabase, profile?.role, profile?.id])
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -176,6 +205,8 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
         return <FileText className="w-5 h-5 text-indigo-500" />
       case 'new_testimonial':
         return <CheckCircle className="w-5 h-5 text-pink-500" />
+      case 'group_added':
+        return <UserPlus className="w-5 h-5 text-coral" />
       default:
         return <Bell className="w-5 h-5 text-gray-500" />
     }

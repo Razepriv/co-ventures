@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Building2,
   MessageSquare,
@@ -99,6 +99,17 @@ export default function AdminDashboard() {
     availablePercentage: 0,
   })
   const [loading, setLoading] = useState(true)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounced fetch to prevent multiple rapid refetches
+  const debouncedFetchDashboardData = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      fetchDashboardData()
+    }, 1000) // 1 second debounce
+  }, [])
 
   useEffect(() => {
     fetchDashboardData()
@@ -106,33 +117,27 @@ export default function AdminDashboard() {
     // Set up realtime subscriptions for dashboard updates
     const supabase = getSupabaseClient()
 
-    const propertiesChannel = supabase
-      .channel('dashboard_properties')
+    // Use a single channel with multiple listeners for better performance
+    const dashboardChannel = supabase
+      .channel('dashboard_updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-        fetchDashboardData()
+        debouncedFetchDashboardData()
       })
-      .subscribe()
-
-    const enquiriesChannel = supabase
-      .channel('dashboard_enquiries')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-        fetchDashboardData()
+        debouncedFetchDashboardData()
       })
-      .subscribe()
-
-    const usersChannel = supabase
-      .channel('dashboard_users')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        fetchDashboardData()
+        debouncedFetchDashboardData()
       })
       .subscribe()
 
     return () => {
-      supabase.removeChannel(propertiesChannel)
-      supabase.removeChannel(enquiriesChannel)
-      supabase.removeChannel(usersChannel)
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      supabase.removeChannel(dashboardChannel)
     }
-  }, [])
+  }, [debouncedFetchDashboardData])
 
   async function fetchDashboardData() {
     try {

@@ -41,6 +41,7 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [joinedGroups, setJoinedGroups] = useState<any[]>([])
   const [loadingGroups, setLoadingGroups] = useState(true)
+  const [enquiriesCount, setEnquiriesCount] = useState(0)
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -94,6 +95,7 @@ export default function ProfilePage() {
             )
           `)
           .eq('user_id', user.id)
+          .order('joined_at', { ascending: false })
 
         if (error) throw error
         setJoinedGroups(data || [])
@@ -106,6 +108,78 @@ export default function ProfilePage() {
 
     if (user) {
       fetchGroups()
+    }
+
+    // Real-time subscription for when user is added to new groups
+    if (user) {
+      const supabase = getSupabaseClient()
+      const channel = supabase
+        .channel('user_group_membership')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'group_members',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            // Refetch groups when user is added to a new group
+            fetchGroups()
+            toast.success('You have been added to a new investment group!')
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [user])
+
+  // Fetch enquiries count with real-time updates
+  useEffect(() => {
+    async function fetchEnquiriesCount() {
+      if (!user) return
+
+      try {
+        const supabase = getSupabaseClient()
+        const { count, error } = await supabase
+          .from('enquiries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if (error) throw error
+        setEnquiriesCount(count || 0)
+      } catch (error) {
+        console.error('Error fetching enquiries count:', error)
+      }
+    }
+
+    if (user) {
+      fetchEnquiriesCount()
+
+      // Real-time subscription for enquiries
+      const supabase = getSupabaseClient()
+      const channel = supabase
+        .channel('user_enquiries')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'enquiries',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            fetchEnquiriesCount()
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
   }, [user])
 
@@ -491,18 +565,14 @@ export default function ProfilePage() {
                   <CardTitle className="text-lg">Account Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-coral">0</p>
-                      <p className="text-sm text-gray-600">Properties Saved</p>
+                      <p className="text-2xl font-bold text-coral">{joinedGroups.length}</p>
+                      <p className="text-sm text-gray-600">Groups Joined</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-coral">0</p>
+                      <p className="text-2xl font-bold text-coral">{enquiriesCount}</p>
                       <p className="text-sm text-gray-600">Enquiries Made</p>
-                    </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-coral">0</p>
-                      <p className="text-sm text-gray-600">Properties Viewed</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
                       <p className="text-2xl font-bold text-coral">
@@ -517,12 +587,19 @@ export default function ProfilePage() {
               {/* Joined Groups Card */}
               <Card className="mt-6 shadow-lg overflow-hidden">
                 <CardHeader className="bg-gray-50/50 border-b">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-coral" />
-                    <CardTitle className="text-xl">My Property Groups</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-coral" />
+                      <CardTitle className="text-xl">My Investment Groups</CardTitle>
+                    </div>
+                    {joinedGroups.length > 0 && (
+                      <span className="inline-flex items-center justify-center px-3 py-1 bg-coral text-white rounded-full text-sm font-bold">
+                        {joinedGroups.length} {joinedGroups.length === 1 ? 'Group' : 'Groups'}
+                      </span>
+                    )}
                   </div>
                   <CardDescription>
-                    Property co-ventures you've joined or been added to
+                    Investment groups you've joined for co-ownership opportunities
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
