@@ -18,7 +18,7 @@ interface PropertyGroup {
 
 interface GroupBuyingSectionProps {
     propertyId: string
-    group: PropertyGroup
+    group: PropertyGroup | null
     onJoinSuccess: () => void
 }
 
@@ -75,6 +75,25 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
         }
     }
 
+    // Handle case when no group exists for this property
+    if (!group) {
+        return (
+            <Card className="border-2 border-gray-200 bg-gray-50">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-gray-400" />
+                        Group Investment
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-gray-500 text-center py-4">
+                        No investment group available for this property yet.
+                    </p>
+                </CardContent>
+            </Card>
+        )
+    }
+
     const percentage = (group.filled_slots / group.total_slots) * 100
 
     return (
@@ -112,7 +131,7 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
                     ) : group.filled_slots >= group.total_slots ? (
                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                             <p className="text-sm text-green-800 font-medium">
-                                🎉 Group is now full!
+                                Group is now full!
                             </p>
                         </div>
                     ) : (

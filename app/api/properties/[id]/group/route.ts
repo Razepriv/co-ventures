@@ -24,45 +24,34 @@ export async function GET(
       }
     }
 
-    // Get group info with only approved members
-    const { data: group, error } = await supabase
+    // First get the group info (without member filter)
+    const { data: groupData, error: groupError } = await supabase
       .from('property_groups')
-      .select(`
-        *,
-        group_members!inner (
-          id,
-          user_id,
-          full_name,
-          email,
-          status,
-          joined_at
-        )
-      `)
+      .select('*')
       .eq('property_id', propertyId)
-      .eq('group_members.status', 'approved')
       .maybeSingle()
 
-    // If no approved members yet, fetch group without members
-    if (!group) {
-      const { data: groupOnly, error: groupOnlyError } = await supabase
-        .from('property_groups')
-        .select('*')
-        .eq('property_id', propertyId)
-        .maybeSingle()
+    if (groupError) throw groupError
 
-      if (groupOnlyError) throw groupOnlyError
-
-      return NextResponse.json({
-        group: groupOnly
-          ? { ...groupOnly, group_members: [] }
-          : { total_slots: 5, filled_slots: 0, is_locked: false, group_members: [] },
-      })
+    // If no group exists for this property, return null
+    if (!groupData) {
+      return NextResponse.json({ group: null })
     }
 
-    if (error) throw error
+    // Now get approved members for this group
+    const { data: members, error: membersError } = await supabase
+      .from('group_members')
+      .select('id, user_id, full_name, email, status, joined_at')
+      .eq('group_id', groupData.id)
+      .eq('status', 'approved')
+
+    if (membersError) throw membersError
 
     return NextResponse.json({
-      group: group || { total_slots: 5, filled_slots: 0, is_locked: false, group_members: [] },
+      group: {
+        ...groupData,
+        group_members: members || []
+      }
     })
   } catch (error: any) {
     console.error('Error fetching group:', error)
@@ -110,30 +99,20 @@ export async function POST(
       propertyId = propData.id
     }
 
-    // Get or create property group using admin client to bypass RLS
-    let { data: group, error: groupError } = await adminSupabase
+    // Get property group (must be created by admin first)
+    const { data: group, error: groupError } = await adminSupabase
       .from('property_groups')
       .select('*')
       .eq('property_id', propertyId)
       .maybeSingle()
 
-    if (!group) {
-      // Create group if doesn't exist (using admin client)
-      const { data: newGroup, error: createError } = await adminSupabase
-        .from('property_groups')
-        // @ts-ignore
-        .insert({
-          property_id: propertyId,
-          total_slots: 5,
-          filled_slots: 0,
-        })
-        .select()
-        .single()
+    if (groupError) throw groupError
 
-      if (createError) throw createError
-      group = newGroup
-    } else if (groupError) {
-      throw groupError
+    if (!group) {
+      return NextResponse.json(
+        { error: 'No investment group exists for this property yet' },
+        { status: 400 }
+      )
     }
 
     // Check if group is locked

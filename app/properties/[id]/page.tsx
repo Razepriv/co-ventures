@@ -154,7 +154,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([])
   const [reraInfo, setReraInfo] = useState<any>(null)
   const [developer, setDeveloper] = useState<any>(null)
-  const [propertyGroup, setPropertyGroup] = useState<any>({ total_slots: 5, filled_slots: 0, is_locked: false })
+  const [propertyGroup, setPropertyGroup] = useState<any>(null)
   const [contentLoaded, setContentLoaded] = useState(false)
 
   // Combine featured image with property images, ensuring no duplicates
