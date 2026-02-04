@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
+// Plans rarely change - cache for 5 minutes
+export const revalidate = 300
 
 export async function GET() {
   try {
@@ -16,7 +17,14 @@ export async function GET() {
 
     if (error) throw error
 
-    return NextResponse.json({ plans })
+    return NextResponse.json(
+      { plans },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching plans:', error)
     return NextResponse.json(

@@ -1,16 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import {
   Building2,
-  MessageSquare,
   Users,
   TrendingUp,
   Activity,
-  Plus,
-  Eye,
-  FileText,
-  UserPlus,
   Home,
   Key,
   FileCheck,
@@ -20,24 +15,13 @@ import {
   Bed,
   Bath,
   Maximize,
-  CalendarClock,
-  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatDistanceToNow } from 'date-fns'
 import Image from 'next/image'
-
-interface Stats {
-  totalProperties: number
-  newEnquiries: number
-  totalUsers: number
-  revenue: number
-  onSell: number
-  totalLeases: number
-  propertySold: number
-}
+import { useDashboardStats, invalidateDashboard } from '@/lib/hooks/useAdminData'
 
 interface ActivityLog {
   id: string
@@ -72,15 +56,13 @@ interface NewUser {
   created_at: string
 }
 
-interface SalesAnalytics {
-  propertySold: number
-  totalProperties: number
-  soldPercentage: number
-  availablePercentage: number
-}
-
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats>({
+  // Use SWR hook for cached data fetching with instant loads
+  const { data, isLoading, mutate } = useDashboardStats()
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Extract data from SWR response with defaults
+  const stats = data?.stats || {
     totalProperties: 0,
     newEnquiries: 0,
     totalUsers: 0,
@@ -88,46 +70,44 @@ export default function AdminDashboard() {
     onSell: 0,
     totalLeases: 0,
     propertySold: 0,
-  })
-  const [recentActivity, setRecentActivity] = useState<ActivityLog[]>([])
-  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([])
-  const [newUsers, setNewUsers] = useState<NewUser[]>([])
-  const [salesAnalytics, setSalesAnalytics] = useState<SalesAnalytics>({
+  }
+  
+  const salesAnalytics = data?.salesAnalytics || {
     propertySold: 0,
     totalProperties: 0,
     soldPercentage: 0,
     availablePercentage: 0,
-  })
-  const [loading, setLoading] = useState(true)
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  }
+  
+  const recentActivity: ActivityLog[] = data?.recentActivity || []
+  const featuredProperties: Property[] = data?.featuredProperties || []
+  const newUsers: NewUser[] = data?.recentUsers || []
 
-  // Debounced fetch to prevent multiple rapid refetches
-  const debouncedFetchDashboardData = useCallback(() => {
+  // Debounced revalidation for realtime updates
+  const debouncedRevalidate = useCallback(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
     debounceTimerRef.current = setTimeout(() => {
-      fetchDashboardData()
-    }, 1000) // 1 second debounce
-  }, [])
+      mutate() // Revalidate SWR cache
+    }, 2000) // 2 second debounce for realtime updates
+  }, [mutate])
 
   useEffect(() => {
-    fetchDashboardData()
-
-    // Set up realtime subscriptions for dashboard updates
     const supabase = getSupabaseClient()
 
-    // Use a single channel with multiple listeners for better performance
+    // Set up realtime subscriptions for dashboard updates
+    // Use optimistic updates where possible
     const dashboardChannel = supabase
       .channel('dashboard_updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-        debouncedFetchDashboardData()
+        debouncedRevalidate()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => {
-        debouncedFetchDashboardData()
+        debouncedRevalidate()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        debouncedFetchDashboardData()
+        debouncedRevalidate()
       })
       .subscribe()
 
@@ -137,96 +117,7 @@ export default function AdminDashboard() {
       }
       supabase.removeChannel(dashboardChannel)
     }
-  }, [debouncedFetchDashboardData])
-
-  async function fetchDashboardData() {
-    try {
-      const supabase = getSupabaseClient()
-
-      // Fetch all stats in parallel
-      const [
-        { count: totalProperties },
-        { count: newEnquiriesCount },
-        { count: totalUsers },
-        { data: soldProperties },
-        { count: onSellCount },
-        { count: leasesCount },
-        { count: propertySoldCount },
-        { data: activityData },
-        { data: propertiesData },
-        { data: usersData },
-      ] = await Promise.all([
-        supabase.from('properties').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('enquiries')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('properties').select('price').eq('status', 'sold'),
-        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'available'),
-        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'leased'),
-        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'sold'),
-        supabase
-          .from('activity_logs')
-          .select(`
-            id,
-            action,
-            entity_type,
-            entity_id,
-            details,
-            created_at,
-            user:users(full_name)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase
-          .from('properties')
-          .select('id, title, price, featured_image, bedrooms, bathrooms, area_sqft, location, status, property_type')
-          .eq('is_featured', true)
-          .order('created_at', { ascending: false })
-          .limit(3),
-        supabase
-          .from('users')
-          .select('id, full_name, email, avatar_url, created_at')
-          .order('created_at', { ascending: false })
-          .limit(4),
-      ])
-
-      // @ts-ignore
-      const totalRevenue = soldProperties?.reduce((sum, prop) => sum + (prop.price || 0), 0) || 0
-
-      // Calculate sales analytics
-      const soldCount = propertySoldCount || 0
-      const total = totalProperties || 1
-      const soldPct = Math.round((soldCount / total) * 100)
-      const availablePct = 100 - soldPct
-
-      setStats({
-        totalProperties: totalProperties || 0,
-        newEnquiries: newEnquiriesCount || 0,
-        totalUsers: totalUsers || 0,
-        revenue: totalRevenue,
-        onSell: onSellCount || 0,
-        totalLeases: leasesCount || 0,
-        propertySold: propertySoldCount || 0,
-      })
-
-      setSalesAnalytics({
-        propertySold: soldCount,
-        totalProperties: total,
-        soldPercentage: soldPct,
-        availablePercentage: availablePct,
-      })
-
-      setRecentActivity(activityData || [])
-      setFeaturedProperties(propertiesData || [])
-      setNewUsers(usersData || [])
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [debouncedRevalidate])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -276,7 +167,8 @@ export default function AdminDashboard() {
     },
   ]
 
-  if (loading) {
+  // Show skeleton/loading state only on first load without cached data
+  if (isLoading && !data) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
@@ -289,6 +181,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Loading indicator for background refresh */}
+      {isLoading && data && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-center gap-2 bg-white rounded-full px-3 py-1.5 shadow-lg border border-gray-200">
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-coral border-t-transparent"></div>
+            <span className="text-xs text-gray-600">Updating...</span>
+          </div>
+        </div>
+      )}
+
       {/* Overview Stats */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Overview</h2>
@@ -506,7 +408,7 @@ export default function AdminDashboard() {
               newUsers.map((user) => (
                 <div key={user.id} className="flex items-center gap-3 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-coral to-orange-500 flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm">
-                    {user.full_name.charAt(0).toUpperCase()}
+                    {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900">{user.full_name}</p>
@@ -523,7 +425,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-
     </div>
   )
 }

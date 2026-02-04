@@ -5,6 +5,7 @@ import { organizationSchema, websiteSchema } from '@/lib/seo';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { CurrencyProvider } from '@/lib/contexts/CurrencyContext';
+import { SWRProvider } from '@/lib/providers/SWRProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -60,12 +61,14 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <CurrencyProvider>
-            {children}
-            <Toaster />
-          </CurrencyProvider>
-        </AuthProvider>
+        <SWRProvider>
+          <AuthProvider>
+            <CurrencyProvider>
+              {children}
+              <Toaster />
+            </CurrencyProvider>
+          </AuthProvider>
+        </SWRProvider>
       </body>
     </html>
   );

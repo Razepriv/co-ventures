@@ -132,10 +132,10 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-coral"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-coral border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-gray-600 text-sm">Verifying access...</p>
         </div>
       </div>
     )

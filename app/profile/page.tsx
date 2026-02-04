@@ -67,7 +67,7 @@ export default function ProfilePage() {
     }
   }, [profile])
 
-  // Fetch joined groups (only approved memberships)
+  // Fetch joined groups (show all user's memberships)
   useEffect(() => {
     async function fetchGroups() {
       if (!user) return
@@ -75,34 +75,96 @@ export default function ProfilePage() {
       try {
         setLoadingGroups(true)
         const supabase = getSupabaseClient()
+        
+        // Debug: Log the user ID
+        console.log('[Profile] Fetching groups for user:', user.id)
+        
+        // Query using explicit relationship via group_id foreign key
         const { data, error } = await supabase
           .from('group_members')
           .select(`
             id,
+            group_id,
             joined_at,
             status,
-            property_groups (
+            investment_amount,
+            property_groups!group_id (
               id,
+              property_id,
               total_slots,
               filled_slots,
               is_locked,
-              properties (
+              properties!property_id (
                 id,
                 title,
                 location,
                 slug,
-                main_image
+                featured_image,
+                price
               )
             )
           `)
           .eq('user_id', user.id)
-          .eq('status', 'approved')
-          .order('joined_at', { ascending: false })
+        
+        console.log('[Profile] Groups query result:', { data, error })
 
-        if (error) throw error
-        setJoinedGroups(data || [])
+        if (error) {
+          console.error('Error fetching joined groups:', error)
+          // Fallback: Try simpler query without nested relations
+          const { data: simpleData, error: simpleError } = await supabase
+            .from('group_members')
+            .select('*')
+            .eq('user_id', user.id)
+          
+          console.log('[Profile] Fallback simple query:', { simpleData, simpleError })
+          
+          if (!simpleError && simpleData && simpleData.length > 0) {
+            // Fetch property_groups separately
+            const groupIds = (simpleData as any[]).map(m => m.group_id).filter(Boolean)
+            console.log('[Profile] Group IDs to fetch:', groupIds)
+            
+            if (groupIds.length > 0) {
+              const { data: groupsData } = await supabase
+                .from('property_groups')
+                .select(`
+                  id,
+                  property_id,
+                  total_slots,
+                  filled_slots,
+                  is_locked,
+                  properties (
+                    id,
+                    title,
+                    location,
+                    slug,
+                    featured_image,
+                    price
+                  )
+                `)
+                .in('id', groupIds)
+              
+              console.log('[Profile] Property groups data:', groupsData)
+              
+              // Merge data
+              const mergedData = (simpleData as any[]).map(membership => ({
+                ...membership,
+                property_groups: groupsData?.find((g: any) => g.id === membership.group_id) || null
+              }))
+              
+              setJoinedGroups(mergedData)
+            } else {
+              setJoinedGroups([])
+            }
+          } else {
+            setJoinedGroups([])
+          }
+        } else {
+          console.log('[Profile] Success! Found', data?.length, 'groups')
+          setJoinedGroups(data || [])
+        }
       } catch (error) {
         console.error('Error fetching joined groups:', error)
+        setJoinedGroups([])
       } finally {
         setLoadingGroups(false)
       }
@@ -643,16 +705,17 @@ export default function ProfilePage() {
                       {joinedGroups.map((membership) => {
                         const group = membership.property_groups
                         const property = group?.properties
+                        const membershipStatus = membership.status || 'approved'
 
                         return (
                           <div key={membership.id} className="p-6 hover:bg-gray-50 transition-colors">
                             <div className="flex flex-col md:flex-row gap-6">
                               {/* Property Thumbnail */}
                               <div className="relative w-full md:w-32 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                {property?.main_image ? (
+                                {(property?.featured_image || property?.main_image) ? (
                                   <Image
-                                    src={property.main_image}
-                                    alt={property.title}
+                                    src={property.featured_image || property.main_image}
+                                    alt={property.title || 'Property'}
                                     fill
                                     className="object-cover"
                                   />
@@ -682,10 +745,17 @@ export default function ProfilePage() {
                                     <MapPin className="w-4 h-4" />
                                     {property?.location || 'Unknown Location'}
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-4 h-4" />
-                                    Joined {formatDate(membership.joined_at)}
-                                  </div>
+                                  {membership.joined_at && (
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-4 h-4" />
+                                      Joined {formatDate(membership.joined_at)}
+                                    </div>
+                                  )}
+                                  {membership.investment_amount && (
+                                    <div className="flex items-center gap-1 text-coral font-medium">
+                                      ₹{membership.investment_amount.toLocaleString()}
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Slot Info */}
@@ -704,8 +774,19 @@ export default function ProfilePage() {
                               </div>
 
                               {/* Status Badge */}
-                              <div className="flex-shrink-0">
-                                {group?.is_locked ? (
+                              <div className="flex-shrink-0 flex flex-col gap-2">
+                                {/* Membership Status */}
+                                {membershipStatus === 'pending' ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold border border-yellow-200">
+                                    <AlertCircle className="w-3 h-3" />
+                                    PENDING APPROVAL
+                                  </span>
+                                ) : membershipStatus === 'rejected' ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold border border-red-200">
+                                    <AlertCircle className="w-3 h-3" />
+                                    REJECTED
+                                  </span>
+                                ) : group?.is_locked ? (
                                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold border border-amber-200">
                                     <Lock className="w-3 h-3" />
                                     GROUP LOCKED
@@ -713,7 +794,7 @@ export default function ProfilePage() {
                                 ) : (
                                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold border border-green-200">
                                     <CheckCircle className="w-3 h-3" />
-                                    ACTIVE GROUP
+                                    ACTIVE
                                   </span>
                                 )}
                               </div>

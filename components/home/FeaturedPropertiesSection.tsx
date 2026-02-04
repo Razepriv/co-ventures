@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Bed, Maximize, Key, Heart, ArrowRight } from 'lucide-react';
+import { MapPin, Bed, Maximize, Key, ArrowRight } from 'lucide-react';
 import { Section } from '../ui/Section';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { getSupabaseClient } from '@/lib/supabase/client';
 import { useCurrency } from '@/lib/contexts/CurrencyContext';
+import useSWR from 'swr';
 
 interface Property {
   id: string;
@@ -27,37 +27,62 @@ interface Property {
   categories: { name: string; icon: string };
 }
 
-export const FeaturedPropertiesSection: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  // const [savedProperties, setSavedProperties] = useState<Set<string>>(new Set());
+// SWR fetcher with error handling
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch');
+  const json = await res.json();
+  return json.data || [];
+};
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  async function fetchProperties() {
-    try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*, categories(name, icon), property_images(image_url, is_primary)')
-        .eq('is_featured', true)
-        .eq('status', 'available')
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      if (error) throw error;
-      console.log('Fetched properties:', data);
-      setProperties(data || []);
-    } catch (error) {
-      console.error('Error fetching properties:', error);
-    } finally {
-      setLoading(false);
+// Get cached data from localStorage for instant loads
+function getFeaturedFallback(): Property[] | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const cached = localStorage.getItem('cv-featured-cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Check if cache is less than 10 minutes old
+      if (Date.now() - parsed.timestamp < 10 * 60 * 1000) {
+        return parsed.data;
+      }
     }
+  } catch (e) {
+    // Ignore
   }
+  return undefined;
+}
 
-  if (loading) {
+export const FeaturedPropertiesSection: React.FC = () => {
+  // Use SWR for cached data fetching with stale-while-revalidate
+  const { data: properties = [], isLoading: loading } = useSWR<Property[]>(
+    '/api/properties/featured',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // 1 minute deduplication
+      refreshInterval: 300000, // Refresh every 5 minutes
+      fallbackData: getFeaturedFallback(),
+      keepPreviousData: true,
+      onSuccess: (data) => {
+        // Cache in localStorage for instant loads on refresh
+        if (typeof window !== 'undefined' && data && data.length > 0) {
+          try {
+            localStorage.setItem('cv-featured-cache', JSON.stringify({
+              data,
+              timestamp: Date.now(),
+            }));
+          } catch (e) {
+            // Ignore storage errors
+          }
+        }
+      },
+    }
+  );
+
+  // Show loading only on first load without cached data
+  if (loading && (!properties || properties.length === 0)) {
     return (
       <Section className="py-24 lg:py-32">
         <div className="flex justify-center items-center h-64">
@@ -67,7 +92,7 @@ export const FeaturedPropertiesSection: React.FC = () => {
     );
   }
 
-  if (properties.length === 0) return null;
+  if (!properties || properties.length === 0) return null;
 
 
 

@@ -48,12 +48,13 @@ export default function GroupsPage() {
         try {
             const supabase = getSupabaseClient()
 
-            // First get the groups with properties
+            // Fetch groups with properties AND members in a single query (fixes N+1 problem)
             const { data: groupsData, error: groupsError } = await supabase
                 .from('property_groups')
                 .select(`
                     *,
-                    properties (title, location, price)
+                    properties (title, location, price),
+                    group_members (id, investment_amount)
                 `)
                 .order('created_at', { ascending: false })
 
@@ -62,40 +63,23 @@ export default function GroupsPage() {
                 throw groupsError
             }
 
-            // Then get members for each group
-            const groupsWithMembers = await Promise.all(
-                (groupsData as any[] || []).map(async (group) => {
-                    const { data: members, error: membersError } = await supabase
-                        .from('group_members')
-                        .select('id, investment_amount')
-                        .eq('group_id', group.id)
+            // Process data locally (no additional queries needed)
+            const groupsWithMembers = (groupsData as any[] || []).map((group) => {
+                const members = group.group_members || []
+                const currentAmount = members.reduce((sum: number, member: any) =>
+                    sum + (member.investment_amount || 0), 0)
 
-                    if (membersError) {
-                        console.error('Error fetching members:', membersError)
-                        return {
-                            ...group,
-                            group_members: [],
-                            _count: { group_members: 0 },
-                            current_amount: 0
-                        }
-                    }
+                // Compute status dynamically if not present or to ensure correctness
+                const isFull = (group.filled_slots || 0) >= (group.total_slots || 5)
+                const computedStatus = group.is_locked ? 'closed' : (isFull ? 'full' : 'open')
 
-                    const currentAmount = (members as any[])?.reduce((sum, member) =>
-                        sum + (member.investment_amount || 0), 0) || 0
-
-                    // Compute status dynamically if not present or to ensure correctness
-                    const isFull = (group.filled_slots || 0) >= (group.total_slots || 5)
-                    const computedStatus = group.is_locked ? 'closed' : (isFull ? 'full' : 'open')
-
-                    return {
-                        ...group,
-                        status: group.status || computedStatus,
-                        group_members: members || [],
-                        _count: { group_members: members?.length || 0 },
-                        current_amount: currentAmount
-                    }
-                })
-            )
+                return {
+                    ...group,
+                    status: group.status || computedStatus,
+                    _count: { group_members: members.length },
+                    current_amount: currentAmount
+                }
+            })
 
             setGroups(groupsWithMembers as PropertyGroup[])
 

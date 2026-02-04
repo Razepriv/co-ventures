@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export const dynamic = 'force-dynamic'
+// Cities rarely change - cache for 5 minutes
+export const revalidate = 300
 
 export async function GET(request: NextRequest) {
     try {
@@ -26,7 +27,14 @@ export async function GET(request: NextRequest) {
 
         if (error) throw error
 
-        return NextResponse.json({ cities: cities || [] })
+        return NextResponse.json(
+            { cities: cities || [] },
+            {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+                },
+            }
+        )
     } catch (error: any) {
         console.error('Error fetching cities:', error)
         return NextResponse.json(

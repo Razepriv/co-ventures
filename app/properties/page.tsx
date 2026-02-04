@@ -17,6 +17,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce'
 import { useRealtimeSubscription } from '@/lib/hooks/useRealtimeSubscription'
 import { useLocalStorage } from '@/lib/hooks/useLocalStorage'
 import { useCurrency } from '@/lib/contexts/CurrencyContext'
+import { useCities } from '@/lib/hooks/useAdminData'
 import { toast } from 'sonner'
 
 interface Property {
@@ -38,6 +39,20 @@ interface Property {
   categories: { name: string }
 }
 
+// Fallback cities list
+const FALLBACK_CITIES = [
+  { id: 'new-delhi', name: 'New Delhi' },
+  { id: 'mumbai', name: 'Mumbai' },
+  { id: 'bangalore', name: 'Bangalore' },
+  { id: 'hyderabad', name: 'Hyderabad' },
+  { id: 'chennai', name: 'Chennai' },
+  { id: 'kolkata', name: 'Kolkata' },
+  { id: 'pune', name: 'Pune' },
+  { id: 'ahmedabad', name: 'Ahmedabad' },
+  { id: 'gurgaon', name: 'Gurgaon' },
+  { id: 'noida', name: 'Noida' },
+]
+
 function PropertiesContent() {
   const searchParams = useSearchParams()
   const [properties, setProperties] = useState<Property[]>([])
@@ -48,7 +63,10 @@ function PropertiesContent() {
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('available')
   const [priceRange, setPriceRange] = useState('all')
-  const [citiesList, setCitiesList] = useState<{ id: string; name: string }[]>([])
+  
+  // Use SWR hook for cities - cached for instant loads
+  const { data: citiesData } = useCities()
+  const citiesList = citiesData && citiesData.length > 0 ? citiesData : FALLBACK_CITIES
 
   // Set initial filters from URL
   useEffect(() => {
@@ -71,36 +89,6 @@ function PropertiesContent() {
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
-
-  // Fetch cities for filter dropdown
-  useEffect(() => {
-    async function fetchCities() {
-      try {
-        const response = await fetch('/api/search/cities')
-        const data = await response.json()
-        if (data.cities && data.cities.length > 0) {
-          setCitiesList(data.cities)
-        } else {
-          // Fallback cities
-          setCitiesList([
-            { id: 'new-delhi', name: 'New Delhi' },
-            { id: 'mumbai', name: 'Mumbai' },
-            { id: 'bangalore', name: 'Bangalore' },
-            { id: 'hyderabad', name: 'Hyderabad' },
-            { id: 'chennai', name: 'Chennai' },
-            { id: 'kolkata', name: 'Kolkata' },
-            { id: 'pune', name: 'Pune' },
-            { id: 'ahmedabad', name: 'Ahmedabad' },
-            { id: 'gurgaon', name: 'Gurgaon' },
-            { id: 'noida', name: 'Noida' },
-          ])
-        }
-      } catch (error) {
-        console.error('Error fetching cities:', error)
-      }
-    }
-    fetchCities()
-  }, [])
 
   // Real-time subscription for property updates with 1s debounce to prevent rapid refetches
   useRealtimeSubscription<Property>({
@@ -154,7 +142,7 @@ function PropertiesContent() {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedCity)
         if (isUUID) {
           // Get city name from citiesList to also filter by city text field
-          const cityName = citiesList.find(c => c.id === selectedCity)?.name
+          const cityName = citiesList.find((c: { id: string; name: string }) => c.id === selectedCity)?.name
           if (cityName) {
             // Filter by either city_id OR city name (for legacy properties)
             query = query.or(`city_id.eq.${selectedCity},city.ilike.%${cityName}%`)
@@ -262,7 +250,7 @@ function PropertiesContent() {
 
     // Client-side city filter (backup in case DB filter didn't work)
     if (selectedCity !== 'all') {
-      const cityName = citiesList.find(c => c.id === selectedCity)?.name?.toLowerCase() || selectedCity.toLowerCase()
+      const cityName = citiesList.find((c: { id: string; name: string }) => c.id === selectedCity)?.name?.toLowerCase() || selectedCity.toLowerCase()
       filtered = filtered.filter(property =>
         property.city?.toLowerCase().includes(cityName)
       )
@@ -469,7 +457,7 @@ function PropertiesContent() {
                     )}
                     {selectedCity !== 'all' && (
                       <Badge variant="outline" className="flex items-center gap-1">
-                        City: {citiesList.find(c => c.id === selectedCity)?.name || selectedCity}
+                        City: {citiesList.find((c: { id: string; name: string }) => c.id === selectedCity)?.name || selectedCity}
                         <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCity('all')} />
                       </Badge>
                     )}

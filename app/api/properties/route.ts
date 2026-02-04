@@ -1,13 +1,14 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
-  successResponse,
   handleApiError,
   getPaginationParams,
   createPaginatedResponse,
 } from '@/lib/api/utils'
 
-export const dynamic = 'force-dynamic'
+// Use ISR - revalidate every 30 seconds
+// Removed force-dynamic which was conflicting with revalidate
+export const revalidate = 30
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,7 +63,15 @@ export async function GET(request: NextRequest) {
       limit
     )
 
-    return successResponse(paginatedResponse)
+    // Return response with cache headers
+    return NextResponse.json(
+      { success: true, data: paginatedResponse },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        },
+      }
+    )
   } catch (error) {
     return handleApiError(error)
   }
