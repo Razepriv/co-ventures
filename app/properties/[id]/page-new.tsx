@@ -647,21 +647,7 @@ export default function PropertyDetailsPage({ params }: { params: { id: string }
                   </CardContent>
                 </Card>
 
-                {/* Contact Agent */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Contact Agent</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Input placeholder="Your Name" />
-                    <Input type="email" placeholder="Email" />
-                    <Input type="tel" placeholder="Phone" />
-                    <Button className="w-full">
-                      <Mail className="w-4 h-4 mr-2" />
-                      Request Callback
-                    </Button>
-                  </CardContent>
-                </Card>
+
               </div>
             </div>
           </div>

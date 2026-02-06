@@ -185,7 +185,8 @@ export default function ContactsPage() {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
-                const config = statusConfig[row.original.status]
+                const status = row.original.status as keyof typeof statusConfig
+                const config = statusConfig[status] || statusConfig.new
                 const Icon = config.icon
                 return (
                     <Badge variant="outline" className={config.color}>
