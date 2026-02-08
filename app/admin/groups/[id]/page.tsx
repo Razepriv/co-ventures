@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/Badge'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import { ArrowLeft, Users, DollarSign, Trash2, UserPlus, Mail, Phone, Search, Loader2 } from 'lucide-react'
+import { ArrowLeft, Users, DollarSign, Trash2, UserPlus, Mail, Phone, Search, Loader2, Pencil, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
@@ -61,6 +61,8 @@ export default function GroupDetailPage() {
     })
     const [userSuggestions, setUserSuggestions] = useState<any[]>([])
     const [isSearching, setIsSearching] = useState(false)
+    const [editingMemberId, setEditingMemberId] = useState<string | null>(null)
+    const [editInvestmentAmount, setEditInvestmentAmount] = useState('')
 
     // Handle user search
     const searchUsers = useCallback(async (query: string) => {
@@ -303,6 +305,43 @@ export default function GroupDetailPage() {
             console.error('Error removing member:', error)
             toast.error('Failed to remove member')
         }
+    }
+
+    async function updateMemberInvestment(memberId: string) {
+        const amount = parseFloat(editInvestmentAmount)
+        if (isNaN(amount) || amount <= 0) {
+            toast.error('Please enter a valid investment amount')
+            return
+        }
+
+        try {
+            const supabase = getSupabaseClient()
+            const { error } = await supabase
+                .from('group_members')
+                // @ts-ignore
+                .update({ investment_amount: amount })
+                .eq('id', memberId)
+
+            if (error) throw error
+
+            toast.success('Investment amount updated')
+            setEditingMemberId(null)
+            setEditInvestmentAmount('')
+            fetchGroupData()
+        } catch (error) {
+            console.error('Error updating investment:', error)
+            toast.error('Failed to update investment amount')
+        }
+    }
+
+    function startEditingMember(member: GroupMember) {
+        setEditingMemberId(member.id)
+        setEditInvestmentAmount(member.investment_amount?.toString() || '')
+    }
+
+    function cancelEditingMember() {
+        setEditingMemberId(null)
+        setEditInvestmentAmount('')
     }
 
     const formatCurrency = (amount: number) => {
@@ -577,9 +616,48 @@ export default function GroupDetailPage() {
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="text-right">
-                                            <p className="font-semibold text-coral">
-                                                {formatCurrency(member.investment_amount)}
-                                            </p>
+                                            {editingMemberId === member.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        value={editInvestmentAmount}
+                                                        onChange={(e) => setEditInvestmentAmount(e.target.value)}
+                                                        className="w-32 h-8 text-sm"
+                                                        min={group.minimum_investment}
+                                                        autoFocus
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
+                                                        onClick={() => updateMemberInvestment(member.id)}
+                                                    >
+                                                        <Check className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 p-0 text-gray-500 hover:bg-gray-100"
+                                                        onClick={cancelEditingMember}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-coral">
+                                                        {formatCurrency(member.investment_amount)}
+                                                    </p>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-6 w-6 p-0 text-gray-400 hover:text-coral"
+                                                        onClick={() => startEditingMember(member)}
+                                                    >
+                                                        <Pencil className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            )}
                                             <p className="text-xs text-gray-500">
                                                 {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
                                             </p>

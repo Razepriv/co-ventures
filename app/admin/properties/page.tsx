@@ -56,12 +56,35 @@ export default function PropertiesPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           toast.success('New property added!')
+          fetchProperties() // Full refresh for new properties
         } else if (payload.eventType === 'UPDATE') {
-          toast.info('Property updated')
+          const updatedProperty = payload.new as any
+          // Optimistically update the specific property in state
+          setProperties(prev => prev.map(p => {
+            if (p.id === updatedProperty.id) {
+              // Update only the changed fields, preserving joined data
+              return {
+                ...p,
+                ...updatedProperty,
+                // Keep the joined relations as they won't be in the payload
+                categories: p.categories,
+                property_images: p.property_images
+              }
+            }
+            return p
+          }))
+          // Update stats if status changed
+          if (updatedProperty.status) {
+            setStats(prev => ({
+              ...prev,
+              featured: properties.filter(p => p.id === updatedProperty.id ? updatedProperty.is_featured : p.is_featured).length,
+              available: properties.filter(p => p.id === updatedProperty.id ? updatedProperty.status === 'available' : p.status === 'available').length
+            }))
+          }
         } else if (payload.eventType === 'DELETE') {
           toast.info('Property deleted')
+          fetchProperties() // Full refresh for deletions
         }
-        fetchProperties()
       })
       .subscribe()
 

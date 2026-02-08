@@ -156,12 +156,40 @@ export function NotificationBell() {
 
         let targetLink = notification.link
 
-        // Smart linking using metadata
+        // Smart linking using metadata - navigate to specific records
         if (notification.metadata) {
+            // Enquiry notifications
             if ((notification.type === 'enquiry' || notification.type === 'new_enquiry' || notification.type === 'enquiry_update') && notification.metadata.enquiry_id) {
                 targetLink = `/admin/enquiries/${notification.metadata.enquiry_id}`
             }
-            // Add other smart links as needed
+            // Contact form submissions
+            else if ((notification.type === 'contact' || notification.type === 'contact_submission') && notification.metadata.contact_id) {
+                targetLink = `/admin/contacts/${notification.metadata.contact_id}`
+            }
+            // Group member notifications
+            else if ((notification.type === 'group_member' || notification.type === 'group_member_added') && notification.metadata.group_id) {
+                targetLink = `/admin/groups/${notification.metadata.group_id}`
+            }
+            // Lead notifications
+            else if ((notification.type === 'lead' || notification.type === 'new_lead') && notification.metadata.lead_id) {
+                targetLink = `/admin/leads/${notification.metadata.lead_id}`
+            }
+            // User registration notifications
+            else if ((notification.type === 'new_user' || notification.type === 'user_registration') && notification.metadata.user_id) {
+                targetLink = `/admin/users/${notification.metadata.user_id}`
+            }
+            // Property notifications
+            else if ((notification.type === 'new_property' || notification.type === 'property_update' || notification.type === 'property_created') && notification.metadata.property_id) {
+                targetLink = `/admin/properties/${notification.metadata.property_id}`
+            }
+            // Blog notifications
+            else if ((notification.type === 'new_blog' || notification.type === 'blog_created') && notification.metadata.blog_id) {
+                targetLink = `/admin/blog/${notification.metadata.blog_id}`
+            }
+            // Testimonial notifications
+            else if ((notification.type === 'new_testimonial') && notification.metadata.testimonial_id) {
+                targetLink = `/admin/testimonials/${notification.metadata.testimonial_id}`
+            }
         }
 
         if (targetLink) {

@@ -1,7 +1,8 @@
 // @ts-nocheck
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, DollarSign, User, Mail, Phone, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -21,6 +22,7 @@ interface InvestNowModalProps {
 export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, minInvestment }: InvestNowModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState({
     full_name: user?.user_metadata?.full_name || '',
     email: user?.email || '',
@@ -28,6 +30,23 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
     investment_amount: minInvestment?.toString() || '',
     message: ''
   })
+
+  // For SSR compatibility - only render portal after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -127,8 +146,8 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-coral to-coral-light p-6 text-white">
@@ -156,7 +175,7 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
               <p className="text-sm text-charcoal">
                 <strong>Note:</strong> You&apos;re submitting as a guest. Consider{' '}
                 <a href="/auth/login" className="text-coral hover:underline">
-                  logging in
+                  login
                 </a>{' '}
                 for a better experience.
               </p>
@@ -268,4 +287,7 @@ export function InvestNowModal({ isOpen, onClose, propertyId, propertyTitle, min
       </div>
     </div>
   )
+
+  // Use Portal to render at document.body level for proper z-index stacking
+  return mounted ? createPortal(modalContent, document.body) : null
 }

@@ -37,6 +37,12 @@ export default function ContactPage() {
       return
     }
 
+    // Validate phone number
+    if (!formData.phone || formData.phone.replace(/\D/g, '').length < 10) {
+      toast.error('Please enter a valid phone number (at least 10 digits)')
+      return
+    }
+
     setLoading(true)
     try {
       const supabase = getSupabaseClient()
@@ -207,12 +213,13 @@ export default function ContactPage() {
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone">Phone Number *</Label>
                         <Input
                           id="phone"
                           value={formData.phone}
                           onChange={(e) => handleChange('phone', e.target.value)}
                           placeholder="+91 9876543210"
+                          required
                         />
                       </div>
 

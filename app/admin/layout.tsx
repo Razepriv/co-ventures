@@ -26,6 +26,7 @@ import {
   Mail,
 } from 'lucide-react'
 import Link from 'next/link'
+import { GlobalSearch } from '@/components/admin/GlobalSearch'
 import { Button } from '@/components/ui/Button'
 import {
   DropdownMenu,
@@ -213,16 +214,9 @@ export default function AdminLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <header className="flex h-16 items-center justify-between bg-white border-b border-gray-200 px-6 shadow-sm">
-          {/* Search */}
+          {/* Global Search */}
           <div className="flex flex-1 items-center">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search properties, users, enquiries..."
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:border-coral focus:bg-white focus:outline-none focus:ring-2 focus:ring-coral/20"
-              />
-            </div>
+            <GlobalSearch />
           </div>
 
           {/* Right Side */}

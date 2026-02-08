@@ -13,7 +13,10 @@ interface PropertyGroup {
     total_slots: number
     filled_slots: number
     is_locked: boolean
-    group_members?: Array<{ full_name: string; joined_at: string }>
+    minimum_investment?: number
+    target_amount?: number
+    total_invested?: number
+    group_members?: Array<{ full_name: string; joined_at: string; investment_amount?: number }>
 }
 
 interface GroupBuyingSectionProps {
@@ -30,7 +33,8 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
     const [formData, setFormData] = useState({
         full_name: '',
         email: '',
-        phone: ''
+        phone: '',
+        investment_amount: ''
     })
 
     // For SSR compatibility - only render portal after mount
@@ -44,8 +48,28 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
             return
         }
 
-        if (!formData.full_name || !formData.email) {
+        if (!formData.full_name || !formData.email || !formData.investment_amount) {
             toast.error('Please fill in all required fields')
+            return
+        }
+
+        const investmentAmount = parseFloat(formData.investment_amount)
+        if (isNaN(investmentAmount) || investmentAmount <= 0) {
+            toast.error('Please enter a valid investment amount')
+            return
+        }
+
+        // Validate min/max investment
+        if (group?.minimum_investment && investmentAmount < group.minimum_investment) {
+            toast.error(`Minimum investment is ₹${group.minimum_investment.toLocaleString('en-IN')}`)
+            return
+        }
+
+        const maxInvestment = group?.target_amount && group?.total_invested 
+            ? group.target_amount - group.total_invested 
+            : group?.target_amount || undefined
+        if (maxInvestment && investmentAmount > maxInvestment) {
+            toast.error(`Maximum investment allowed is ₹${maxInvestment.toLocaleString('en-IN')}`)
             return
         }
 
@@ -54,7 +78,10 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
             const response = await fetch(`/api/properties/${propertyId}/group`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    ...formData,
+                    investment_amount: parseFloat(formData.investment_amount)
+                })
             })
 
             const data = await response.json()
@@ -65,7 +92,7 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
 
             toast.success('Request submitted! You will be notified when approved.')
             setShowJoinModal(false)
-            setFormData({ full_name: '', email: '', phone: '' })
+            setFormData({ full_name: '', email: '', phone: '', investment_amount: '' })
             onJoinSuccess()
         } catch (error: any) {
             console.error('Error joining group:', error)
@@ -209,6 +236,28 @@ export function GroupBuyingSection({ propertyId, group, onJoinSuccess }: GroupBu
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     placeholder="Enter your phone number"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Investment Amount (₹) *
+                                </label>
+                                <Input
+                                    type="number"
+                                    value={formData.investment_amount}
+                                    onChange={(e) => setFormData({ ...formData, investment_amount: e.target.value })}
+                                    placeholder="Enter your investment amount"
+                                    min={group?.minimum_investment || 0}
+                                    max={group?.target_amount && group?.total_invested ? group.target_amount - group.total_invested : undefined}
+                                />
+                                {group?.minimum_investment && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Min: ₹{group.minimum_investment.toLocaleString('en-IN')}
+                                        {group?.target_amount && group?.total_invested && (
+                                            <> • Max: ₹{(group.target_amount - group.total_invested).toLocaleString('en-IN')}</>
+                                        )}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="flex gap-3">

@@ -39,20 +39,24 @@ export async function GET(
     }
 
     // Cast to proper type
-    const groupInfo = groupData as { id: string; total_slots: number; filled_slots: number; is_locked: boolean; property_id: string }
+    const groupInfo = groupData as { id: string; total_slots: number; filled_slots: number; is_locked: boolean; property_id: string; minimum_investment?: number; target_amount?: number }
 
     // Now get approved members for this group
     const { data: members, error: membersError } = await supabase
       .from('group_members')
-      .select('id, user_id, full_name, email, status, joined_at')
+      .select('id, user_id, full_name, email, status, joined_at, investment_amount')
       .eq('group_id', groupInfo.id)
       .eq('status', 'approved')
 
     if (membersError) throw membersError
 
+    // Calculate total invested
+    const totalInvested = (members || []).reduce((sum, m: any) => sum + (m.investment_amount || 0), 0)
+
     return NextResponse.json({
       group: {
         ...groupInfo,
+        total_invested: totalInvested,
         group_members: members || []
       }
     })
@@ -83,7 +87,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { full_name, email, phone } = body
+    const { full_name, email, phone, investment_amount } = body
 
     // Resolve property ID if it's a slug
     let propertyId = params.id
@@ -147,6 +151,7 @@ export async function POST(
         full_name,
         email,
         phone,
+        investment_amount: investment_amount || null,
         status: 'pending',
       })
       .select()
