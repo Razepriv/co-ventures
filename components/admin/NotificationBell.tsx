@@ -158,9 +158,9 @@ export function NotificationBell() {
 
         // Smart linking using metadata - navigate to specific records
         if (notification.metadata) {
-            // Enquiry notifications
+            // Enquiry notifications - go to leads page
             if ((notification.type === 'enquiry' || notification.type === 'new_enquiry' || notification.type === 'enquiry_update') && notification.metadata.enquiry_id) {
-                targetLink = `/admin/enquiries/${notification.metadata.enquiry_id}`
+                targetLink = `/admin/leads/${notification.metadata.enquiry_id}`
             }
             // Contact form submissions
             else if ((notification.type === 'contact' || notification.type === 'contact_submission') && notification.metadata.contact_id) {
@@ -190,6 +190,11 @@ export function NotificationBell() {
             else if ((notification.type === 'new_testimonial') && notification.metadata.testimonial_id) {
                 targetLink = `/admin/testimonials/${notification.metadata.testimonial_id}`
             }
+        }
+
+        // Fallback: redirect generic /admin/enquiries to /admin/leads
+        if (targetLink === '/admin/enquiries' || targetLink?.startsWith('/admin/enquiries/')) {
+            targetLink = targetLink.replace('/admin/enquiries', '/admin/leads')
         }
 
         if (targetLink) {

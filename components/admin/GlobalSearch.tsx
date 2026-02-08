@@ -98,7 +98,7 @@ export function GlobalSearch() {
             type: 'enquiry',
             title: e.full_name || 'Enquiry',
             subtitle: e.message?.substring(0, 50) + (e.message?.length > 50 ? '...' : ''),
-            link: `/admin/enquiries/${e.id}`
+            link: `/admin/leads/${e.id}`
           })
         })
       }

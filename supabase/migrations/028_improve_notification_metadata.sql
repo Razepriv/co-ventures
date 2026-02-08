@@ -114,17 +114,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4. Update enquiry notification to include direct link
+-- 4. Update enquiry notification to include direct link (goes to leads page)
 CREATE OR REPLACE FUNCTION public.create_new_enquiry_notification()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Notify admins about new enquiries with direct link
+  -- Notify admins about new enquiries with direct link to leads
   INSERT INTO public.notifications (type, title, message, link, target_audience, metadata)
   VALUES (
     'new_enquiry',
     'New Enquiry Received',
     'New enquiry from "' || NEW.name || '" regarding "' || COALESCE(NEW.subject, 'General Enquiry') || '".',
-    '/admin/enquiries/' || NEW.id,
+    '/admin/leads/' || NEW.id,
     'admin',
     jsonb_build_object(
       'enquiry_id', NEW.id,

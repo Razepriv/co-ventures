@@ -148,7 +148,7 @@ export function useEnquiryNotifications(enabled: boolean = true) {
         action: {
           label: 'View',
           onClick: () => {
-            window.location.href = `/admin/enquiries/${enquiry.id}`
+            window.location.href = `/admin/leads/${enquiry.id}`
           },
         },
       })

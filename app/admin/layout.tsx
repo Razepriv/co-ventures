@@ -99,7 +99,7 @@ export default function AdminLayout({
           type: 'enquiry',
           title: 'New Enquiry',
           message: `${e.full_name} sent an enquiry`,
-          link: '/admin/enquiries',
+          link: '/admin/leads',
           is_read: e.status === 'resolved',
           created_at: e.created_at,
         }))
@@ -265,7 +265,7 @@ export default function AdminLayout({
                       notifications.map((notif) => (
                         <Link
                           key={notif.id}
-                          href={`/admin/enquiries/${notif.id}`}
+                          href={`/admin/leads/${notif.id}`}
                           onClick={() => setShowNotifications(false)}
                           className={`block px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors ${!notif.is_read ? 'bg-coral/5' : ''
                             }`}
@@ -291,11 +291,11 @@ export default function AdminLayout({
                   </div>
 
                   <Link
-                    href="/admin/enquiries"
+                    href="/admin/leads"
                     onClick={() => setShowNotifications(false)}
                     className="block text-center py-3 text-sm text-coral font-medium hover:bg-gray-50 border-t"
                   >
-                    View All Enquiries
+                    View All Leads & Enquiries
                   </Link>
                 </div>
               )}
